@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iZO Data Quality Agent — Internal Architecture Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#EDF2F7;color:#333}
+code,pre,.mono{font-family:'JetBrains Mono','Fira Code',monospace}
+
+/* Improzo Blue Theme Tokens */
+:root{
+  --blue:#1E82BD;--blue-light:#3A9BD5;--blue-dark:#0A5081;--blue-bg:#E8F4FD;
+  --navy:#28426D;--navy-deep:#0A5081;
+  --bg:#EDF2F7;--card:#fff;--border:#D9E2EC;
+  --text:#333;--muted:#666;--light:#999;
+  --success:#10B981;--warn:#F59E0B;--error:#EF4444;
+  --purple:#8B5CF6;--orange:#EA580C;
+  --code-bg:#0F172A;--code-text:#E2E8F0;
+  --code-comment:#64748B;--code-keyword:#7DD3FC;--code-string:#86EFAC;
+  --code-func:#C4B5FD;--code-num:#FCD34D;--code-type:#F9A8D4;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#A0AEC0;border-radius:3px}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes flowRight{0%{left:-20%;opacity:0}30%{opacity:1}70%{opacity:1}100%{left:120%;opacity:0}}
+@keyframes codeType{from{width:0}to{width:100%}}
+
+/* Layout */
+.page{display:flex;min-height:100vh}
+.sidebar{width:280px;min-width:280px;background:linear-gradient(180deg,var(--navy-deep),#062D4A);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100}
+.main{margin-left:280px;flex:1;min-height:100vh}
+
+/* Sidebar Styles */
+.sidebar-header{padding:24px 22px 20px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sidebar-logo{display:flex;align-items:center;gap:12px}
+.sidebar-logo-icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--blue),var(--blue-light));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff}
+.sidebar-logo-text h3{font-size:15px;color:#fff;letter-spacing:.5px}
+.sidebar-logo-text span{font-size:9px;color:#7BA3C9;letter-spacing:2px;text-transform:uppercase}
+
+.sidebar-nav{padding:12px 0}
+.sidebar-section{padding:6px 22px;font-size:10px;font-weight:600;color:#7BA3C9;text-transform:uppercase;letter-spacing:1.5px;margin-top:12px}
+.sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 22px;font-size:13px;color:#A0B4CC;cursor:pointer;transition:all .2s;border-left:3px solid transparent;text-decoration:none}
+.sidebar-link:hover{color:#fff;background:rgba(30,130,189,.1)}
+.sidebar-link.active{color:#fff;background:rgba(30,130,189,.2);border-left-color:var(--blue-light);font-weight:600}
+.sidebar-link .icon{width:20px;text-align:center;font-size:15px}
+.sidebar-link .badge{margin-left:auto;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:700;background:var(--blue);color:#fff}
+
+/* Top Bar */
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:14px 32px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50}
+.breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.breadcrumb .sep{color:var(--light)}
+.breadcrumb .current{font-weight:600;color:var(--navy)}
+
+/* Content */
+.content{padding:32px}
+.section{margin-bottom:32px;animation:fadeUp .5s ease-out both}
+.section:nth-child(2){animation-delay:.1s}
+.section:nth-child(3){animation-delay:.2s}
+.section:nth-child(4){animation-delay:.3s}
+
+/* Cards */
+.card{background:var(--card);border-radius:14px;border:1px solid var(--border);overflow:hidden}
+.card-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.card-header h3{font-size:16px;font-weight:700;color:var(--navy)}
+.card-header .subtitle{font-size:12px;color:var(--muted);margin-top:2px}
+.card-body{padding:24px}
+
+/* Phase Cards */
+.phase-card{border-left:4px solid var(--blue);margin-bottom:0}
+.phase-card.plan{border-left-color:var(--purple)}
+.phase-card.tool{border-left-color:var(--blue)}
+.phase-card.reflect{border-left-color:var(--warn)}
+.phase-card.act{border-left-color:var(--success)}
+
+.phase-tag{display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.phase-tag.plan{background:#F3F0FF;color:var(--purple)}
+.phase-tag.tool{background:var(--blue-bg);color:var(--blue)}
+.phase-tag.reflect{background:#FFFBEB;color:var(--warn)}
+.phase-tag.act{background:#ECFDF5;color:var(--success)}
+
+/* Code Blocks */
+.code-block{background:var(--code-bg);border-radius:10px;overflow:hidden;margin:12px 0;border:1px solid #1E293B}
+.code-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#1E293B;border-bottom:1px solid #334155}
+.code-header .lang{font-size:10px;font-weight:700;color:var(--blue-light);text-transform:uppercase;letter-spacing:1px}
+.code-header .file{font-size:11px;color:#94A3B8;font-family:'JetBrains Mono',monospace}
+.code-header .copy-btn{padding:3px 10px;border-radius:4px;background:#334155;color:#94A3B8;border:none;font-size:10px;cursor:pointer;font-family:'JetBrains Mono',monospace}
+.code-header .copy-btn:hover{background:#475569;color:#fff}
+pre.code{padding:16px 20px;margin:0;overflow-x:auto;font-size:12.5px;line-height:1.7;color:var(--code-text);white-space:pre;tab-size:2}
+pre.code .kw{color:var(--code-keyword)}
+pre.code .str{color:var(--code-string)}
+pre.code .fn{color:var(--code-func)}
+pre.code .cm{color:var(--code-comment);font-style:italic}
+pre.code .num{color:var(--code-num)}
+pre.code .tp{color:var(--code-type)}
+pre.code .op{color:#F472B6}
+pre.code .api{color:#FCD34D;font-weight:600}
+
+/* Flow Diagram */
+.flow{display:flex;align-items:center;gap:0;padding:24px 0;justify-content:center;flex-wrap:nowrap}
+.flow-step{display:flex;flex-direction:column;align-items:center;gap:8px;position:relative}
+.flow-icon{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;border:2px solid;transition:all .3s}
+.flow-icon:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.15)}
+.flow-label{font-size:10px;font-weight:700;letter-spacing:.5px;text-align:center}
+.flow-arrow{width:50px;height:2px;position:relative;overflow:hidden;margin-bottom:24px}
+.flow-arrow::after{content:'';position:absolute;width:30%;height:100%;background:rgba(255,255,255,.6);animation:flowRight 2s ease-in-out infinite}
+.flow-sub{font-size:9px;color:var(--muted);text-align:center;max-width:90px}
+
+/* Step List */
+.step-list{display:grid;gap:12px}
+.step-item{display:flex;gap:14px;padding:14px 18px;border-radius:10px;border:1px solid var(--border);background:#FAFBFC;transition:all .2s}
+.step-item:hover{background:var(--blue-bg);border-color:var(--blue)44}
+.step-num{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:2px}
+.step-content h4{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.step-content p{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* API Call Cards */
+.api-call{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:10px 0}
+.api-call-header{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#F8FAFC;border-bottom:1px solid var(--border)}
+.api-method{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.api-method.get{background:#DBEAFE;color:#2563EB}
+.api-method.post{background:#ECFDF5;color:#059669}
+.api-method.put{background:#FFF7ED;color:#EA580C}
+.api-endpoint{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--navy)}
+.api-body{padding:14px 16px}
+
+/* Architecture Diagram */
+.arch-diagram{background:var(--code-bg);border-radius:12px;padding:32px;color:var(--code-text);font-family:'JetBrains Mono',monospace;font-size:11px;overflow-x:auto;line-height:1.6;border:1px solid #1E293B}
+.arch-diagram .highlight{color:var(--code-keyword)}
+.arch-diagram .green{color:var(--code-string)}
+.arch-diagram .yellow{color:var(--code-num)}
+.arch-diagram .pink{color:var(--code-type)}
+.arch-diagram .dim{color:#475569}
+
+/* State Machine */
+.state-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:1px solid var(--border);margin:6px 0;background:#FAFBFC}
+.state-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.state-name{font-size:12px;font-weight:600;color:var(--navy);min-width:120px}
+.state-desc{font-size:11px;color:var(--muted);flex:1}
+.state-transition{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--blue);background:var(--blue-bg);padding:2px 8px;border-radius:4px}
+
+/* Metrics */
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.metric{padding:16px 18px;border-radius:10px;border:1px solid var(--border);background:#FAFBFC}
+.metric-value{font-size:24px;font-weight:800;margin-bottom:2px}
+.metric-label{font-size:11px;color:var(--muted)}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.3px}
+.badge.blue{background:var(--blue-bg);color:var(--blue)}
+.badge.green{background:#ECFDF5;color:var(--success)}
+.badge.orange{background:#FFF7ED;color:var(--orange)}
+.badge.purple{background:#F3F0FF;color:var(--purple)}
+.badge.red{background:#FEF2F2;color:var(--error)}
+
+/* Collapsible */
+.collapsible{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:8px 0}
+.collapsible-trigger{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;cursor:pointer;background:#FAFBFC;transition:all .2s;font-size:13px;font-weight:600;color:var(--navy)}
+.collapsible-trigger:hover{background:var(--blue-bg)}
+.collapsible-trigger .arrow{transition:transform .2s;font-size:12px;color:var(--muted)}
+.collapsible-trigger.open .arrow{transform:rotate(90deg)}
+.collapsible-body{padding:0 18px;max-height:0;overflow:hidden;transition:max-height .4s ease-out,padding .3s}
+.collapsible-body.open{max-height:3000px;padding:18px}
+
+/* Grid */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+
+/* HITL Banner */
+.hitl-banner{background:linear-gradient(135deg,#FFF7ED,#FEF3C7);border:2px solid #FB923C44;border-radius:12px;padding:16px 22px;display:flex;align-items:center;gap:14px;margin:14px 0}
+.hitl-banner .icon{font-size:24px}
+.hitl-banner .text{font-size:12px;color:#92400E;line-height:1.5}
+.hitl-banner .text strong{color:var(--orange)}
+
+/* Responsive */
+@media(max-width:1200px){.grid-2{grid-template-columns:1fr}.metric-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="page">
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">iZ</div>
+      <div class="sidebar-logo-text">
+        <h3>iZO Platform</h3>
+        <span>by Improzo</span>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a class="sidebar-link" href="#overview"><span class="icon">📋</span> Agent Overview</a>
+    <a class="sidebar-link" href="#architecture"><span class="icon">🏗️</span> Internal Architecture</a>
+    <a class="sidebar-link" href="#state-machine"><span class="icon">⚙️</span> State Machine</a>
+    <div class="sidebar-section">Agentic Phases</div>
+    <a class="sidebar-link" href="#plan"><span class="icon">🧠</span> PLAN Phase <span class="badge">1</span></a>
+    <a class="sidebar-link" href="#tooluse"><span class="icon">🔧</span> TOOL USE Phase <span class="badge">2</span></a>
+    <a class="sidebar-link" href="#reflect"><span class="icon">💭</span> REFLECT Phase <span class="badge">3</span></a>
+    <a class="sidebar-link" href="#act"><span class="icon">⚡</span> ACT Phase <span class="badge">4</span></a>
+    <div class="sidebar-section">Integration</div>
+    <a class="sidebar-link" href="#apis"><span class="icon">🔌</span> API Calls Reference</a>
+    <a class="sidebar-link" href="#hitl"><span class="icon">👤</span> HITL Gate Logic</a>
+    <a class="sidebar-link" href="#config"><span class="icon">📝</span> Agent Config</a>
+  </nav>
+</aside>
+
+<!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+<div class="main">
+<div class="topbar">
+  <div class="breadcrumb">
+    <span>iZO Platform</span><span class="sep">›</span>
+    <span>Agent Registry</span><span class="sep">›</span>
+    <span class="current">🔍 Data Quality Agent — Deep Dive</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="badge green">● ACTIVE</span>
+    <span style="font-size:12px;color:var(--muted)">v2.4.1</span>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ═══════════ SECTION: OVERVIEW ═══════════ -->
+<div class="section" id="overview">
+  <div style="background:linear-gradient(135deg,var(--navy-deep),#062D4A);border-radius:16px;padding:32px 36px;margin-bottom:24px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:-30px;right:-30px;width:250px;height:250px;border-radius:50%;background:rgba(30,130,189,.08)"></div>
+    <div style="display:flex;gap:20px;align-items:center;margin-bottom:24px">
+      <div style="width:72px;height:72px;border-radius:18px;background:rgba(30,130,189,.2);border:2px solid rgba(30,130,189,.5);display:flex;align-items:center;justify-content:center;font-size:36px">🔍</div>
+      <div>
+        <h1 style="font-size:26px;font-weight:800;color:#fff;margin-bottom:4px">Data Quality Agent</h1>
+        <div style="font-size:14px;color:var(--blue-light);font-weight:600">Persona: Data Quality Engineer</div>
+        <div style="font-size:12px;color:#A0B4CC;margin-top:6px;max-width:600px;line-height:1.6">Continuously monitors data pipelines for anomalies, schema drift, and quality degradation. Auto-triages and resolves issues before they reach downstream consumers. Operates on a continuous PLAN → TOOL USE → REFLECT → ACT loop.</div>
+      </div>
+    </div>
+    <div class="metric-grid">
+      <div style="text-align:center"><div style="font-size:28px;font-weight:800;color:var(--blue-light)">847</div><div style="font-size:10px;color:#7BA3C9">Tasks Today</div></div>
+      <div style="text-align:center"><div style="font-size:28px;font-weight:800;color:#10B981">98.2%</div><div style="font-size:10px;color:#7BA3C9">Success Rate</div></div>
+      <div style="text-align:center"><div style="font-size:28px;font-weight:800;color:#fff">4</div><div style="font-size:10px;color:#7BA3C9">Connected Tools</div></div>
+      <div style="text-align:center"><div style="font-size:28px;font-weight:800;color:#EA580C">ACT</div><div style="font-size:10px;color:#7BA3C9">HITL Gate Phase</div></div>
+    </div>
+  </div>
+
+  <!-- Agentic Loop Visualization -->
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-header">
+      <div><h3>Agentic Execution Loop</h3><div class="subtitle">The DQ Agent continuously cycles through these 4 phases</div></div>
+      <span class="badge blue">Continuous Loop</span>
+    </div>
+    <div class="card-body">
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-icon" style="background:#F3F0FF;border-color:var(--purple)">🧠</div>
+          <div class="flow-label" style="color:var(--purple)">PLAN</div>
+          <div class="flow-sub">Assess pipelines<br>Prioritize by impact</div>
+        </div>
+        <div class="flow-arrow" style="background:linear-gradient(90deg,var(--purple),var(--blue))"></div>
+        <div class="flow-step">
+          <div class="flow-icon" style="background:var(--blue-bg);border-color:var(--blue)">🔧</div>
+          <div class="flow-label" style="color:var(--blue)">TOOL USE</div>
+          <div class="flow-sub">Execute checks<br>via platform APIs</div>
+        </div>
+        <div class="flow-arrow" style="background:linear-gradient(90deg,var(--blue),var(--warn))"></div>
+        <div class="flow-step">
+          <div class="flow-icon" style="background:#FFFBEB;border-color:var(--warn)">💭</div>
+          <div class="flow-label" style="color:var(--warn)">REFLECT</div>
+          <div class="flow-sub">Analyze findings<br>Classify severity</div>
+        </div>
+        <div class="flow-arrow" style="background:linear-gradient(90deg,var(--warn),var(--success))"></div>
+        <div class="flow-step">
+          <div class="flow-icon" style="background:#ECFDF5;border-color:var(--success)">⚡</div>
+          <div class="flow-label" style="color:var(--success)">ACT</div>
+          <div class="flow-sub">Remediate issues<br>Notify stakeholders</div>
+        </div>
+        <div class="flow-arrow" style="background:linear-gradient(90deg,var(--success),var(--orange))"></div>
+        <div class="flow-step">
+          <div class="flow-icon" style="background:#FFF7ED;border-color:var(--orange)">👤</div>
+          <div class="flow-label" style="color:var(--orange)">HITL</div>
+          <div class="flow-sub">Human approval<br>for high-impact</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION: INTERNAL ARCHITECTURE ═══════════ -->
+<div class="section" id="architecture">
+  <div class="card">
+    <div class="card-header">
+      <div><h3>🏗️ Internal Architecture</h3><div class="subtitle">How the DQ Agent is structured internally — modules, memory, and tool bindings</div></div>
+    </div>
+    <div class="card-body">
+      <div class="arch-diagram">
+<pre style="margin:0;font-size:11.5px;line-height:1.65">
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    <span class="highlight">iZO DATA QUALITY AGENT  v2.4.1</span>                         │
+│                    <span class="dim">Persona: Data Quality Engineer</span>                         │
+├──────────────────────┬──────────────────────┬───────────────────────────────┤
+│   <span class="yellow">AGENT CORE</span>          │   <span class="yellow">WORKING MEMORY</span>      │   <span class="yellow">TOOL BINDINGS</span>               │
+│                      │                      │                               │
+│  ┌─────────────┐     │  ┌────────────────┐  │  ┌───────────────────────┐    │
+│  │ <span class="green">Planner</span>     │     │  │ incident_queue │  │  │ <span class="pink">monte_carlo_client</span>    │    │
+│  │  └ cortex_   │     │  │ asset_registry │  │  │  ├ get_incidents()   │    │
+│  │    analyst   │     │  │ sla_tracker    │  │  │  ├ get_lineage()     │    │
+│  └──────┬──────┘     │  │ impact_scores  │  │  │  └ get_anomalies()   │    │
+│         │            │  │ phase_history  │  │  ├───────────────────────┤    │
+│  ┌──────▼──────┐     │  │ hitl_queue     │  │  │ <span class="pink">snowflake_client</span>      │    │
+│  │ <span class="green">Executor</span>    │     │  └────────────────┘  │  │  ├ run_dmf()          │    │
+│  │  └ tool_     │     │                      │  │  ├ query()            │    │
+│  │    router    │     │  ┌────────────────┐  │  │  ├ cortex_complete() │    │
+│  └──────┬──────┘     │  │ <span class="yellow">LONG-TERM</span>      │  │  │  └ snowpark_exec()   │    │
+│         │            │  │ rule_library   │  │  ├───────────────────────┤    │
+│  ┌──────▼──────┐     │  │ baseline_stats │  │  │ <span class="pink">enkrypt_ai_client</span>     │    │
+│  │ <span class="green">Reflector</span>   │     │  │ remediation_   │  │  │  ├ scan_phi_pii()    │    │
+│  │  └ cortex_   │     │  │   playbooks    │  │  │  └ classify_risk()   │    │
+│  │    complete  │     │  │ escalation_    │  │  ├───────────────────────┤    │
+│  └──────┬──────┘     │  │   thresholds   │  │  │ <span class="pink">collibra_client</span>       │    │
+│         │            │  └────────────────┘  │  │  ├ get_lineage()     │    │
+│  ┌──────▼──────┐     │                      │  │  ├ get_catalog()     │    │
+│  │ <span class="green">Actuator</span>    │     │  ┌────────────────┐  │  │  └ validate_cert()   │    │
+│  │  ├ auto_fix  │     │  │ <span class="yellow">HITL STATE</span>     │  │  ├───────────────────────┤    │
+│  │  ├ escalate  │     │  │ approval_gate  │  │  │ <span class="pink">slack_client</span>          │    │
+│  │  └ notify    │     │  │ pending_queue  │  │  │  └ send_alert()      │    │
+│  └─────────────┘     │  │ auto_approve_  │  │  ├───────────────────────┤    │
+│                      │  │   rules        │  │  │ <span class="pink">airflow_client</span>        │    │
+│                      │  └────────────────┘  │  │  └ trigger_dag()      │    │
+│                      │                      │  └───────────────────────┘    │
+├──────────────────────┴──────────────────────┴───────────────────────────────┤
+│  <span class="dim">Event Bus: iZO Orchestration Layer → agent.dq.inbox / agent.dq.outbox</span>    │
+└─────────────────────────────────────────────────────────────────────────────┘
+</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION: STATE MACHINE ═══════════ -->
+<div class="section" id="state-machine">
+  <div class="card">
+    <div class="card-header">
+      <div><h3>⚙️ Agent State Machine</h3><div class="subtitle">Internal state transitions that govern the DQ Agent's execution lifecycle</div></div>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;gap:6px">
+        <div class="state-row"><div class="state-dot" style="background:var(--purple)"></div><div class="state-name">IDLE</div><div class="state-desc">Agent is waiting for next scheduled scan or incoming event from orchestration layer</div><div class="state-transition">→ on(tick | event) → PLANNING</div></div>
+        <div class="state-row"><div class="state-dot" style="background:var(--purple)"></div><div class="state-name">PLANNING</div><div class="state-desc">Scanning registered data products, pulling SLA metadata, building priority queue</div><div class="state-transition">→ on(plan_ready) → EXECUTING</div></div>
+        <div class="state-row"><div class="state-dot" style="background:var(--blue)"></div><div class="state-name">EXECUTING</div><div class="state-desc">Running validation checks across Monte Carlo, Snowflake, Enkrypt AI, Collibra</div><div class="state-transition">→ on(checks_done) → REFLECTING</div></div>
+        <div class="state-row"><div class="state-dot" style="background:var(--warn)"></div><div class="state-name">REFLECTING</div><div class="state-desc">Correlating results, calculating blast radius, classifying severity</div><div class="state-transition">→ on(action_plan) → ACTING</div></div>
+        <div class="state-row"><div class="state-dot" style="background:var(--success)"></div><div class="state-name">ACTING</div><div class="state-desc">Executing auto-fixes, quarantining data, generating RCA, notifying teams</div><div class="state-transition">→ on(low_impact) → IDLE</div></div>
+        <div class="state-row"><div class="state-dot" style="background:var(--orange)"></div><div class="state-name">HITL_WAITING</div><div class="state-desc">High-impact action detected — waiting for human approval before proceeding</div><div class="state-transition">→ on(approved) → ACTING</div></div>
+        <div class="state-row"><div class="state-dot" style="background:var(--error)"></div><div class="state-name">ERROR</div><div class="state-desc">Unrecoverable tool failure — paused with alert sent to Observability Agent</div><div class="state-transition">→ on(restart) → IDLE</div></div>
+      </div>
+
+      <div class="code-block" style="margin-top:20px">
+        <div class="code-header"><span class="lang">Python</span><span class="file">agent_dq/state_machine.py</span></div>
+<pre class="code"><span class="kw">from</span> enum <span class="kw">import</span> <span class="tp">Enum</span>
+<span class="kw">from</span> izo.agent <span class="kw">import</span> <span class="tp">BaseAgent</span>, <span class="tp">AgentState</span>, <span class="tp">Transition</span>
+
+<span class="kw">class</span> <span class="tp">DQAgentState</span>(<span class="tp">Enum</span>):
+    IDLE         = <span class="str">"idle"</span>
+    PLANNING     = <span class="str">"planning"</span>
+    EXECUTING    = <span class="str">"executing"</span>
+    REFLECTING   = <span class="str">"reflecting"</span>
+    ACTING       = <span class="str">"acting"</span>
+    HITL_WAITING = <span class="str">"hitl_waiting"</span>
+    ERROR        = <span class="str">"error"</span>
+
+<span class="kw">class</span> <span class="tp">DataQualityAgent</span>(<span class="tp">BaseAgent</span>):
+    <span class="str">"""iZO Data Quality Agent — continuous monitoring loop."""</span>
+
+    TRANSITIONS = [
+        <span class="fn">Transition</span>(IDLE,         <span class="str">"tick"</span>,        PLANNING),
+        <span class="fn">Transition</span>(IDLE,         <span class="str">"event"</span>,       PLANNING),
+        <span class="fn">Transition</span>(PLANNING,     <span class="str">"plan_ready"</span>,  EXECUTING),
+        <span class="fn">Transition</span>(EXECUTING,    <span class="str">"checks_done"</span>, REFLECTING),
+        <span class="fn">Transition</span>(REFLECTING,   <span class="str">"action_plan"</span>, ACTING),
+        <span class="fn">Transition</span>(ACTING,       <span class="str">"low_impact"</span>,  IDLE),          <span class="cm"># auto-resolve</span>
+        <span class="fn">Transition</span>(ACTING,       <span class="str">"high_impact"</span>, HITL_WAITING),  <span class="cm"># needs human</span>
+        <span class="fn">Transition</span>(HITL_WAITING, <span class="str">"approved"</span>,    ACTING),
+        <span class="fn">Transition</span>(HITL_WAITING, <span class="str">"denied"</span>,      IDLE),
+        <span class="fn">Transition</span>(<span class="str">"*"</span>,           <span class="str">"error"</span>,       ERROR),
+        <span class="fn">Transition</span>(ERROR,        <span class="str">"restart"</span>,     IDLE),
+    ]
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="tp">self</span>, config: <span class="tp">AgentConfig</span>):
+        <span class="kw">super</span>().__init__(
+            agent_id=<span class="str">"agent.dq"</span>,
+            persona=<span class="str">"Data Quality Engineer"</span>,
+            schedule=config.scan_interval,  <span class="cm"># default: every 5 minutes</span>
+            hitl_gate=<span class="str">"ACT"</span>,
+            escalation_threshold=config.escalation_threshold,
+        )
+        <span class="tp">self</span>.mc_client  = <span class="fn">MonteCarloClient</span>(config.monte_carlo)
+        <span class="tp">self</span>.sf_client  = <span class="fn">SnowflakeClient</span>(config.snowflake)
+        <span class="tp">self</span>.ek_client  = <span class="fn">EnkryptAIClient</span>(config.enkrypt)
+        <span class="tp">self</span>.col_client = <span class="fn">CollibraClient</span>(config.collibra)</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PHASE 1: PLAN ═══════════ -->
+<div class="section" id="plan">
+  <div class="card phase-card plan">
+    <div class="card-header" style="background:#F9F7FF">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <span class="phase-tag plan">🧠 PHASE 1 — PLAN</span>
+          <span style="font-size:14px;font-weight:700;color:var(--navy)">Assess Pipeline Health</span>
+        </div>
+        <div class="subtitle">Scan all registered data products. Prioritize by business impact score and SLA proximity.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:20px">
+        The PLAN phase runs every 5 minutes (configurable). The agent queries Monte Carlo for active incidents, pulls freshness metadata from Snowflake's <code>ACCOUNT_USAGE</code> schema, and ranks all registered data assets by a composite score combining downstream consumer count, SLA proximity, and business impact tier.
+      </p>
+
+      <h4 style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px">Step-by-Step Execution</h4>
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-num" style="background:#F3F0FF;color:var(--purple)">1</div>
+          <div class="step-content">
+            <h4>Query Monte Carlo for Active Incidents</h4>
+            <p>Fetches all open incidents and anomaly alerts from Monte Carlo's REST API. Filters by severity (P1–P4) and maps each incident to its affected table/dataset in Snowflake.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num" style="background:#F3F0FF;color:var(--purple)">2</div>
+          <div class="step-content">
+            <h4>Pull Freshness Metadata from Snowflake</h4>
+            <p>Queries <code>SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS</code> and <code>ACCESS_HISTORY</code> to determine when each table was last loaded. Compares against registered SLA thresholds to flag stale assets.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num" style="background:#F3F0FF;color:var(--purple)">3</div>
+          <div class="step-content">
+            <h4>Rank Assets by Composite Impact Score</h4>
+            <p>Computes <code>impact_score = (downstream_consumers × 0.4) + (sla_urgency × 0.35) + (business_tier × 0.25)</code>. Business tier comes from Collibra's data product registry where each asset is tagged as Critical/High/Medium/Low.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Code: Plan Phase -->
+      <div class="code-block" style="margin-top:20px">
+        <div class="code-header"><span class="lang">Python</span><span class="file">agent_dq/phases/plan.py</span></div>
+<pre class="code"><span class="kw">async def</span> <span class="fn">plan</span>(<span class="tp">self</span>, ctx: <span class="tp">AgentContext</span>) -> <span class="tp">PlanResult</span>:
+    <span class="str">"""Phase 1: Assess pipeline health and build priority queue."""</span>
+
+    <span class="cm"># 1. Query Monte Carlo for active incidents</span>
+    incidents = <span class="kw">await</span> <span class="tp">self</span>.mc_client.<span class="api">get_incidents</span>(
+        status=<span class="str">"open"</span>,
+        severity=[<span class="str">"P1"</span>, <span class="str">"P2"</span>, <span class="str">"P3"</span>],
+        created_after=ctx.last_scan_time,
+    )
+    ctx.memory.set(<span class="str">"active_incidents"</span>, incidents)
+    <span class="fn">logger</span>.info(<span class="str">f"Monte Carlo: <span class="num">{len(incidents)}</span> active incidents found"</span>)
+
+    <span class="cm"># 2. Pull freshness metadata from Snowflake</span>
+    freshness = <span class="kw">await</span> <span class="tp">self</span>.sf_client.<span class="api">query</span>(<span class="str">"""
+        SELECT table_catalog, table_schema, table_name,
+               last_altered, bytes,
+               DATEDIFF('minute', last_altered, CURRENT_TIMESTAMP()) AS stale_minutes
+        FROM   SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS
+        WHERE  table_catalog = 'NOVARTIS_DW'
+          AND  deleted IS NULL
+        ORDER BY stale_minutes DESC
+    """</span>)
+
+    <span class="cm"># 3. Cross-reference with SLA registry</span>
+    sla_registry = <span class="kw">await</span> <span class="tp">self</span>.col_client.<span class="api">get_catalog</span>(
+        domain=<span class="str">"novartis-pharma"</span>,
+        asset_type=<span class="str">"DataProduct"</span>,
+        fields=[<span class="str">"name"</span>, <span class="str">"sla_minutes"</span>, <span class="str">"business_tier"</span>, <span class="str">"consumers"</span>],
+    )
+
+    <span class="cm"># 4. Compute composite impact score</span>
+    priority_queue = []
+    <span class="kw">for</span> asset <span class="kw">in</span> sla_registry:
+        consumers     = <span class="fn">len</span>(asset[<span class="str">"consumers"</span>])
+        stale_entry   = freshness.get(asset[<span class="str">"name"</span>])
+        sla_urgency   = <span class="fn">min</span>(<span class="num">1.0</span>, stale_entry.stale_minutes / asset[<span class="str">"sla_minutes"</span>]) <span class="kw">if</span> stale_entry <span class="kw">else</span> <span class="num">0</span>
+        business_tier = {<span class="str">"Critical"</span>:<span class="num">1.0</span>, <span class="str">"High"</span>:<span class="num">0.75</span>, <span class="str">"Medium"</span>:<span class="num">0.5</span>, <span class="str">"Low"</span>:<span class="num">0.25</span>}[asset[<span class="str">"business_tier"</span>]]
+
+        score = (consumers * <span class="num">0.40</span>) + (sla_urgency * <span class="num">0.35</span>) + (business_tier * <span class="num">0.25</span>)
+        priority_queue.append(<span class="fn">PriorityItem</span>(asset=asset, score=score, incidents=incidents.get(asset[<span class="str">"name"</span>], [])))
+
+    priority_queue.sort(key=<span class="kw">lambda</span> x: x.score, reverse=<span class="kw">True</span>)
+    ctx.memory.set(<span class="str">"priority_queue"</span>, priority_queue[:<span class="num">50</span>])  <span class="cm"># Top 50 per cycle</span>
+
+    <span class="kw">return</span> <span class="fn">PlanResult</span>(
+        assets_scanned=<span class="fn">len</span>(sla_registry),
+        incidents_found=<span class="fn">len</span>(incidents),
+        queue_depth=<span class="fn">len</span>(priority_queue),
+        top_asset=priority_queue[<span class="num">0</span>].asset[<span class="str">"name"</span>] <span class="kw">if</span> priority_queue <span class="kw">else</span> <span class="kw">None</span>,
+    )</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PHASE 2: TOOL USE ═══════════ -->
+<div class="section" id="tooluse">
+  <div class="card phase-card tool">
+    <div class="card-header" style="background:#F0F8FF">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <span class="phase-tag tool">🔧 PHASE 2 — TOOL USE</span>
+          <span style="font-size:14px;font-weight:700;color:var(--navy)">Execute Quality Checks</span>
+        </div>
+        <div class="subtitle">Run validation rules across all data layers using native platform APIs.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:20px">
+        For each asset in the priority queue, the agent dispatches tool-specific checks in parallel. It uses Monte Carlo's ML-based anomaly detection, Snowflake's built-in Data Metric Functions (DMFs), Enkrypt AI for PHI/PII scanning, and Collibra for lineage validation. All calls run concurrently via <code>asyncio.gather</code>.
+      </p>
+
+      <!-- Tool Call Cards -->
+      <h4 style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px">Tool-Specific API Calls</h4>
+
+      <div class="grid-2">
+        <!-- Monte Carlo -->
+        <div class="api-call">
+          <div class="api-call-header">
+            <span class="api-method get">GET</span>
+            <span class="api-endpoint">/api/v1/anomalies/detect</span>
+            <span class="badge blue" style="margin-left:auto">Monte Carlo</span>
+          </div>
+          <div class="api-body">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Runs ML-based anomaly detection on the specified table. Returns detected anomalies with confidence scores.</div>
+            <div class="code-block" style="margin:0">
+              <div class="code-header"><span class="lang">Python</span><span class="file">Tool Call</span></div>
+<pre class="code"><span class="cm"># Monte Carlo: ML Anomaly Detection</span>
+anomalies = <span class="kw">await</span> <span class="tp">self</span>.mc_client.<span class="api">get_anomalies</span>(
+    table_id=asset.mc_table_id,
+    lookback_hours=<span class="num">24</span>,
+    min_confidence=<span class="num">0.85</span>,
+    anomaly_types=[
+        <span class="str">"volume_change"</span>,     <span class="cm"># row count drift</span>
+        <span class="str">"freshness_breach"</span>,  <span class="cm"># SLA violation</span>
+        <span class="str">"schema_change"</span>,     <span class="cm"># column add/drop/type change</span>
+        <span class="str">"distribution_shift"</span>,<span class="cm"># statistical drift in KPIs</span>
+    ]
+)</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Snowflake DMF -->
+        <div class="api-call">
+          <div class="api-call-header">
+            <span class="api-method post">POST</span>
+            <span class="api-endpoint">SYSTEM$RUN_DMF()</span>
+            <span class="badge blue" style="margin-left:auto">Snowflake</span>
+          </div>
+          <div class="api-body">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Executes built-in Data Metric Functions: NULL_COUNT, DUPLICATE_COUNT, UNIQUE_COUNT, and custom DMFs.</div>
+            <div class="code-block" style="margin:0">
+              <div class="code-header"><span class="lang">SQL</span><span class="file">Snowflake DMF Calls</span></div>
+<pre class="code"><span class="cm">-- Execute built-in Data Metric Functions</span>
+<span class="kw">SELECT</span> *
+<span class="kw">FROM</span>   <span class="fn">TABLE</span>(<span class="api">SNOWFLAKE.CORE.NULL_COUNT</span>(
+         <span class="fn">REF</span>(NOVARTIS_DW.STAGING.TRX_CLAIMS, <span class="str">'HCP_ID'</span>)
+       ));
+
+<span class="kw">SELECT</span> *
+<span class="kw">FROM</span>   <span class="fn">TABLE</span>(<span class="api">SNOWFLAKE.CORE.DUPLICATE_COUNT</span>(
+         <span class="fn">REF</span>(NOVARTIS_DW.STAGING.TRX_CLAIMS, <span class="str">'CLAIM_ID'</span>)
+       ));
+
+<span class="cm">-- Custom DMF: Referential Integrity Check</span>
+<span class="kw">SELECT</span> *
+<span class="kw">FROM</span>   <span class="fn">TABLE</span>(<span class="api">NOVARTIS_DW.DMF.REF_INTEGRITY_CHECK</span>(
+         <span class="fn">REF</span>(STAGING.TRX_CLAIMS, <span class="str">'HCP_ID'</span>),
+         <span class="fn">REF</span>(MASTER.GOLDEN_HCP, <span class="str">'HCP_ID'</span>)
+       ));</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enkrypt AI -->
+        <div class="api-call">
+          <div class="api-call-header">
+            <span class="api-method post">POST</span>
+            <span class="api-endpoint">/api/v2/scan/phi-pii</span>
+            <span class="badge blue" style="margin-left:auto">Enkrypt AI</span>
+          </div>
+          <div class="api-body">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Scans columns for PHI/PII exposure. Checks for unmasked SSNs, patient names, DOBs, addresses in new or modified columns.</div>
+            <div class="code-block" style="margin:0">
+              <div class="code-header"><span class="lang">Python</span><span class="file">Tool Call</span></div>
+<pre class="code"><span class="cm"># Enkrypt AI: PHI/PII Scan</span>
+scan_result = <span class="kw">await</span> <span class="tp">self</span>.ek_client.<span class="api">scan_phi_pii</span>(
+    source=<span class="str">"snowflake://NOVARTIS_DW/STAGING"</span>,
+    tables=[asset.table_name],
+    scan_mode=<span class="str">"deep"</span>,       <span class="cm"># full column-level scan</span>
+    check_types=[
+        <span class="str">"ssn"</span>, <span class="str">"patient_name"</span>, <span class="str">"dob"</span>,
+        <span class="str">"address"</span>, <span class="str">"phone"</span>, <span class="str">"email"</span>,
+        <span class="str">"mrn"</span>,   <span class="cm"># Medical Record Number</span>
+        <span class="str">"npi"</span>,   <span class="cm"># National Provider Identifier</span>
+    ],
+    masking_policy=<span class="str">"novartis-hipaa-v3"</span>,
+)</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collibra -->
+        <div class="api-call">
+          <div class="api-call-header">
+            <span class="api-method get">GET</span>
+            <span class="api-endpoint">/rest/2.0/lineage/{assetId}</span>
+            <span class="badge blue" style="margin-left:auto">Collibra</span>
+          </div>
+          <div class="api-body">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Validates that data lineage is complete — every column in the target has a traceable source, and no unauthorized transformations exist.</div>
+            <div class="code-block" style="margin:0">
+              <div class="code-header"><span class="lang">Python</span><span class="file">Tool Call</span></div>
+<pre class="code"><span class="cm"># Collibra: Lineage Completeness Validation</span>
+lineage = <span class="kw">await</span> <span class="tp">self</span>.col_client.<span class="api">get_lineage</span>(
+    asset_id=asset.collibra_id,
+    direction=<span class="str">"BOTH"</span>,      <span class="cm"># upstream + downstream</span>
+    depth=<span class="num">5</span>,               <span class="cm"># max 5 hops</span>
+)
+<span class="cm"># Check: every target column has ≥1 source mapping</span>
+unmapped = [col <span class="kw">for</span> col <span class="kw">in</span> asset.columns
+            <span class="kw">if</span> col.name <span class="kw">not in</span> lineage.mapped_columns]
+<span class="cm"># Check: no unauthorized transforms in lineage path</span>
+unauthorized = lineage.<span class="fn">find_unauthorized_transforms</span>(
+    allowed_ops=ctx.config.allowed_transforms
+)</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Parallel Execution Orchestrator -->
+      <div class="code-block" style="margin-top:20px">
+        <div class="code-header"><span class="lang">Python</span><span class="file">agent_dq/phases/tool_use.py</span></div>
+<pre class="code"><span class="kw">async def</span> <span class="fn">tool_use</span>(<span class="tp">self</span>, ctx: <span class="tp">AgentContext</span>) -> <span class="tp">ToolUseResult</span>:
+    <span class="str">"""Phase 2: Execute quality checks in parallel across all tools."""</span>
+
+    queue = ctx.memory.get(<span class="str">"priority_queue"</span>)
+    all_findings = []
+
+    <span class="kw">for</span> asset <span class="kw">in</span> queue:
+        <span class="cm"># Run all 4 tool checks concurrently</span>
+        mc_task  = <span class="tp">self</span>._check_monte_carlo(asset)
+        sf_task  = <span class="tp">self</span>._check_snowflake_dmf(asset)
+        ek_task  = <span class="tp">self</span>._check_enkrypt_ai(asset)
+        col_task = <span class="tp">self</span>._check_collibra_lineage(asset)
+
+        results = <span class="kw">await</span> asyncio.<span class="fn">gather</span>(
+            mc_task, sf_task, ek_task, col_task,
+            return_exceptions=<span class="kw">True</span>,  <span class="cm"># don't fail-fast</span>
+        )
+
+        <span class="cm"># Aggregate findings per asset</span>
+        findings = <span class="fn">FindingSet</span>(asset=asset)
+        <span class="kw">for</span> result <span class="kw">in</span> results:
+            <span class="kw">if</span> <span class="fn">isinstance</span>(result, <span class="tp">Exception</span>):
+                findings.add_error(tool=result.tool, error=<span class="fn">str</span>(result))
+                ctx.<span class="fn">emit</span>(<span class="str">"tool_failure"</span>, tool=result.tool, asset=asset.name)
+            <span class="kw">else</span>:
+                findings.merge(result)
+
+        all_findings.append(findings)
+
+    ctx.memory.set(<span class="str">"findings"</span>, all_findings)
+    <span class="kw">return</span> <span class="fn">ToolUseResult</span>(
+        assets_checked=<span class="fn">len</span>(queue),
+        total_findings=<span class="fn">sum</span>(f.count <span class="kw">for</span> f <span class="kw">in</span> all_findings),
+        tool_failures=<span class="fn">sum</span>(<span class="num">1</span> <span class="kw">for</span> f <span class="kw">in</span> all_findings <span class="kw">if</span> f.has_errors),
+    )</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PHASE 3: REFLECT ═══════════ -->
+<div class="section" id="reflect">
+  <div class="card phase-card reflect">
+    <div class="card-header" style="background:#FFFDF5">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <span class="phase-tag reflect">💭 PHASE 3 — REFLECT</span>
+          <span style="font-size:14px;font-weight:700;color:var(--navy)">Analyze Results & Impact</span>
+        </div>
+        <div class="subtitle">Correlate findings across tools. Determine root cause and blast radius. Classify: auto-resolve vs. escalate.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:20px">
+        The Reflect phase is the "brain" of the agent. It uses Snowflake Cortex's <code>CORTEX.COMPLETE()</code> LLM function to correlate findings from different tools, identify root causes, calculate the blast radius (which downstream data products are impacted), and make the critical decision: can this be auto-resolved, or does it need human intervention?
+      </p>
+
+      <!-- Correlation Logic -->
+      <div class="code-block">
+        <div class="code-header"><span class="lang">Python</span><span class="file">agent_dq/phases/reflect.py</span></div>
+<pre class="code"><span class="kw">async def</span> <span class="fn">reflect</span>(<span class="tp">self</span>, ctx: <span class="tp">AgentContext</span>) -> <span class="tp">ReflectResult</span>:
+    <span class="str">"""Phase 3: Correlate, classify severity, decide action plan."""</span>
+
+    findings = ctx.memory.get(<span class="str">"findings"</span>)
+    action_items = []
+
+    <span class="kw">for</span> finding_set <span class="kw">in</span> findings:
+        asset = finding_set.asset
+
+        <span class="cm"># 1. Cross-reference Monte Carlo alerts with Snowflake query logs</span>
+        correlated = <span class="kw">await</span> <span class="tp">self</span>.<span class="fn">_correlate_with_query_history</span>(
+            mc_anomalies=finding_set.mc_anomalies,
+            sf_query_log=<span class="kw">await</span> <span class="tp">self</span>.sf_client.<span class="api">query</span>(<span class="str">f"""
+                SELECT query_text, error_message, execution_status,
+                       start_time, warehouse_name
+                FROM   SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+                WHERE  query_text ILIKE '%<span class="num">{asset.table_name}</span>%'
+                  AND  start_time > DATEADD('hour', -24, CURRENT_TIMESTAMP())
+                  AND  execution_status = 'FAIL'
+                ORDER BY start_time DESC LIMIT 50
+            """</span>)
+        )
+
+        <span class="cm"># 2. Map blast radius via Collibra lineage</span>
+        downstream = <span class="kw">await</span> <span class="tp">self</span>.col_client.<span class="api">get_lineage</span>(
+            asset_id=asset.collibra_id,
+            direction=<span class="str">"DOWNSTREAM"</span>,
+            depth=<span class="num">3</span>,
+        )
+        blast_radius = <span class="fn">BlastRadius</span>(
+            affected_products=downstream.data_products,
+            affected_kpis=downstream.kpi_definitions,
+            affected_consumers=downstream.consumer_teams,
+        )
+
+        <span class="cm"># 3. Use Cortex LLM for root cause analysis</span>
+        rca_prompt = <span class="tp">self</span>.<span class="fn">_build_rca_prompt</span>(finding_set, correlated, blast_radius)
+        rca = <span class="kw">await</span> <span class="tp">self</span>.sf_client.<span class="api">cortex_complete</span>(
+            model=<span class="str">"llama3.1-70b"</span>,
+            prompt=rca_prompt,
+            max_tokens=<span class="num">500</span>,
+        )
+
+        <span class="cm"># 4. Classify: auto-resolve vs. escalate to human</span>
+        severity = <span class="tp">self</span>.<span class="fn">_classify_severity</span>(finding_set, blast_radius)
+        <span class="cm">#   LOW    → auto-resolve (quarantine + fix)</span>
+        <span class="cm">#   MEDIUM → auto-resolve + notify team</span>
+        <span class="cm">#   HIGH   → requires HITL approval before acting</span>
+        <span class="cm">#   CRIT   → immediate HITL escalation + page on-call</span>
+
+        action_items.append(<span class="fn">ActionItem</span>(
+            asset=asset,
+            severity=severity,
+            root_cause=rca,
+            blast_radius=blast_radius,
+            requires_hitl=severity <span class="kw">in</span> (<span class="str">"HIGH"</span>, <span class="str">"CRITICAL"</span>),
+            remediation=<span class="tp">self</span>.<span class="fn">_select_remediation</span>(finding_set, severity),
+        ))
+
+    ctx.memory.set(<span class="str">"action_items"</span>, action_items)
+    <span class="kw">return</span> <span class="fn">ReflectResult</span>(
+        total_items=<span class="fn">len</span>(action_items),
+        hitl_required=<span class="fn">sum</span>(<span class="num">1</span> <span class="kw">for</span> a <span class="kw">in</span> action_items <span class="kw">if</span> a.requires_hitl),
+        auto_resolvable=<span class="fn">sum</span>(<span class="num">1</span> <span class="kw">for</span> a <span class="kw">in</span> action_items <span class="kw">if not</span> a.requires_hitl),
+    )</pre>
+      </div>
+
+      <!-- Severity Classification -->
+      <h4 style="font-size:14px;font-weight:700;color:var(--navy);margin:20px 0 12px">Severity Classification Matrix</h4>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:#F8FAFC">
+              <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border)">Severity</th>
+              <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border)">Criteria</th>
+              <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border)">Action</th>
+              <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border)">HITL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 14px"><span class="badge green">LOW</span></td><td style="padding:10px 14px;color:var(--text)">< 100 records, 0 downstream KPIs, known pattern</td><td style="padding:10px 14px;color:var(--muted)">Auto-quarantine + auto-fix</td><td style="padding:10px 14px;color:var(--success);font-weight:600">Not required</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 14px"><span class="badge blue">MEDIUM</span></td><td style="padding:10px 14px;color:var(--text)">100–5K records, ≤2 downstream KPIs affected</td><td style="padding:10px 14px;color:var(--muted)">Auto-quarantine + notify team</td><td style="padding:10px 14px;color:var(--success);font-weight:600">Not required</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 14px"><span class="badge orange">HIGH</span></td><td style="padding:10px 14px;color:var(--text)">> 5K records OR > 2 KPIs OR schema change</td><td style="padding:10px 14px;color:var(--muted)">Queue for human approval</td><td style="padding:10px 14px;color:var(--orange);font-weight:600">👤 Required</td></tr>
+            <tr><td style="padding:10px 14px"><span class="badge red">CRITICAL</span></td><td style="padding:10px 14px;color:var(--text)">Cross-system, regulatory impact, or Trust Agent flag</td><td style="padding:10px 14px;color:var(--muted)">Immediate escalation + page on-call</td><td style="padding:10px 14px;color:var(--error);font-weight:600">👤 Required + Escalation</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PHASE 4: ACT ═══════════ -->
+<div class="section" id="act">
+  <div class="card phase-card act">
+    <div class="card-header" style="background:#F0FFF4">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <span class="phase-tag act">⚡ PHASE 4 — ACT</span>
+          <span style="font-size:14px;font-weight:700;color:var(--navy)">Remediate & Notify</span>
+        </div>
+        <div class="subtitle">Execute automated fixes or escalate with full context. HITL gate active for high-impact actions.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <!-- HITL Banner -->
+      <div class="hitl-banner">
+        <div class="icon">👤</div>
+        <div class="text">
+          <strong>Human-in-the-Loop Gate Active at ACT Phase</strong><br>
+          Actions classified as HIGH or CRITICAL severity are queued for human approval. The agent pauses execution for that specific action item, enters <code>HITL_WAITING</code> state, and sends a structured approval request to the designated reviewer via Slack and the iZO HITL Operations dashboard.
+        </div>
+      </div>
+
+      <div class="code-block" style="margin-top:16px">
+        <div class="code-header"><span class="lang">Python</span><span class="file">agent_dq/phases/act.py</span></div>
+<pre class="code"><span class="kw">async def</span> <span class="fn">act</span>(<span class="tp">self</span>, ctx: <span class="tp">AgentContext</span>) -> <span class="tp">ActResult</span>:
+    <span class="str">"""Phase 4: Execute remediation with HITL gating for high-impact."""</span>
+
+    action_items = ctx.memory.get(<span class="str">"action_items"</span>)
+    results = []
+
+    <span class="kw">for</span> item <span class="kw">in</span> action_items:
+
+        <span class="cm"># ─── HITL GATE: Check if human approval is required ───</span>
+        <span class="kw">if</span> item.requires_hitl:
+            approval = <span class="kw">await</span> <span class="tp">self</span>.<span class="fn">request_hitl_approval</span>(
+                action=item.remediation.description,
+                severity=item.severity,
+                blast_radius=item.blast_radius.summary(),
+                root_cause=item.root_cause,
+                reviewer=<span class="tp">self</span>.<span class="fn">_get_reviewer</span>(item.severity),
+                timeout_minutes=<span class="num">30</span>,  <span class="cm"># auto-escalate after 30min</span>
+            )
+
+            <span class="kw">if</span> approval.status == <span class="str">"denied"</span>:
+                results.append(<span class="fn">ActionResult</span>(item, status=<span class="str">"blocked"</span>, reason=approval.comment))
+                <span class="kw">continue</span>
+            <span class="kw">elif</span> approval.status == <span class="str">"timeout"</span>:
+                <span class="cm"># Auto-escalate to VP</span>
+                <span class="kw">await</span> <span class="tp">self</span>.<span class="fn">escalate</span>(item, to=<span class="str">"vp_data"</span>, reason=<span class="str">"HITL timeout"</span>)
+                <span class="kw">continue</span>
+
+        <span class="cm"># ─── Execute Remediation Actions ───</span>
+        <span class="kw">match</span> item.remediation.action_type:
+
+            <span class="kw">case</span> <span class="str">"quarantine"</span>:
+                <span class="cm"># Move affected records to quarantine schema</span>
+                <span class="kw">await</span> <span class="tp">self</span>.sf_client.<span class="api">query</span>(<span class="str">f"""
+                    INSERT INTO NOVARTIS_DW.QUARANTINE.<span class="num">{item.asset.table_name}</span>
+                    SELECT *, CURRENT_TIMESTAMP() AS quarantined_at,
+                           '<span class="num">{item.root_cause.summary}</span>' AS reason
+                    FROM   NOVARTIS_DW.STAGING.<span class="num">{item.asset.table_name}</span>
+                    WHERE  <span class="num">{item.remediation.filter_clause}</span>
+                """</span>)
+                <span class="cm"># Delete quarantined records from staging</span>
+                <span class="kw">await</span> <span class="tp">self</span>.sf_client.<span class="api">query</span>(<span class="str">f"""
+                    DELETE FROM NOVARTIS_DW.STAGING.<span class="num">{item.asset.table_name}</span>
+                    WHERE  <span class="num">{item.remediation.filter_clause}</span>
+                """</span>)
+
+            <span class="kw">case</span> <span class="str">"re_ingest"</span>:
+                <span class="cm"># Trigger Snowpark re-ingestion pipeline</span>
+                <span class="kw">await</span> <span class="tp">self</span>.sf_client.<span class="api">snowpark_exec</span>(
+                    procedure=<span class="str">"NOVARTIS_DW.PIPELINES.REINGEST_TABLE"</span>,
+                    args=[item.asset.table_name, item.remediation.source_system],
+                )
+
+            <span class="kw">case</span> <span class="str">"schema_fix"</span>:
+                <span class="cm"># Apply schema migration via ALTER TABLE</span>
+                <span class="kw">for</span> migration <span class="kw">in</span> item.remediation.schema_changes:
+                    <span class="kw">await</span> <span class="tp">self</span>.sf_client.<span class="api">query</span>(migration.sql)
+
+        <span class="cm"># ─── Generate RCA Report via Cortex LLM ───</span>
+        rca_report = <span class="kw">await</span> <span class="tp">self</span>.sf_client.<span class="api">cortex_complete</span>(
+            model=<span class="str">"llama3.1-70b"</span>,
+            prompt=<span class="str">f"""Generate a plain-English root cause analysis:
+            Asset: <span class="num">{item.asset.name}</span>
+            Issue: <span class="num">{item.root_cause.summary}</span>
+            Blast radius: <span class="num">{item.blast_radius.summary()}</span>
+            Action taken: <span class="num">{item.remediation.description}</span>
+            Format: 3 bullet points for leadership, 1 paragraph for engineers."""</span>
+        )
+
+        <span class="cm"># ─── Notify via Slack ───</span>
+        <span class="kw">await</span> <span class="tp">self</span>.slack_client.<span class="api">send_alert</span>(
+            channel=<span class="str">"#novartis-data-quality"</span>,
+            severity=item.severity,
+            title=<span class="str">f"DQ Agent: <span class="num">{item.remediation.description}</span>"</span>,
+            body=rca_report,
+            fields={
+                <span class="str">"Asset"</span>: item.asset.name,
+                <span class="str">"Records Affected"</span>: item.blast_radius.record_count,
+                <span class="str">"Downstream KPIs"</span>: <span class="str">", "</span>.join(item.blast_radius.affected_kpis),
+                <span class="str">"HITL"</span>: <span class="str">"✅ Approved"</span> <span class="kw">if</span> item.requires_hitl <span class="kw">else</span> <span class="str">"Auto-resolved"</span>,
+            },
+        )
+
+        results.append(<span class="fn">ActionResult</span>(item, status=<span class="str">"completed"</span>))
+
+    ctx.<span class="fn">emit</span>(<span class="str">"cycle_complete"</span>, results=results)
+    <span class="kw">return</span> <span class="fn">ActResult</span>(
+        completed=<span class="fn">sum</span>(<span class="num">1</span> <span class="kw">for</span> r <span class="kw">in</span> results <span class="kw">if</span> r.status == <span class="str">"completed"</span>),
+        blocked=<span class="fn">sum</span>(<span class="num">1</span> <span class="kw">for</span> r <span class="kw">in</span> results <span class="kw">if</span> r.status == <span class="str">"blocked"</span>),
+    )</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION: HITL GATE LOGIC ═══════════ -->
+<div class="section" id="hitl">
+  <div class="card">
+    <div class="card-header" style="background:#FFF7ED">
+      <div>
+        <h3 style="color:var(--orange)">👤 Human-in-the-Loop Gate Logic</h3>
+        <div class="subtitle">How the DQ Agent decides when to pause and request human oversight</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="code-block">
+        <div class="code-header"><span class="lang">Python</span><span class="file">agent_dq/hitl/gate.py</span></div>
+<pre class="code"><span class="kw">class</span> <span class="tp">HITLGate</span>:
+    <span class="str">"""Human-in-the-Loop gate for the DQ Agent's ACT phase."""</span>
+
+    <span class="cm"># Rules that trigger HITL — if ANY rule matches, human approval is required</span>
+    RULES = [
+        <span class="fn">HITLRule</span>(
+            name=<span class="str">"mass_quarantine"</span>,
+            condition=<span class="kw">lambda</span> item: item.blast_radius.record_count > <span class="num">5000</span>,
+            reviewer=<span class="str">"data_steward"</span>,
+            reason=<span class="str">"Mass data quarantine affects >5,000 records"</span>,
+        ),
+        <span class="fn">HITLRule</span>(
+            name=<span class="str">"schema_propagation"</span>,
+            condition=<span class="kw">lambda</span> item: item.remediation.action_type == <span class="str">"schema_fix"</span>,
+            reviewer=<span class="str">"data_architect"</span>,
+            reason=<span class="str">"Schema changes require architect approval"</span>,
+        ),
+        <span class="fn">HITLRule</span>(
+            name=<span class="str">"cross_system_reingest"</span>,
+            condition=<span class="kw">lambda</span> item: item.remediation.action_type == <span class="str">"re_ingest"</span>
+                       <span class="kw">and</span> item.remediation.source_system <span class="kw">in</span> (<span class="str">"veeva"</span>, <span class="str">"iqvia"</span>),
+            reviewer=<span class="str">"data_steward"</span>,
+            reason=<span class="str">"Re-ingestion from external system requires validation"</span>,
+        ),
+        <span class="fn">HITLRule</span>(
+            name=<span class="str">"kpi_impact"</span>,
+            condition=<span class="kw">lambda</span> item: <span class="fn">len</span>(item.blast_radius.affected_kpis) > <span class="num">2</span>,
+            reviewer=<span class="str">"vp_analytics"</span>,
+            reason=<span class="str">"Action impacts >2 downstream KPI definitions"</span>,
+        ),
+        <span class="fn">HITLRule</span>(
+            name=<span class="str">"regulatory_flag"</span>,
+            condition=<span class="kw">lambda</span> item: item.asset.business_tier == <span class="str">"Critical"</span>
+                       <span class="kw">and</span> item.severity == <span class="str">"CRITICAL"</span>,
+            reviewer=<span class="str">"compliance_officer"</span>,
+            reason=<span class="str">"Critical-tier asset with regulatory implications"</span>,
+        ),
+    ]
+
+    <span class="kw">async def</span> <span class="fn">evaluate</span>(<span class="tp">self</span>, item: <span class="tp">ActionItem</span>) -> <span class="tp">HITLDecision</span>:
+        <span class="str">"""Evaluate whether this action requires human approval."""</span>
+        triggered_rules = [r <span class="kw">for</span> r <span class="kw">in</span> <span class="tp">self</span>.RULES <span class="kw">if</span> r.condition(item)]
+
+        <span class="kw">if not</span> triggered_rules:
+            <span class="kw">return</span> <span class="fn">HITLDecision</span>(required=<span class="kw">False</span>, auto_approve=<span class="kw">True</span>)
+
+        <span class="cm"># Pick highest-authority reviewer if multiple rules triggered</span>
+        reviewer = <span class="tp">self</span>.<span class="fn">_highest_authority</span>(
+            [r.reviewer <span class="kw">for</span> r <span class="kw">in</span> triggered_rules]
+        )
+
+        <span class="kw">return</span> <span class="fn">HITLDecision</span>(
+            required=<span class="kw">True</span>,
+            rules_triggered=[r.name <span class="kw">for</span> r <span class="kw">in</span> triggered_rules],
+            reasons=[r.reason <span class="kw">for</span> r <span class="kw">in</span> triggered_rules],
+            reviewer=reviewer,
+            timeout_minutes=<span class="num">30</span>,       <span class="cm"># escalate if no response</span>
+            escalation_chain=[<span class="str">"vp_data"</span>, <span class="str">"cdo"</span>],
+        )</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION: AGENT CONFIG ═══════════ -->
+<div class="section" id="config">
+  <div class="card">
+    <div class="card-header">
+      <div><h3>📝 Agent Configuration</h3><div class="subtitle">YAML configuration that defines the DQ Agent's behavior, schedule, and thresholds</div></div>
+    </div>
+    <div class="card-body">
+      <div class="code-block">
+        <div class="code-header"><span class="lang">YAML</span><span class="file">config/agents/data_quality.yaml</span></div>
+<pre class="code"><span class="fn">agent</span>:
+  <span class="kw">id</span>: <span class="str">agent.dq</span>
+  <span class="kw">name</span>: <span class="str">Data Quality Agent</span>
+  <span class="kw">version</span>: <span class="str">2.4.1</span>
+  <span class="kw">persona</span>: <span class="str">Data Quality Engineer</span>
+  <span class="kw">status</span>: <span class="str">active</span>
+
+<span class="fn">schedule</span>:
+  <span class="kw">scan_interval</span>: <span class="str">5m</span>          <span class="cm"># Run full cycle every 5 minutes</span>
+  <span class="kw">event_driven</span>: <span class="str">true</span>         <span class="cm"># Also triggered by orchestration events</span>
+  <span class="kw">max_concurrent</span>: <span class="num">3</span>          <span class="cm"># Max parallel asset checks</span>
+
+<span class="fn">tools</span>:
+  <span class="kw">monte_carlo</span>:
+    <span class="kw">endpoint</span>: <span class="str">https://api.getmontecarlo.com/v1</span>
+    <span class="kw">auth</span>: <span class="str">vault://mc-api-key</span>
+    <span class="kw">min_anomaly_confidence</span>: <span class="num">0.85</span>
+  <span class="kw">snowflake</span>:
+    <span class="kw">account</span>: <span class="str">novartis-izo.us-east-1</span>
+    <span class="kw">warehouse</span>: <span class="str">IZO_DQ_WH</span>
+    <span class="kw">role</span>: <span class="str">IZO_DQ_AGENT</span>
+    <span class="kw">database</span>: <span class="str">NOVARTIS_DW</span>
+    <span class="kw">cortex_model</span>: <span class="str">llama3.1-70b</span>
+  <span class="kw">enkrypt_ai</span>:
+    <span class="kw">endpoint</span>: <span class="str">https://api.enkrypt.ai/v2</span>
+    <span class="kw">masking_policy</span>: <span class="str">novartis-hipaa-v3</span>
+  <span class="kw">collibra</span>:
+    <span class="kw">endpoint</span>: <span class="str">https://novartis.collibra.com/rest/2.0</span>
+    <span class="kw">domain</span>: <span class="str">novartis-pharma</span>
+
+<span class="fn">hitl</span>:
+  <span class="kw">gate_phase</span>: <span class="str">ACT</span>             <span class="cm"># HITL checkpoint phase</span>
+  <span class="kw">auto_approve_severity</span>:      <span class="cm"># Severities that skip HITL</span>
+    - <span class="str">LOW</span>
+    - <span class="str">MEDIUM</span>
+  <span class="kw">escalation_timeout</span>: <span class="str">30m</span>    <span class="cm"># Auto-escalate if no response</span>
+  <span class="kw">escalation_chain</span>:
+    - <span class="str">data_steward</span>
+    - <span class="str">vp_data</span>
+    - <span class="str">cdo</span>
+  <span class="kw">reviewers</span>:
+    <span class="kw">data_steward</span>:     <span class="str">sarah.chen@novartis.com</span>
+    <span class="kw">data_architect</span>:   <span class="str">james.patel@novartis.com</span>
+    <span class="kw">vp_analytics</span>:     <span class="str">anika.kumar@novartis.com</span>
+    <span class="kw">compliance_officer</span>: <span class="str">david.reyes@novartis.com</span>
+
+<span class="fn">thresholds</span>:
+  <span class="kw">quarantine_record_limit</span>: <span class="num">5000</span>  <span class="cm"># HITL required above this</span>
+  <span class="kw">null_rate_critical</span>: <span class="num">0.15</span>      <span class="cm"># >15% NULLs = CRITICAL</span>
+  <span class="kw">dup_rate_warning</span>: <span class="num">0.02</span>        <span class="cm"># >2% duplicates = WARNING</span>
+  <span class="kw">freshness_sla_buffer</span>: <span class="num">0.8</span>    <span class="cm"># Alert at 80% of SLA window</span>
+  <span class="kw">max_kpi_impact</span>: <span class="num">2</span>            <span class="cm"># >2 KPIs affected = HIGH</span>
+
+<span class="fn">notifications</span>:
+  <span class="kw">slack_channel</span>: <span class="str">#novartis-data-quality</span>
+  <span class="kw">pager</span>: <span class="str">opsgenie://novartis-dq-oncall</span>
+  <span class="kw">dashboard</span>: <span class="str">atc://dq-agent-health</span></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div style="text-align:center;padding:40px 32px;color:var(--light);font-size:12px">
+  <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">
+    <div style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--blue),var(--blue-light));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff">iZ</div>
+    <span style="font-weight:600;color:var(--navy)">iZO Platform</span>
+    <span style="color:var(--light)">by Improzo</span>
+  </div>
+  Data Quality Agent v2.4.1 · Internal Architecture Documentation · Novartis AI Framework
+</div>
+
+</div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /page -->
+
+<script>
+// Smooth scroll for sidebar links
+document.querySelectorAll('.sidebar-link').forEach(link => {
+  link.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (href && href.startsWith('#')) {
+      e.preventDefault();
+      document.querySelector(href)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Update active state
+      document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+      this.classList.add('active');
+    }
+  });
+});
+
+// Highlight current section on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+
+document.querySelectorAll('.section[id]').forEach(section => observer.observe(section));
+</script>
+</body>
+</html>

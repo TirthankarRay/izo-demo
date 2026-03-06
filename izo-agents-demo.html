@@ -1,0 +1,2633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Improzo iZO — Agentic Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{height:100%;width:100%;overflow:hidden}
+body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:#EDF2F7}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#A0AEC0;border-radius:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 6px rgba(30,130,189,.3)}50%{box-shadow:0 0 18px rgba(30,130,189,.6)}}
+@keyframes flowPulse{0%{opacity:.3;transform:scaleX(.3)}50%{opacity:1;transform:scaleX(1)}100%{opacity:.3;transform:scaleX(.3)}}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes slideRight{0%{transform:translateX(-100%);opacity:0}100%{transform:translateX(0);opacity:1}}
+@keyframes hitlPulse{0%,100%{box-shadow:0 0 0 0 rgba(30,130,189,.3)}50%{box-shadow:0 0 0 8px rgba(30,130,189,0)}}
+button{cursor:pointer;transition:all .2s;border:none}
+button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+button:active{transform:translateY(0)}
+.hitl-card{border:2px solid #1E82BD44;background:linear-gradient(135deg,#E8F4FD,#F0F7FF);border-radius:12px;padding:16px 20px}
+.hitl-card:hover{border-color:#1E82BD88}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,Fragment}=React;
+
+/* ══ IMPROZO DESIGN TOKENS — extracted from improzo.com ══ */
+const C={
+  sidebar:"#0A5081",       /* Improzo dark navy */
+  sidebarDark:"#083D63",   /* Deeper navy for footer */
+  primary:"#1E82BD",       /* Improzo brand blue - buttons/CTAs */
+  primaryLight:"#3A9BD5",  /* Lighter blue for hover/accents */
+  primaryDark:"#0A5081",   /* Dark blue sections */
+  primaryBg:"#E8F4FD",     /* Light blue background tint */
+  heading:"#28426D",       /* Dark blue for headings */
+  accent:"#1E82BD",        /* Same brand blue as accent */
+  bg:"#EDF2F7",            /* Light gray-blue background */
+  card:"#FFFFFF",
+  text:"#333333",          /* Improzo body text */
+  muted:"#666666",         /* Muted text */
+  light:"#999999",         /* Light gray text */
+  border:"#D9E2EC",        /* Soft blue-gray border */
+  success:"#10B981",successBg:"#ECFDF5",
+  warn:"#F59E0B",warnBg:"#FFFBEB",
+  error:"#EF4444",errorBg:"#FEF2F2",
+  info:"#1E82BD",infoBg:"#E8F4FD",
+  hitl:"#1E82BD",          /* HITL accent color */
+  hitlBg:"#E8F4FD",        /* HITL background */
+  hitlBorder:"#1E82BD44",  /* HITL border */
+};
+
+/* ══ AGENT DEFINITIONS ══ */
+const AGENTS = [
+  {
+    id:"dq", name:"Data Quality Agent", persona:"Data Quality Engineer",
+    icon:"🔍", color:"#1E82BD", status:"Active", tasks:847, success:98.2,
+    desc:"Continuously monitors data pipelines for anomalies, schema drift, and quality degradation. Auto-triages and resolves issues before they reach downstream consumers.",
+    tools:["Monte Carlo","Snowflake","Enkrypt AI","Collibra"],
+    capabilities:["Anomaly Detection","Schema Drift Monitoring","Null/Duplicate Checks","Freshness SLA Enforcement","Auto-Quarantine"],
+    hitlConfig:{
+      approvalGate:"ACT",
+      escalationThreshold:"Medium",
+      requiresHumanFor:["Mass data quarantine (>5K records)","Schema change propagation","Cross-system re-ingestion"],
+      recentReviews:[
+        {action:"Quarantine 12,400 TRx records",reviewer:"Sarah Chen",decision:"Approved",time:"2h ago"},
+        {action:"Schema drift auto-fix on Veeva feed",reviewer:"Auto-approved",decision:"Approved",time:"6h ago"},
+        {action:"Escalate: NULL spike in SPS Claims",reviewer:"Pending",decision:"Pending",time:"12m ago"},
+      ]
+    },
+    steps:[
+      {phase:"PLAN",title:"Assess Pipeline Health",desc:"Scan all registered data products. Prioritize by business impact score and SLA proximity.",actions:["Query Monte Carlo for active incidents","Pull freshness metadata from Snowflake ACCOUNT_USAGE","Rank assets by downstream consumer count"],color:"#8B5CF6"},
+      {phase:"TOOL USE",title:"Execute Quality Checks",desc:"Run validation rules across all data layers using native platform APIs.",actions:["Monte Carlo: ML.ANOMALY_DETECTION on KPI tables","Snowflake: DUPLICATE_COUNT DMF on staging tables","Enkrypt AI: PHI/PII scan on new columns","Collibra: Validate lineage completeness"],color:"#1E82BD"},
+      {phase:"REFLECT",title:"Analyze Results & Impact",desc:"Correlate findings across tools. Determine root cause and blast radius.",actions:["Cross-reference Monte Carlo alerts with Snowflake query logs","Map affected downstream data products via Collibra lineage","Calculate business impact: affected KPIs, reports, consumers","Classify: auto-resolve vs. escalate to human"],color:"#F59E0B"},
+      {phase:"ACT",title:"Remediate & Notify",desc:"Execute automated fixes or escalate with full context. HITL gate active for high-impact actions.",actions:["⚠️ HITL GATE: Quarantine >5K records requires human approval","Trigger Snowpark re-ingestion for schema drift","Generate plain-English root cause via CORTEX.COMPLETE()","Push alert to Slack with impact summary and ETA"],color:"#10B981"},
+    ]
+  },
+  {
+    id:"trust", name:"Trust & Compliance Agent", persona:"Data Governance Specialist",
+    icon:"🛡️", color:"#0A5081", status:"Active", tasks:623, success:99.8,
+    desc:"Enforces data certification, PHI/PII compliance, and GxP audit trails. No data asset is promoted to production without passing all 5 trust checks.",
+    tools:["Enkrypt AI","Collibra","Snowflake","Reltio"],
+    capabilities:["PHI/PII Detection","Data Certification","GxP Audit Trail","Column-Level Access Control","EU AI Act Compliance"],
+    hitlConfig:{
+      approvalGate:"ACT",
+      escalationThreshold:"Low",
+      requiresHumanFor:["GxP certification override","PHI/PII exception grants","Production promotion of previously failed assets"],
+      recentReviews:[
+        {action:"Certify TRx Analytics v3.2 for production",reviewer:"James Patel",decision:"Approved",time:"1h ago"},
+        {action:"PHI exception for research dataset",reviewer:"Compliance Board",decision:"Denied",time:"3h ago"},
+        {action:"Override: Allow Veeva feed despite format warning",reviewer:"Pending",decision:"Pending",time:"25m ago"},
+      ]
+    },
+    steps:[
+      {phase:"PLAN",title:"Identify Uncertified Assets",desc:"Scan data product registry for assets pending certification or with expired certificates.",actions:["Query Collibra catalog for uncertified data products","Check Snowflake tags for missing classification labels","Pull list of recently modified assets from change log","Prioritize by regulatory exposure (GxP, HIPAA, GDPR)"],color:"#8B5CF6"},
+      {phase:"TOOL USE",title:"Run Trust Checks",desc:"Execute the 5-point certification protocol on each candidate asset.",actions:["CHECK 1 — Source Verification: Validate authorised system of record","CHECK 2 — Quality Assurance: NULL, DUPLICATE, REFERENTIAL integrity","CHECK 3 — Tamper Detection: Verify lineage, no unauthorized transforms","CHECK 4 — Format Compliance: Schema, field types, ranges vs. contract","CHECK 5 — PHI/PII Scan: Enkrypt AI masking + consent flag validation"],color:"#1E82BD"},
+      {phase:"REFLECT",title:"Evaluate Certification Decision",desc:"Analyze results across all 5 checks. Generate provenance certificate or block promotion.",actions:["Aggregate pass/fail across all checks","For failures: identify exact field, row, and transformation causing issue","Calculate risk score if asset were promoted despite failure","Generate GxP-compatible audit event with full evidence chain"],color:"#F59E0B"},
+      {phase:"ACT",title:"Certify or Block",desc:"Issue trust certification or quarantine asset. HITL gate for overrides and exceptions.",actions:["⚠️ HITL GATE: Certification overrides require governance board approval","PASS → Issue iZO Trust Certificate with provenance hash","FAIL → Block downstream consumption, raise P1 alert","FAIL → Auto-generate remediation playbook for data steward"],color:"#10B981"},
+    ]
+  },
+  {
+    id:"mdm", name:"MDM Agent", persona:"Master Data Architect",
+    icon:"🔗", color:"#3A9BD5", status:"Active", tasks:312, success:96.5,
+    desc:"Manages entity resolution, golden record creation, and cross-system reconciliation. Ensures every downstream data product uses the same Reltio-certified HCP/HCO ID.",
+    tools:["Reltio","Snowflake","Collibra","Veeva CRM"],
+    capabilities:["Entity Resolution","Golden Record Creation","Duplicate Detection","Cross-System Reconciliation","HCP/HCO ID Unification"],
+    hitlConfig:{
+      approvalGate:"REFLECT",
+      escalationThreshold:"Medium",
+      requiresHumanFor:["Merge/split of key opinion leaders (KOLs)","Cross-territory HCP reassignment","Survivorship rule changes"],
+      recentReviews:[
+        {action:"Merge 3 duplicate Dr. Smith records (KOL)",reviewer:"Michael Torres",decision:"Approved",time:"45m ago"},
+        {action:"Reassign 47 HCPs to new territory mapping",reviewer:"Territory Ops",decision:"Approved",time:"2h ago"},
+        {action:"Split false-positive merge on HCO records",reviewer:"Pending",decision:"Pending",time:"8m ago"},
+      ]
+    },
+    steps:[
+      {phase:"PLAN",title:"Detect Entity Conflicts",desc:"Scan for duplicate, conflicting, or orphaned master records across source systems.",actions:["Query Reltio match-merge queue for pending conflicts","Compare HCP counts across Veeva CRM vs. Reltio vs. Snowflake","Identify records with multiple IDs across systems (IQVIA, Veeva, SPS)","Prioritize by territory impact and downstream KPI exposure"],color:"#8B5CF6"},
+      {phase:"TOOL USE",title:"Execute Resolution",desc:"Run match-merge algorithms and cross-system reconciliation via Reltio APIs.",actions:["Reltio: Execute ML-based entity resolution on conflict queue","Reltio: Apply survivorship rules to create/update golden records","Snowflake: Update MASTER_HCP_ID mapping table via Dynamic Tables","Collibra: Tag resolved records with 'Golden' certification in catalog"],color:"#1E82BD"},
+      {phase:"REFLECT",title:"Validate Merge Quality",desc:"Verify resolution accuracy. HITL gate for KOL merges and territory changes.",actions:["⚠️ HITL GATE: KOL merge/split requires human validation","Compare pre/post merge: verify no false positive merges","Check territory-level HCP counts for anomalous shifts","Validate golden record completeness (NPI, specialty, address)"],color:"#F59E0B"},
+      {phase:"ACT",title:"Propagate & Synchronize",desc:"Push golden records to all consuming systems and update dependent analytics.",actions:["Propagate updated golden records to Snowflake analytics layer","Trigger downstream Dynamic Table refresh for affected territories","Notify territory managers of HCP roster changes via Slack","Update ATC Dashboard with MDM health metrics and resolution stats"],color:"#10B981"},
+    ]
+  },
+  {
+    id:"analytics", name:"Analytics Agent", persona:"Decision Intelligence Analyst",
+    icon:"📊", color:"#28426D", status:"Active", tasks:189, success:97.8,
+    desc:"Generates governed, auditable analytics at scale. Uses Cortex for ML inference and natural language insights while enforcing semantic layer governance.",
+    tools:["Snowflake Cortex","Collibra","Reltio","ATC Dashboard"],
+    capabilities:["Cortex ML Inference","Natural Language Insights","Semantic Layer Governance","KPI Anomaly Detection","Executive Report Generation"],
+    hitlConfig:{
+      approvalGate:"ACT",
+      escalationThreshold:"High",
+      requiresHumanFor:["Executive report publication","KPI definition changes","New semantic view creation"],
+      recentReviews:[
+        {action:"Publish Q1 TRx Performance Report",reviewer:"VP Analytics",decision:"Approved",time:"30m ago"},
+        {action:"Add new Market Share KPI definition",reviewer:"Data Council",decision:"Approved",time:"1d ago"},
+        {action:"Auto-refresh territory performance dashboard",reviewer:"Auto-approved",decision:"Approved",time:"4h ago"},
+      ]
+    },
+    steps:[
+      {phase:"PLAN",title:"Interpret Analytics Request",desc:"Parse incoming query, identify required data products, and plan execution.",actions:["Parse natural language query via Cortex Analyst","Identify required semantic views and KPI definitions from Collibra","Verify requestor has column-level access rights","Check data freshness: ensure all sources meet SLA for this report"],color:"#8B5CF6"},
+      {phase:"TOOL USE",title:"Execute Governed Query",desc:"Run analytics through semantic layer with full governance enforcement.",actions:["Resolve query against Collibra-certified Semantic Views only","Execute Cortex SQL generation with column-level security applied","Enrich results with Reltio golden record attributes (HCP specialty, tier)","Run CORTEX.COMPLETE() for plain-English insight generation"],color:"#1E82BD"},
+      {phase:"REFLECT",title:"Validate & Cross-Check",desc:"Verify results against historical baselines and business rules.",actions:["Compare results against prior period for anomaly detection","Validate KPI calculations match certified definitions","Cross-reference territory totals with national roll-up (no double-counting)","Generate confidence score and data quality footnotes"],color:"#F59E0B"},
+      {phase:"ACT",title:"Deliver & Audit",desc:"Publish insights. HITL gate for executive reports and KPI changes.",actions:["⚠️ HITL GATE: Executive report publish requires VP sign-off","Push results to ATC Dashboard with drill-down capability","Generate executive summary via CORTEX.COMPLETE()","Write audit record: query, data sources, transformations, access rights"],color:"#10B981"},
+    ]
+  },
+  {
+    id:"obs", name:"Observability Agent", persona:"Data Reliability Engineer",
+    icon:"👁️", color:"#5BA4CF", status:"Active", tasks:1205, success:99.1,
+    desc:"Monitors the entire data ecosystem health: pipeline SLAs, agent performance, cross-system dependencies, and infrastructure metrics. The agent that watches all other agents.",
+    tools:["Monte Carlo","Snowflake","Apache Airflow","ATC Dashboard"],
+    capabilities:["Pipeline SLA Monitoring","Agent Health Tracking","Cross-System Dependency Mapping","Automated Incident Response","Executive Health Scoring"],
+    hitlConfig:{
+      approvalGate:"ACT",
+      escalationThreshold:"Critical",
+      requiresHumanFor:["System-wide pipeline restart","Agent shutdown/restart","Infrastructure scaling beyond budget threshold"],
+      recentReviews:[
+        {action:"Scale Snowflake warehouse 4XL for month-end",reviewer:"Infra Team",decision:"Approved",time:"1h ago"},
+        {action:"Restart DQ Agent after timeout",reviewer:"Auto-approved",decision:"Approved",time:"5h ago"},
+        {action:"Full pipeline restart after Airflow outage",reviewer:"Pending",decision:"Pending",time:"3m ago"},
+      ]
+    },
+    steps:[
+      {phase:"PLAN",title:"Scan Ecosystem State",desc:"Collect health signals from all systems and agents. Build priority queue.",actions:["Poll Monte Carlo for new incidents and anomaly trends","Query Snowflake ACCOUNT_USAGE for query failures and latency spikes","Check all agent heartbeats and task queue depths","Pull Airflow DAG statuses and SLA breach warnings"],color:"#8B5CF6"},
+      {phase:"TOOL USE",title:"Run Diagnostic Checks",desc:"Execute deep health checks on flagged systems and agents.",actions:["Monte Carlo: Trace lineage of flagged anomalies across layers","Snowflake: Analyze QUERY_HISTORY for performance degradation patterns","Airflow: Check DAG dependency graph for cascading failure risk","Cross-agent: Verify DQ, Trust, MDM, Analytics agents are responsive"],color:"#1E82BD"},
+      {phase:"REFLECT",title:"Correlate & Prioritize",desc:"Connect signals across tools. Determine if issues are isolated or systemic.",actions:["Correlate Monte Carlo anomalies with Snowflake resource contention","Map blast radius: which downstream data products are at risk","Calculate business impact score using consumer/KPI dependency graph","Determine: auto-heal vs. alert vs. escalate to on-call engineer"],color:"#F59E0B"},
+      {phase:"ACT",title:"Remediate & Report",desc:"Execute automated fixes. HITL gate for system-wide actions.",actions:["⚠️ HITL GATE: System-wide restart requires on-call engineer approval","Trigger pipeline restart for transient failures via Airflow API","Scale Snowflake warehouse for resource contention issues","Push unified health score to ATC Dashboard"],color:"#10B981"},
+    ]
+  },
+];
+
+const PHASE_COLORS = {"PLAN":"#8B5CF6","TOOL USE":"#1E82BD","REFLECT":"#F59E0B","ACT":"#10B981"};
+const PHASE_ICONS = {"PLAN":"🧠","TOOL USE":"🔧","REFLECT":"💭","ACT":"⚡"};
+
+/* ══ UI PRIMITIVES ══ */
+const Badge=({children,variant="success",small})=>{
+  const m={success:{bg:C.successBg,c:C.success},warning:{bg:C.warnBg,c:C.warn},error:{bg:C.errorBg,c:C.error},info:{bg:C.infoBg,c:C.info},neutral:{bg:"#EDF2F7",c:C.muted},primary:{bg:C.primaryBg,c:C.primary},purple:{bg:"#F3F0FF",c:"#7C3AED"},hitl:{bg:"#FFF7ED",c:"#EA580C"}};
+  const s=m[variant]||m.neutral;
+  return <span style={{display:"inline-flex",alignItems:"center",padding:small?"1px 6px":"2px 10px",borderRadius:20,fontSize:small?9:11,fontWeight:600,letterSpacing:.3,background:s.bg,color:s.c,border:`1px solid ${s.c}33`,whiteSpace:"nowrap"}}>{children}</span>;
+};
+
+const ProgressBar=({value,color=C.primary,height=6})=>(
+  <div style={{width:"100%",background:"#D9E2EC",borderRadius:height,height,overflow:"hidden"}}>
+    <div style={{width:`${value}%`,height:"100%",borderRadius:height,background:`linear-gradient(90deg,${color},${color}CC)`,transition:"width 1.2s cubic-bezier(0.4,0,0.2,1)"}}/>
+  </div>
+);
+
+/* ══ HITL COMPONENTS ══ */
+
+/* Per-Agent HITL Gate Panel */
+const HITLAgentPanel=({agent})=>{
+  const h=agent.hitlConfig;
+  const [approvals,setApprovals]=useState(h.recentReviews.map(r=>r.decision));
+
+  const handleDecision=(idx,decision)=>{
+    const next=[...approvals];
+    next[idx]=decision;
+    setApprovals(next);
+  };
+
+  return (
+    <div style={{background:C.card,borderRadius:14,border:`2px solid ${C.hitlBorder}`,overflow:"hidden",marginBottom:24}}>
+      <div style={{padding:"16px 24px",borderBottom:`1px solid ${C.border}`,background:"linear-gradient(135deg,#E8F4FD,#F0F7FF)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:36,height:36,borderRadius:10,background:"#1E82BD18",border:"2px solid #1E82BD44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,animation:"hitlPulse 2s infinite"}}>👤</div>
+          <div>
+            <div style={{fontWeight:700,fontSize:14,color:C.heading}}>Human-in-the-Loop Gate</div>
+            <div style={{fontSize:11,color:C.muted}}>Active at <strong>{h.approvalGate}</strong> phase · Escalation threshold: <strong>{h.escalationThreshold}</strong></div>
+          </div>
+        </div>
+        <Badge variant="hitl">HITL Active</Badge>
+      </div>
+
+      <div style={{padding:20}}>
+        {/* Requires Human For */}
+        <div style={{marginBottom:18}}>
+          <div style={{fontSize:11,fontWeight:700,color:C.primary,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Requires Human Approval</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {h.requiresHumanFor.map(r=>(
+              <div key={r} style={{padding:"6px 14px",borderRadius:8,background:"#FFF7ED",border:"1px solid #FB923C44",fontSize:11,fontWeight:500,color:"#EA580C",display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:14}}>🔒</span>{r}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Review Queue */}
+        <div style={{fontSize:11,fontWeight:700,color:C.primary,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Review Queue</div>
+        <div style={{display:"grid",gap:8}}>
+          {h.recentReviews.map((r,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderRadius:10,border:`1px solid ${approvals[i]==="Pending"?"#FB923C44":approvals[i]==="Approved"?C.success+"33":approvals[i]==="Denied"?C.error+"33":C.border}`,background:approvals[i]==="Pending"?"#FFFBF5":"#FAFBFC",animation:`fadeUp .3s ease-out ${i*.06}s both`}}>
+              <div style={{width:32,height:32,borderRadius:8,background:approvals[i]==="Pending"?"#FFF7ED":approvals[i]==="Approved"?C.successBg:approvals[i]==="Denied"?C.errorBg:"#F1F5F9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>
+                {approvals[i]==="Pending"?"⏳":approvals[i]==="Approved"?"✅":"❌"}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12,fontWeight:600,color:C.text}}>{r.action}</div>
+                <div style={{fontSize:10,color:C.muted}}>Reviewer: {r.reviewer} · {r.time}</div>
+              </div>
+              {approvals[i]==="Pending"?(
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>handleDecision(i,"Approved")} style={{padding:"5px 14px",borderRadius:6,background:C.success,color:"#fff",fontSize:11,fontWeight:600}}>Approve</button>
+                  <button onClick={()=>handleDecision(i,"Denied")} style={{padding:"5px 14px",borderRadius:6,background:C.error,color:"#fff",fontSize:11,fontWeight:600}}>Deny</button>
+                  <button onClick={()=>{}} style={{padding:"5px 14px",borderRadius:6,background:"#F1F5F9",color:C.muted,fontSize:11,fontWeight:600,border:`1px solid ${C.border}`}}>Escalate</button>
+                </div>
+              ):(
+                <Badge variant={approvals[i]==="Approved"?"success":"error"}>{approvals[i]}</Badge>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Platform-Level HITL Operations Panel */
+const HITLOperationsPanel=({onNav})=>{
+  const [policyTab,setPolicyTab]=useState("queue");
+  const allPending=AGENTS.flatMap(a=>a.hitlConfig.recentReviews.filter(r=>r.decision==="Pending").map(r=>({...r,agent:a.name,agentId:a.id,icon:a.icon,color:a.color})));
+  const allRecent=AGENTS.flatMap(a=>a.hitlConfig.recentReviews.filter(r=>r.decision!=="Pending").map(r=>({...r,agent:a.name,agentId:a.id,icon:a.icon,color:a.color})));
+  const [decisions,setDecisions]=useState(allPending.map(()=>"Pending"));
+
+  const handleDecision=(idx,decision)=>{
+    const next=[...decisions]; next[idx]=decision; setDecisions(next);
+  };
+
+  return (
+    <div><TopBar crumbs={["iZO Platform","HITL Operations"]}/>
+    <div style={{padding:28}}>
+      <div style={{marginBottom:24}}>
+        <h2 style={{fontSize:22,fontWeight:700,color:C.heading,margin:0}}>Human-in-the-Loop Operations</h2>
+        <p style={{fontSize:13,color:C.muted,marginTop:4}}>Centralized oversight, approval queues, and governance policies for all agent operations</p>
+      </div>
+
+      {/* HITL Summary Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:16,marginBottom:24}}>
+        {[
+          {l:"Pending Approvals",v:allPending.filter((_,i)=>decisions[i]==="Pending").length,icon:"⏳",c:"#EA580C",bg:"#FFF7ED"},
+          {l:"Approved Today",v:12,icon:"✅",c:C.success,bg:C.successBg},
+          {l:"Denied Today",v:1,icon:"❌",c:C.error,bg:C.errorBg},
+          {l:"Avg Response Time",v:"14m",icon:"⏱️",c:C.primary,bg:C.primaryBg},
+          {l:"Auto-Approved",v:89,icon:"🤖",c:C.heading,bg:"#E8F4FD"},
+        ].map((m,i)=>(
+          <div key={i} style={{background:C.card,borderRadius:12,padding:"18px 22px",border:`1px solid ${C.border}`,animation:`fadeUp .4s ease-out ${i*.08}s both`}}>
+            <div style={{width:36,height:36,borderRadius:10,background:m.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,marginBottom:8}}>{m.icon}</div>
+            <div style={{fontSize:26,fontWeight:800,color:m.c}}>{m.v}</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:2}}>{m.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tab Navigation */}
+      <div style={{display:"flex",gap:0,marginBottom:20,background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+        {[{id:"queue",label:"Approval Queue",icon:"📋"},{id:"policies",label:"HITL Policies",icon:"📜"},{id:"audit",label:"Audit Trail",icon:"📝"},{id:"settings",label:"Escalation Settings",icon:"⚙️"}].map(tab=>(
+          <div key={tab.id} onClick={()=>setPolicyTab(tab.id)} style={{flex:1,padding:"14px 20px",textAlign:"center",cursor:"pointer",borderBottom:`3px solid ${policyTab===tab.id?C.primary:"transparent"}`,background:policyTab===tab.id?C.primaryBg:"transparent",transition:"all .2s"}}>
+            <span style={{fontSize:16,marginRight:8}}>{tab.icon}</span>
+            <span style={{fontSize:13,fontWeight:policyTab===tab.id?700:500,color:policyTab===tab.id?C.primary:C.muted}}>{tab.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {policyTab==="queue"&&(
+        <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+          <div style={{padding:"16px 24px",borderBottom:`1px solid ${C.border}`,background:"linear-gradient(135deg,#FFF7ED,#FFFBF5)"}}>
+            <div style={{fontWeight:700,fontSize:14,color:"#EA580C"}}>⏳ Pending Approvals — Cross-Agent Queue</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:2}}>Items requiring human review across all active agents</div>
+          </div>
+          <div style={{padding:20,display:"grid",gap:10}}>
+            {allPending.map((item,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderRadius:12,border:decisions[i]==="Pending"?`2px solid #FB923C44`:`1px solid ${decisions[i]==="Approved"?C.success+"33":C.error+"33"}`,background:decisions[i]==="Pending"?"#FFFBF5":"#FAFBFC",animation:`fadeUp .3s ease-out ${i*.06}s both`}}>
+                <div style={{width:40,height:40,borderRadius:10,background:`${item.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,border:`1px solid ${item.color}33`}}>{item.icon}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:C.text}}>{item.action}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
+                    <Badge variant="primary" small>{item.agent}</Badge>
+                    <span style={{fontSize:10,color:C.muted}}>· {item.time}</span>
+                  </div>
+                </div>
+                {decisions[i]==="Pending"?(
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>handleDecision(i,"Approved")} style={{padding:"7px 18px",borderRadius:8,background:"linear-gradient(135deg,#10B981,#059669)",color:"#fff",fontSize:12,fontWeight:600,boxShadow:"0 2px 8px rgba(16,185,129,.3)"}}>✓ Approve</button>
+                    <button onClick={()=>handleDecision(i,"Denied")} style={{padding:"7px 18px",borderRadius:8,background:"linear-gradient(135deg,#EF4444,#DC2626)",color:"#fff",fontSize:12,fontWeight:600}}>✗ Deny</button>
+                    <button style={{padding:"7px 18px",borderRadius:8,background:C.card,color:C.primary,fontSize:12,fontWeight:600,border:`1px solid ${C.primary}44`}}>↗ Escalate</button>
+                  </div>
+                ):(
+                  <Badge variant={decisions[i]==="Approved"?"success":"error"} >{decisions[i]==="Approved"?"✓ Approved":"✗ Denied"}</Badge>
+                )}
+              </div>
+            ))}
+            {allPending.every((_,i)=>decisions[i]!=="Pending")&&(
+              <div style={{textAlign:"center",padding:24,color:C.success,fontWeight:600,fontSize:14}}>✅ All items reviewed — queue cleared</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {policyTab==="policies"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          {AGENTS.map(a=>(
+            <div key={a.id} style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:20}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                <span style={{fontSize:22}}>{a.icon}</span>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:C.heading}}>{a.name}</div>
+                  <div style={{fontSize:10,color:C.muted}}>{a.persona}</div>
+                </div>
+              </div>
+              <div style={{display:"grid",gap:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",borderRadius:8,background:"#F8FAFC",border:`1px solid ${C.border}`}}>
+                  <span style={{fontSize:11,color:C.muted}}>HITL Gate Phase</span>
+                  <span style={{fontSize:11,fontWeight:700,color:C.primary}}>{a.hitlConfig.approvalGate}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",borderRadius:8,background:"#F8FAFC",border:`1px solid ${C.border}`}}>
+                  <span style={{fontSize:11,color:C.muted}}>Escalation Threshold</span>
+                  <Badge variant={a.hitlConfig.escalationThreshold==="Low"?"success":a.hitlConfig.escalationThreshold==="Medium"?"warning":"error"} small>{a.hitlConfig.escalationThreshold}</Badge>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",borderRadius:8,background:"#F8FAFC",border:`1px solid ${C.border}`}}>
+                  <span style={{fontSize:11,color:C.muted}}>Auto-Approve Routine</span>
+                  <span style={{fontSize:11,fontWeight:700,color:C.success}}>Enabled</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",borderRadius:8,background:"#F8FAFC",border:`1px solid ${C.border}`}}>
+                  <span style={{fontSize:11,color:C.muted}}>Human Triggers</span>
+                  <span style={{fontSize:11,fontWeight:700,color:"#EA580C"}}>{a.hitlConfig.requiresHumanFor.length} rules</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {policyTab==="audit"&&(
+        <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead><tr style={{background:"#F8FAFC"}}>{["Time","Agent","Action","Reviewer","Decision","Response Time"].map(h=><th key={h} style={{padding:"12px 14px",textAlign:"left",fontWeight:600,color:C.muted,fontSize:10,textTransform:"uppercase",letterSpacing:.5,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
+            <tbody>
+              {allRecent.concat([
+                {time:"4h ago",agent:"DQ Agent",action:"Auto-quarantine 800 NULL records",reviewer:"Auto-approved",decision:"Approved",icon:"🔍",color:C.primary},
+                {time:"6h ago",agent:"Trust Agent",action:"Re-certify IQVIA Xponent feed",reviewer:"James Patel",decision:"Approved",icon:"🛡️",color:"#0A5081"},
+                {time:"8h ago",agent:"Analytics Agent",action:"Weekly KPI refresh publish",reviewer:"Auto-approved",decision:"Approved",icon:"📊",color:"#28426D"},
+                {time:"1d ago",agent:"Obs Agent",action:"Scale warehouse for month-end",reviewer:"Infra Team",decision:"Approved",icon:"👁️",color:"#5BA4CF"},
+              ]).map((r,i)=>(
+                <tr key={i} style={{borderBottom:`1px solid ${C.border}`}}>
+                  <td style={{padding:"10px 14px",color:C.muted,fontSize:11}}>{r.time}</td>
+                  <td style={{padding:"10px 14px"}}><div style={{display:"flex",alignItems:"center",gap:6}}><span>{r.icon}</span><span style={{fontWeight:500}}>{r.agent}</span></div></td>
+                  <td style={{padding:"10px 14px",fontWeight:500,color:C.text}}>{r.action}</td>
+                  <td style={{padding:"10px 14px",color:C.muted}}>{r.reviewer}</td>
+                  <td style={{padding:"10px 14px"}}><Badge variant={r.decision==="Approved"?"success":"error"} small>{r.decision}</Badge></td>
+                  <td style={{padding:"10px 14px",color:C.muted,fontFamily:"monospace"}}>{["2m","5m","14m","Auto","Auto","8m","Auto","22m"][i]||"Auto"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {policyTab==="settings"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:24}}>
+            <div style={{fontWeight:700,fontSize:14,color:C.heading,marginBottom:16}}>⚡ Escalation Rules</div>
+            <div style={{display:"grid",gap:12}}>
+              {[
+                {label:"Auto-approve routine tasks",desc:"Tasks below escalation threshold are automatically approved",enabled:true},
+                {label:"Time-based escalation",desc:"Pending items auto-escalate to VP after 30 minutes",enabled:true},
+                {label:"Cross-agent escalation",desc:"If 2+ agents flag same entity, escalate to Data Council",enabled:true},
+                {label:"Weekend override",desc:"All approvals auto-held until Monday 9 AM EST",enabled:false},
+              ].map((rule,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderRadius:10,border:`1px solid ${C.border}`,background:"#FAFBFC"}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:600,color:C.text}}>{rule.label}</div>
+                    <div style={{fontSize:10,color:C.muted,marginTop:2}}>{rule.desc}</div>
+                  </div>
+                  <div style={{width:44,height:24,borderRadius:12,background:rule.enabled?"#1E82BD":"#D9E2EC",position:"relative",cursor:"pointer",transition:"all .2s"}}>
+                    <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:rule.enabled?22:2,boxShadow:"0 1px 4px rgba(0,0,0,.15)",transition:"all .2s"}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:24}}>
+            <div style={{fontWeight:700,fontSize:14,color:C.heading,marginBottom:16}}>👥 Approval Routing</div>
+            <div style={{display:"grid",gap:12}}>
+              {[
+                {role:"Data Steward",scope:"DQ Agent — routine quality fixes",avatar:"SC"},
+                {role:"Compliance Officer",scope:"Trust Agent — certification overrides",avatar:"JP"},
+                {role:"Territory Ops Lead",scope:"MDM Agent — HCP/HCO changes",avatar:"MT"},
+                {role:"VP Analytics",scope:"Analytics Agent — executive report publication",avatar:"AK"},
+                {role:"On-Call Engineer",scope:"Observability — system-wide remediations",avatar:"DR"},
+              ].map((person,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderRadius:10,border:`1px solid ${C.border}`,background:"#FAFBFC"}}>
+                  <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff"}}>{person.avatar}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:600,color:C.text}}>{person.role}</div>
+                    <div style={{fontSize:10,color:C.muted}}>{person.scope}</div>
+                  </div>
+                  <Badge variant="primary" small>Active</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+    </div>
+  );
+};
+
+/* ══ SIDEBAR ══ */
+const SidebarItem=({icon,label,active,onClick,indent,isHitl})=>(
+  <div onClick={onClick} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 20px",cursor:"pointer",paddingLeft:indent?44:20,background:active?"rgba(30,130,189,.2)":"transparent",borderLeft:active?`3px solid ${C.primaryLight}`:"3px solid transparent",color:active?"#fff":"#A0B4CC",transition:"all 0.2s",fontSize:13.5,fontWeight:active?600:400}}>
+    <span style={{fontSize:16,width:20,textAlign:"center"}}>{icon}</span>
+    <span style={{flex:1}}>{label}</span>
+    {isHitl&&<span style={{width:8,height:8,borderRadius:"50%",background:"#EA580C",animation:"breathe 2s infinite"}}/>}
+  </div>
+);
+
+const Sidebar=({view,onNav})=>(
+  <div style={{width:250,minWidth:250,background:`linear-gradient(180deg,${C.sidebar},${C.sidebarDark})`,display:"flex",flexDirection:"column",height:"100vh"}}>
+    <div style={{padding:"22px 20px 18px",borderBottom:"1px solid rgba(255,255,255,.1)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <div style={{width:36,height:36,borderRadius:10,background:`linear-gradient(135deg,${C.primary},${C.primaryLight})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:"#fff"}}>iZ</div>
+        <div><div style={{fontSize:16,fontWeight:700,color:"#fff",letterSpacing:.5}}>iZO Platform</div><div style={{fontSize:9.5,color:"#7BA3C9",letterSpacing:2,textTransform:"uppercase",marginTop:1}}>by Improzo</div></div>
+      </div>
+    </div>
+    <div style={{flex:1,paddingTop:10,overflowY:"auto"}}>
+      <SidebarItem icon="🏠" label="Agent Registry" active={view==="registry"} onClick={()=>onNav("registry")}/>
+      <SidebarItem icon="🌐" label="Orchestration View" active={view==="orchestration"} onClick={()=>onNav("orchestration")}/>
+      <SidebarItem icon="👤" label="HITL Operations" active={view==="hitl"} onClick={()=>onNav("hitl")} isHitl/>
+      <SidebarItem icon="➕" label="Create Agent" active={view==="creator"} onClick={()=>onNav("creator")}/>
+      <div style={{padding:"8px 20px 4px",fontSize:10,fontWeight:600,color:"#7BA3C9",textTransform:"uppercase",letterSpacing:1.5,marginTop:8}}>Agent Details</div>
+      {AGENTS.map(a=><SidebarItem key={a.id} icon={a.icon} label={a.name.replace(" Agent","")} active={view===a.id} onClick={()=>onNav(a.id)} indent/>)}
+    </div>
+    <div style={{padding:"14px 20px",borderTop:"1px solid rgba(255,255,255,.1)",display:"flex",alignItems:"center",gap:10,background:"rgba(0,0,0,.15)"}}>
+      <div style={{width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#FF6B2B,#FF9F43)",fontSize:12,fontWeight:700,color:"#fff"}}>NV</div>
+      <div><div style={{fontSize:12,fontWeight:600,color:"#E2E8F0"}}>Novartis AI Framework</div><div style={{fontSize:10,color:"#7BA3C9"}}>Pharma Data & Decision Intel</div></div>
+    </div>
+  </div>
+);
+
+/* ══ TOP BAR ══ */
+const TopBar=({crumbs})=>(
+  <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"14px 28px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:10}}>
+    <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:C.muted}}>
+      {crumbs.map((b,i)=><span key={i} style={{display:"flex",alignItems:"center",gap:8}}>{i>0&&<span style={{color:C.light}}>›</span>}<span style={{fontWeight:i===crumbs.length-1?600:400,color:i===crumbs.length-1?C.heading:C.muted}}>{b}</span></span>)}
+    </div>
+    <div style={{display:"flex",alignItems:"center",gap:16}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,color:C.muted,background:"#F8FAFC"}}>🔍 Search agents...</div>
+      <div style={{position:"relative"}}><span style={{fontSize:18,cursor:"pointer"}}>🔔</span><span style={{position:"absolute",top:-4,right:-4,width:16,height:16,borderRadius:"50%",background:"#EA580C",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>3</span></div>
+      <div style={{width:34,height:34,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:`linear-gradient(135deg,${C.primary},${C.heading})`,color:"#fff",fontSize:12,fontWeight:700}}>AD</div>
+    </div>
+  </div>
+);
+
+/* ══════════════════════════════════════════════════════════════════════
+   AGENT REGISTRY (Marketplace)
+   ══════════════════════════════════════════════════════════════════════ */
+const AgentRegistry=({onNav})=>{
+  const [hovered,setHovered]=useState(null);
+  return (
+    <div><TopBar crumbs={["iZO Platform","Agent Registry"]}/>
+    <div style={{padding:28}}>
+      <div style={{marginBottom:24}}>
+        <h2 style={{fontSize:22,fontWeight:700,color:C.heading,margin:0}}>Novartis Agent Registry</h2>
+        <p style={{fontSize:13,color:C.muted,marginTop:4}}>Purpose-built AI agents for pharma commercial data operations. Each agent runs an autonomous Plan → Tool Use → Reflect → Act loop with configurable Human-in-the-Loop gates.</p>
+      </div>
+
+      {/* Agentic Loop Banner */}
+      <div style={{background:`linear-gradient(135deg,${C.sidebar},${C.sidebarDark})`,borderRadius:14,padding:"24px 32px",marginBottom:24,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:0,right:0,width:300,height:120,background:`radial-gradient(circle at 80% 20%,rgba(30,130,189,.15),transparent)`,borderRadius:"0 14px 0 0"}}/>
+        <div style={{fontSize:11,fontWeight:600,color:C.primaryLight,textTransform:"uppercase",letterSpacing:2,marginBottom:8}}>iZO Orchestration Layer</div>
+        <div style={{display:"flex",alignItems:"center",gap:0,justifyContent:"center",padding:"12px 0"}}>
+          {["PLAN","TOOL USE","REFLECT","ACT"].map((phase,i)=>(
+            <Fragment key={phase}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                <div style={{width:56,height:56,borderRadius:14,background:`${PHASE_COLORS[phase]}22`,border:`2px solid ${PHASE_COLORS[phase]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,animation:`pulseGlow 3s ease-in-out ${i*0.75}s infinite`}}>
+                  {PHASE_ICONS[phase]}
+                </div>
+                <div style={{fontSize:11,fontWeight:700,color:PHASE_COLORS[phase],letterSpacing:.5}}>{phase}</div>
+              </div>
+              {i<3&&<div style={{width:60,height:2,background:`linear-gradient(90deg,${PHASE_COLORS[phase]},${PHASE_COLORS[["PLAN","TOOL USE","REFLECT","ACT"][i+1]]})`,margin:"0 4px",marginBottom:20,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:0,left:0,width:"30%",height:"100%",background:"rgba(255,255,255,.6)",animation:`flowPulse 2s ease-in-out ${i*0.5}s infinite`}}/>
+              </div>}
+            </Fragment>
+          ))}
+          {/* HITL indicator on the flow */}
+          <div style={{marginLeft:16,marginBottom:20,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+            <div style={{width:56,height:56,borderRadius:14,background:"rgba(234,88,12,.15)",border:"2px solid #EA580C",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,animation:"hitlPulse 2s infinite"}}>👤</div>
+            <div style={{fontSize:10,fontWeight:700,color:"#EA580C",letterSpacing:.5}}>HITL GATE</div>
+          </div>
+        </div>
+        <div style={{textAlign:"center",fontSize:12,color:"#A0B4CC",marginTop:4}}>Every agent runs this loop autonomously — with configurable Human-in-the-Loop gates for high-impact decisions</div>
+      </div>
+
+      {/* Summary Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:16,marginBottom:24}}>
+        {[{l:"Active Agents",v:"5",icon:"🤖",c:C.primary},{l:"Tasks Today",v:"3,176",icon:"⚡",c:C.heading},{l:"Success Rate",v:"98.3%",icon:"✅",c:C.success},{l:"Connected Tools",v:"8",icon:"🔌",c:C.primaryLight},{l:"Pending HITL",v:"3",icon:"👤",c:"#EA580C"}].map((m,i)=>(
+          <div key={i} style={{background:C.card,borderRadius:12,padding:"18px 22px",border:`1px solid ${C.border}`,animation:`fadeUp .4s ease-out ${i*.08}s both`}}>
+            <div style={{fontSize:22,marginBottom:6}}>{m.icon}</div>
+            <div style={{fontSize:26,fontWeight:800,color:m.c}}>{m.v}</div>
+            <div style={{fontSize:12,color:C.muted}}>{m.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Agent Cards */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}}>
+        {AGENTS.map((a,i)=>(
+          <div key={a.id} onClick={()=>onNav(a.id)} onMouseEnter={()=>setHovered(a.id)} onMouseLeave={()=>setHovered(null)}
+            style={{background:C.card,borderRadius:14,padding:0,border:`1px solid ${hovered===a.id?a.color:C.border}`,cursor:"pointer",transition:"all .3s",overflow:"hidden",animation:`fadeUp .4s ease-out ${i*.08}s both`,boxShadow:hovered===a.id?`0 8px 30px ${a.color}18`:"0 1px 3px rgba(0,0,0,.04)",transform:hovered===a.id?"translateY(-2px)":"none"}}>
+            <div style={{padding:"18px 22px 14px",borderBottom:`1px solid ${C.border}`,background:hovered===a.id?`${a.color}06`:"transparent",transition:"background .3s"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                  <div style={{width:44,height:44,borderRadius:12,background:`${a.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:`1px solid ${a.color}33`}}>{a.icon}</div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14,color:C.heading}}>{a.name}</div>
+                    <div style={{fontSize:11,color:a.color,fontWeight:600}}>{a.persona}</div>
+                  </div>
+                </div>
+                <Badge variant="success">Active</Badge>
+              </div>
+            </div>
+            <div style={{padding:"14px 22px 18px"}}>
+              <p style={{fontSize:12,color:C.muted,lineHeight:1.5,marginBottom:14,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{a.desc}</p>
+              {/* Mini Phase Flow with HITL indicator */}
+              <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:14}}>
+                {["PLAN","TOOL USE","REFLECT","ACT"].map((p,pi)=>(
+                  <Fragment key={p}>
+                    <div style={{padding:"3px 8px",borderRadius:6,background:`${PHASE_COLORS[p]}15`,fontSize:9,fontWeight:700,color:PHASE_COLORS[p]}}>{p}</div>
+                    {pi<3&&<span style={{color:C.light,fontSize:10}}>→</span>}
+                  </Fragment>
+                ))}
+                <span style={{marginLeft:4,fontSize:12,color:"#EA580C"}} title={`HITL gate at ${a.hitlConfig.approvalGate}`}>👤</span>
+              </div>
+              {/* Stats */}
+              <div style={{display:"flex",gap:12}}>
+                <div style={{flex:1,background:"#F0F4FA",borderRadius:8,padding:"8px 12px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:C.heading}}>{a.tasks}</div><div style={{fontSize:9,color:C.muted}}>Tasks Today</div></div>
+                <div style={{flex:1,background:"#F0F4FA",borderRadius:8,padding:"8px 12px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:a.success>=99?C.success:C.warn}}>{a.success}%</div><div style={{fontSize:9,color:C.muted}}>Success Rate</div></div>
+                <div style={{flex:1,background:"#F0F4FA",borderRadius:8,padding:"8px 12px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:C.heading}}>{a.tools.length}</div><div style={{fontSize:9,color:C.muted}}>Tools</div></div>
+              </div>
+              <div style={{marginTop:12,display:"flex",flexWrap:"wrap",gap:4}}>
+                {a.tools.map(t=><Badge key={t} variant="neutral" small>{t}</Badge>)}
+              </div>
+            </div>
+          </div>
+        ))}
+        <div onClick={()=>onNav("creator")} style={{background:"#F5F8FC",borderRadius:14,border:`2px dashed ${C.border}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,cursor:"pointer",transition:"all .2s",minHeight:280}} onMouseEnter={e=>{e.currentTarget.style.borderColor=C.primary;e.currentTarget.style.background=C.primaryBg}} onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background="#F5F8FC"}}>
+          <div style={{width:56,height:56,borderRadius:"50%",background:C.primaryBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,color:C.primary,marginBottom:12,border:`2px dashed ${C.primary}44`}}>+</div>
+          <div style={{fontWeight:600,fontSize:14,color:C.heading}}>Register New Agent</div>
+          <div style={{fontSize:11,color:C.muted,marginTop:4,textAlign:"center"}}>Python, API endpoint, or<br/>Improzo-managed agent</div>
+        </div>
+      </div>
+    </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+   AGENT DETAIL VIEW — Individual Agent Internals
+   ══════════════════════════════════════════════════════════════════════ */
+const AgentDetail=({agent,onBack})=>{
+  const a=agent;
+  const [activePhase,setActivePhase]=useState(0);
+  const [running,setRunning]=useState(false);
+  const [completedPhases,setCompletedPhases]=useState([]);
+  const [hitlTriggered,setHitlTriggered]=useState(false);
+
+  const simulateRun=()=>{
+    setRunning(true);setActivePhase(0);setCompletedPhases([]);setHitlTriggered(false);
+    let phase=0;
+    const interval=setInterval(()=>{
+      setCompletedPhases(prev=>[...prev,phase]);
+      phase++;
+      if(phase<4){
+        setActivePhase(phase);
+        /* Trigger HITL gate at the configured phase */
+        if(a.steps[phase].phase===a.hitlConfig.approvalGate){
+          setHitlTriggered(true);
+        }
+      }
+      else{clearInterval(interval);setTimeout(()=>{setRunning(false)},1500)}
+    },2000);
+  };
+
+  return (
+    <div><TopBar crumbs={["iZO Platform","Agent Registry",a.name]}/>
+    <div style={{padding:28}}>
+      {/* Agent Header */}
+      <div style={{background:`linear-gradient(135deg,${C.sidebar},${C.sidebarDark})`,borderRadius:14,padding:"28px 32px",marginBottom:24,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-20,right:-20,width:200,height:200,borderRadius:"50%",background:`${a.color}08`}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div style={{display:"flex",gap:16,alignItems:"center"}}>
+            <div style={{width:60,height:60,borderRadius:16,background:`${a.color}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,border:`2px solid ${a.color}66`}}>{a.icon}</div>
+            <div>
+              <div style={{fontSize:22,fontWeight:800,color:"#fff"}}>{a.name}</div>
+              <div style={{fontSize:13,color:a.color,fontWeight:600,marginTop:2}}>Persona: {a.persona}</div>
+              <div style={{fontSize:12,color:"#A0B4CC",marginTop:4,maxWidth:500}}>{a.desc}</div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+            <button onClick={simulateRun} disabled={running} style={{padding:"10px 24px",borderRadius:8,background:running?`${a.color}88`:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:600,fontSize:13,boxShadow:`0 4px 14px ${C.primary}44`,opacity:running?.7:1}}>
+              {running?"⟳ Running...":"▶ Simulate Agent Run"}
+            </button>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:24,marginTop:20}}>
+          {[["Tasks Today",a.tasks,C.primaryLight],["Success Rate",a.success+"%",C.success],["Connected Tools",a.tools.length,"#fff"],["HITL Gate",a.hitlConfig.approvalGate,"#EA580C"]].map(([l,v,c])=>(
+            <div key={l} style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:c}}>{v}</div><div style={{fontSize:10,color:"#7BA3C9"}}>{l}</div></div>
+          ))}
+        </div>
+      </div>
+
+      {/* Capabilities & Tools */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}>
+        <div style={{background:C.card,borderRadius:12,padding:20,border:`1px solid ${C.border}`}}>
+          <div style={{fontWeight:700,fontSize:14,color:C.heading,marginBottom:12}}>🎯 Capabilities</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {a.capabilities.map(c=><div key={c} style={{padding:"6px 14px",borderRadius:8,background:`${a.color}10`,border:`1px solid ${a.color}25`,fontSize:12,fontWeight:500,color:a.color}}>{c}</div>)}
+          </div>
+        </div>
+        <div style={{background:C.card,borderRadius:12,padding:20,border:`1px solid ${C.border}`}}>
+          <div style={{fontWeight:700,fontSize:14,color:C.heading,marginBottom:12}}>🔧 Connected Tools</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            {a.tools.map(t=>(
+              <div key={t} style={{padding:"10px 14px",borderRadius:8,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:8,background:"#F8FAFC"}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:C.success,animation:"pulseGlow 2s infinite"}}/>
+                <span style={{fontSize:12,fontWeight:600,color:C.heading}}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* HITL Gate Panel for this Agent */}
+      <HITLAgentPanel agent={a}/>
+
+      {/* AGENTIC LOOP */}
+      <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",marginBottom:24}}>
+        <div style={{padding:"18px 24px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:C.heading}}>Agentic Execution Flow</div>
+            <div style={{fontSize:12,color:C.muted}}>How this agent autonomously plans, executes, reflects, and acts</div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            {running&&<Badge variant="info">⟳ Simulating...</Badge>}
+            {hitlTriggered&&<Badge variant="hitl">👤 HITL Gate Triggered</Badge>}
+          </div>
+        </div>
+
+        <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,background:"#F8FAFC"}}>
+          {a.steps.map((step,i)=>{
+            const isActive=activePhase===i;
+            const isDone=completedPhases.includes(i);
+            const isHitlPhase=step.phase===a.hitlConfig.approvalGate;
+            return (
+              <div key={i} onClick={()=>{if(!running)setActivePhase(i)}} style={{flex:1,padding:"16px 20px",cursor:running?"default":"pointer",borderBottom:`3px solid ${isActive?step.color:"transparent"}`,background:isActive?`${step.color}06`:"transparent",transition:"all .3s",position:"relative"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{width:28,height:28,borderRadius:8,background:isDone?`${step.color}22`:isActive?`${step.color}15`:"#EDF2F7",border:`2px solid ${isDone?step.color:isActive?step.color:C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,transition:"all .3s"}}>
+                    {isDone?"✓":PHASE_ICONS[step.phase]}
+                  </div>
+                  <div>
+                    <div style={{display:"flex",alignItems:"center",gap:4}}>
+                      <span style={{fontSize:10,fontWeight:700,color:step.color,letterSpacing:.5}}>{step.phase}</span>
+                      {isHitlPhase&&<span style={{fontSize:10,color:"#EA580C"}} title="HITL Gate">👤</span>}
+                    </div>
+                    <div style={{fontSize:12,fontWeight:600,color:isActive?C.heading:C.muted}}>{step.title}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{padding:24}}>
+          {(()=>{
+            const step=a.steps[activePhase];
+            const isDone=completedPhases.includes(activePhase);
+            return (
+              <div style={{animation:"fadeUp .3s ease-out"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+                  <div style={{width:40,height:40,borderRadius:12,background:`${step.color}15`,border:`2px solid ${step.color}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{PHASE_ICONS[step.phase]}</div>
+                  <div>
+                    <div style={{fontSize:10,fontWeight:700,color:step.color,textTransform:"uppercase",letterSpacing:1}}>{step.phase}</div>
+                    <div style={{fontSize:16,fontWeight:700,color:C.heading}}>{step.title}</div>
+                  </div>
+                  {isDone&&<Badge variant="success">✓ Completed</Badge>}
+                  {running&&activePhase===a.steps.indexOf(step)&&!isDone&&<Badge variant="info">⟳ Executing...</Badge>}
+                </div>
+                <p style={{fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>{step.desc}</p>
+                <div style={{display:"grid",gap:10}}>
+                  {step.actions.map((action,ai)=>{
+                    const isHitlAction=action.startsWith("⚠️ HITL");
+                    return (
+                      <div key={ai} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 16px",borderRadius:10,background:isHitlAction?"#FFF7ED":isDone?`${step.color}06`:"#FAFBFC",border:`1px solid ${isHitlAction?"#FB923C44":isDone?`${step.color}25`:C.border}`,animation:`fadeUp .3s ease-out ${ai*0.08}s both`,transition:"all .3s"}}>
+                        <div style={{width:24,height:24,borderRadius:6,background:isHitlAction?"#FFF7ED":isDone?`${step.color}22`:"#EDF2F7",border:`1px solid ${isHitlAction?"#FB923C":isDone?step.color:C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:isHitlAction?"#EA580C":isDone?step.color:C.muted,flexShrink:0,marginTop:1}}>
+                          {isHitlAction?"👤":isDone?"✓":(ai+1)}
+                        </div>
+                        <div style={{fontSize:13,color:isHitlAction?"#EA580C":C.text,lineHeight:1.5,fontWeight:isHitlAction?600:400}}>{action}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+
+      {/* Execution Log */}
+      <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+        <div style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,fontWeight:700,fontSize:14,color:C.heading}}>Recent Execution Log</div>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <thead><tr style={{background:"#F8FAFC"}}>{["Timestamp","Phase","Action","Tool","Result","HITL","Duration"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:C.muted,fontSize:10,textTransform:"uppercase",letterSpacing:.5,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
+          <tbody>
+            {[
+              {ts:"2026-03-06 09:42:18",phase:"PLAN",action:"Pipeline health scan",tool:"Monte Carlo",result:"3 incidents found",hitl:"—",dur:"0.8s"},
+              {ts:"2026-03-06 09:42:19",phase:"TOOL USE",action:"ML.ANOMALY_DETECTION",tool:"Snowflake",result:"12% TRx drop flagged",hitl:"—",dur:"2.1s"},
+              {ts:"2026-03-06 09:42:21",phase:"REFLECT",action:"Root cause analysis",tool:"Cortex",result:"Schema drift detected",hitl:"—",dur:"3.2s"},
+              {ts:"2026-03-06 09:42:24",phase:"ACT",action:"Quarantine 12K records",tool:"Snowflake",result:"⏳ Awaiting approval",hitl:"👤 Pending",dur:"—"},
+              {ts:"2026-03-06 09:44:08",phase:"ACT",action:"Quarantine 12K records",tool:"Snowflake",result:"✅ Approved by S. Chen",hitl:"✅ Approved",dur:"1m 44s"},
+              {ts:"2026-03-06 09:44:10",phase:"ACT",action:"Alert pushed",tool:"Slack",result:"Team notified with RCA",hitl:"—",dur:"0.3s"},
+            ].map((r,i)=>(
+              <tr key={i} style={{borderBottom:`1px solid ${C.border}`}}>
+                <td style={{padding:"10px 14px",color:C.muted,fontFamily:"monospace",fontSize:11}}>{r.ts}</td>
+                <td style={{padding:"10px 14px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:`${PHASE_COLORS[r.phase]}15`,color:PHASE_COLORS[r.phase]}}>{r.phase}</span></td>
+                <td style={{padding:"10px 14px",fontWeight:500,color:C.text}}>{r.action}</td>
+                <td style={{padding:"10px 14px"}}><Badge variant="neutral" small>{r.tool}</Badge></td>
+                <td style={{padding:"10px 14px",color:C.text}}>{r.result}</td>
+                <td style={{padding:"10px 14px",fontSize:11,color:r.hitl.includes("Approved")?C.success:r.hitl.includes("Pending")?"#EA580C":C.light}}>{r.hitl}</td>
+                <td style={{padding:"10px 14px",color:C.muted,fontFamily:"monospace"}}>{r.dur}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+   ORCHESTRATION VIEW
+   ══════════════════════════════════════════════════════════════════════ */
+const OrchestrationView=({onNav})=>(
+  <div><TopBar crumbs={["iZO Platform","Orchestration View"]}/>
+  <div style={{padding:28}}>
+    <div style={{marginBottom:24}}>
+      <h2 style={{fontSize:22,fontWeight:700,color:C.heading,margin:0}}>Agent Orchestration</h2>
+      <p style={{fontSize:13,color:C.muted,marginTop:4}}>How iZO agents coordinate across the Novartis commercial data ecosystem with Human-in-the-Loop oversight</p>
+    </div>
+
+    {/* Central Orchestrator */}
+    <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:28,marginBottom:24}}>
+      <div style={{textAlign:"center",marginBottom:28}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:10,padding:"10px 24px",borderRadius:12,background:`linear-gradient(135deg,${C.sidebar},${C.sidebarDark})`,color:"#fff"}}>
+          <span style={{fontSize:18}}>🌐</span>
+          <span style={{fontWeight:700,fontSize:14}}>iZO Orchestration Layer</span>
+          <span style={{fontSize:12,color:"#EA580C",marginLeft:8}}>👤 HITL Enabled</span>
+        </div>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:16,marginBottom:28}}>
+        {AGENTS.map((a,i)=>(
+          <div key={a.id} onClick={()=>onNav(a.id)} style={{border:`2px solid ${a.color}33`,borderRadius:14,padding:18,textAlign:"center",cursor:"pointer",transition:"all .3s",background:`${a.color}04`,animation:`fadeUp .4s ease-out ${i*.1}s both`}}>
+            <div style={{fontSize:32,marginBottom:8}}>{a.icon}</div>
+            <div style={{fontWeight:700,fontSize:12,color:C.heading,marginBottom:2}}>{a.name}</div>
+            <div style={{fontSize:10,color:a.color,fontWeight:600,marginBottom:10}}>{a.persona}</div>
+            <div style={{display:"flex",flexDirection:"column",gap:3}}>
+              {["PLAN","TOOL USE","REFLECT","ACT"].map(p=>(
+                <div key={p} style={{padding:"2px 0",borderRadius:4,background:p===a.hitlConfig.approvalGate?`rgba(234,88,12,.12)`:`${PHASE_COLORS[p]}12`,fontSize:8,fontWeight:700,color:p===a.hitlConfig.approvalGate?"#EA580C":PHASE_COLORS[p],position:"relative"}}>
+                  {p}{p===a.hitlConfig.approvalGate&&" 👤"}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Inter-Agent Communication */}
+      <div style={{fontWeight:700,fontSize:14,color:C.heading,marginBottom:14}}>Inter-Agent Communication Flows</div>
+      <div style={{display:"grid",gap:10}}>
+        {[
+          {from:"Observability Agent",to:"Data Quality Agent",msg:"Anomaly detected in IQVIA feed: 12% TRx drop in territory T-2847",type:"alert"},
+          {from:"Data Quality Agent",to:"MDM Agent",msg:"47 duplicate HCP records found in Veeva CRM — requesting entity resolution",type:"request"},
+          {from:"MDM Agent",to:"Analytics Agent",msg:"Golden records updated for 312 HCPs — downstream refresh required",type:"notify"},
+          {from:"Analytics Agent",to:"Trust Agent",msg:"New TRx report generated — requesting data certification before publish",type:"request"},
+          {from:"Trust Agent",to:"Observability Agent",msg:"Certification issued for TRx report v3.2. All 5 trust checks passed.",type:"confirm"},
+          {from:"iZO HITL Gate",to:"All Agents",msg:"Platform-wide: 3 pending approvals require human review before agent execution continues",type:"hitl"},
+        ].map((flow,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 18px",borderRadius:10,border:`1px solid ${flow.type==="hitl"?"#FB923C44":C.border}`,background:flow.type==="hitl"?"#FFF7ED":"#FAFBFC",animation:`fadeUp .3s ease-out ${i*.06}s both`}}>
+            <div style={{padding:"4px 10px",borderRadius:6,background:flow.type==="hitl"?"#FFF7ED":`${(AGENTS.find(a=>a.name===flow.from)||{color:C.primary}).color}15`,fontSize:10,fontWeight:700,color:flow.type==="hitl"?"#EA580C":(AGENTS.find(a=>a.name===flow.from)||{color:C.primary}).color,whiteSpace:"nowrap",minWidth:120,textAlign:"center"}}>{flow.type==="hitl"?"👤 HITL Gate":flow.from.replace(" Agent","")}</div>
+            <div style={{display:"flex",alignItems:"center",gap:4}}>
+              <div style={{width:30,height:2,background:flow.type==="hitl"?"#EA580C":flow.type==="alert"?C.error:flow.type==="request"?C.info:C.success}}/>
+              <span style={{fontSize:10,color:flow.type==="hitl"?"#EA580C":flow.type==="alert"?C.error:flow.type==="request"?C.info:C.success}}>→</span>
+            </div>
+            <div style={{padding:"4px 10px",borderRadius:6,background:flow.type==="hitl"?"#FFF7ED":`${(AGENTS.find(a=>a.name===flow.to)||{color:C.primary}).color}15`,fontSize:10,fontWeight:700,color:flow.type==="hitl"?"#EA580C":(AGENTS.find(a=>a.name===flow.to)||{color:C.primary}).color,whiteSpace:"nowrap",minWidth:120,textAlign:"center"}}>{flow.type==="hitl"?"All Agents":flow.to.replace(" Agent","")}</div>
+            <div style={{flex:1,fontSize:12,color:flow.type==="hitl"?"#EA580C":C.text,marginLeft:8,fontWeight:flow.type==="hitl"?600:400}}>{flow.msg}</div>
+            <Badge variant={flow.type==="alert"?"error":flow.type==="request"?"info":flow.type==="hitl"?"hitl":"success"} small>{flow.type}</Badge>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Tool Ecosystem */}
+    <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:22}}>
+      <div style={{fontWeight:700,fontSize:14,color:C.heading,marginBottom:4}}>Connected Tool Ecosystem</div>
+      <div style={{fontSize:12,color:C.muted,marginBottom:16}}>Each agent calls these tools via the iZO orchestration layer</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+        {[
+          {name:"Snowflake + Cortex",sub:"Data Platform & AI Engine",icon:"❄️",agents:5},
+          {name:"Monte Carlo",sub:"Data + AI Observability",icon:"👁️",agents:4},
+          {name:"Reltio MDM",sub:"Master Data: HCP / HCO",icon:"🔗",agents:3},
+          {name:"Enkrypt AI",sub:"AI Compliance & Governance",icon:"🔐",agents:3},
+          {name:"Collibra",sub:"Data Catalog & Lineage",icon:"🛡️",agents:5},
+          {name:"Veeva CRM",sub:"Customer Relationship Mgmt",icon:"💊",agents:2},
+          {name:"Apache Airflow",sub:"Pipeline Orchestration",icon:"🌊",agents:2},
+          {name:"ATC Dashboard",sub:"Unified Control Surface",icon:"📊",agents:4},
+        ].map((t,i)=>(
+          <div key={t.name} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 16px",background:"#F8FBFF",animation:`fadeUp .3s ease-out ${i*.05}s both`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+              <span style={{fontSize:20}}>{t.icon}</span>
+              <Badge variant="success" small>Connected</Badge>
+            </div>
+            <div style={{fontWeight:600,fontSize:12,color:C.heading}}>{t.name}</div>
+            <div style={{fontSize:10,color:C.muted,marginBottom:8}}>{t.sub}</div>
+            <div style={{fontSize:10,color:C.primary,fontWeight:600}}>{t.agents} agents connected</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+  </div>
+);
+
+/* ══════════════════════════════════════════════════════════════════════
+   AGENT CREATOR — Multi-step wizard to create, configure, test & deploy
+   ══════════════════════════════════════════════════════════════════════ */
+
+const TOOL_OPTIONS=[
+  {id:"snowflake",name:"Snowflake + Cortex",icon:"❄️",cat:"Data Platform",
+    desc:"Query warehouse, run Cortex LLM, execute DMFs",
+    endpoint:"https://nvs-pharma.snowflakecomputing.com",
+    methods:["cortex_complete()","execute_dmf()","query()","stage_put()"],
+    recommended:["dq_eng","gov_spec","master_arch","intel_analyst","rel_eng"]},
+  {id:"montecarlo",name:"Monte Carlo",icon:"👁️",cat:"Observability",
+    desc:"Anomaly detection, lineage, freshness monitoring",
+    endpoint:"https://api.getmontecarlo.com/v1",
+    methods:["get_anomalies()","get_freshness()","get_table_stats()","create_monitor()"],
+    recommended:["dq_eng","rel_eng"]},
+  {id:"reltio",name:"Reltio MDM",icon:"🔗",cat:"Master Data",
+    desc:"Entity resolution, golden records, match-merge",
+    endpoint:"https://nvs.reltio.com/reltio/api",
+    methods:["search_entities()","merge_entities()","get_golden_record()","crosswalk_lookup()"],
+    recommended:["master_arch"]},
+  {id:"enkrypt",name:"Enkrypt AI",icon:"🔐",cat:"AI Governance",
+    desc:"PHI/PII scanning, AI guardrails, compliance checks",
+    endpoint:"https://api.enkrypt.ai/v2",
+    methods:["scan_phi_pii()","validate_guardrails()","check_compliance()","mask_fields()"],
+    recommended:["dq_eng","gov_spec"]},
+  {id:"collibra",name:"Collibra",icon:"🛡️",cat:"Data Catalog",
+    desc:"Data catalog, lineage tracking, governance workflows",
+    endpoint:"https://nvs-pharma.collibra.com/rest/2.0",
+    methods:["get_asset()","get_lineage()","create_cert()","update_quality_score()"],
+    recommended:["dq_eng","gov_spec","rel_eng"]},
+  {id:"veeva",name:"Veeva CRM",icon:"💊",cat:"CRM",
+    desc:"HCP/HCO data, Rx analytics, field activity",
+    endpoint:"https://nvs.veeva.com/api/v1",
+    methods:["query_hcp()","get_calls()","get_rx_data()","update_territory()"],
+    recommended:["master_arch","intel_analyst"]},
+  {id:"airflow",name:"Apache Airflow",icon:"🌊",cat:"Orchestration",
+    desc:"DAG management, pipeline triggers, task monitoring",
+    endpoint:"https://airflow.nvs-pharma.internal/api/v1",
+    methods:["trigger_dag()","get_dag_runs()","pause_dag()","get_task_logs()"],
+    recommended:["dq_eng","rel_eng"]},
+  {id:"atc",name:"ATC Dashboard",icon:"📊",cat:"Dashboards",
+    desc:"Real-time KPI dashboards, SLA tracking, reporting",
+    endpoint:"https://atc.nvs-pharma.internal/api",
+    methods:["push_metric()","get_sla_status()","create_alert()","update_dashboard()"],
+    recommended:["intel_analyst","rel_eng"]},
+  {id:"slack",name:"Slack",icon:"💬",cat:"Notifications",
+    desc:"Channel alerts, DMs, approval workflows, thread replies",
+    endpoint:"https://slack.com/api",
+    methods:["chat.postMessage()","conversations.create()","files.upload()","reactions.add()"],
+    recommended:["dq_eng","gov_spec","master_arch","intel_analyst","rel_eng"]},
+  {id:"custom",name:"Custom REST API",icon:"🔌",cat:"Custom",
+    desc:"Connect any RESTful service via OpenAPI spec",
+    endpoint:"https://your-endpoint.example.com/api",
+    methods:["GET","POST","PUT","DELETE"],
+    recommended:[]},
+];
+
+const PERSONA_TEMPLATES=[
+  {id:"dq_eng",name:"Data Quality Engineer",icon:"🔍",desc:"Monitors pipelines, detects anomalies, auto-fixes quality issues"},
+  {id:"gov_spec",name:"Data Governance Specialist",icon:"🛡️",desc:"Enforces certification, compliance, and audit trails"},
+  {id:"master_arch",name:"Master Data Architect",icon:"🔗",desc:"Entity resolution, golden records, cross-system sync"},
+  {id:"intel_analyst",name:"Decision Intelligence Analyst",icon:"📊",desc:"Generates governed analytics and ML-powered insights"},
+  {id:"rel_eng",name:"Data Reliability Engineer",icon:"👁️",desc:"Monitors ecosystem health, SLAs, and agent performance"},
+  {id:"custom",name:"Custom Persona",icon:"✨",desc:"Define your own agent persona from scratch"},
+];
+
+const PHASE_TEMPLATES={
+  "dq_eng":[
+    {phase:"PLAN",title:"Assess Pipeline Health",actions:["Scan data products","Pull SLA metadata","Rank by impact"]},
+    {phase:"TOOL USE",title:"Execute Quality Checks",actions:["Run anomaly detection","Execute DMFs","PHI/PII scan"]},
+    {phase:"REFLECT",title:"Analyze Results",actions:["Correlate findings","Calculate blast radius","Classify severity"]},
+    {phase:"ACT",title:"Remediate & Notify",actions:["Quarantine records","Generate RCA","Push alerts"]},
+  ],
+  "gov_spec":[
+    {phase:"PLAN",title:"Identify Uncertified Assets",actions:["Scan catalog","Check labels","Prioritize by regulation"]},
+    {phase:"TOOL USE",title:"Run Trust Checks",actions:["Source verification","Quality assurance","PHI/PII scan"]},
+    {phase:"REFLECT",title:"Evaluate Certification",actions:["Aggregate results","Calculate risk","Generate audit event"]},
+    {phase:"ACT",title:"Certify or Block",actions:["Issue certificate","Block consumption","Generate playbook"]},
+  ],
+  "master_arch":[
+    {phase:"PLAN",title:"Detect Entity Conflicts",actions:["Query match-merge queue","Compare counts","Prioritize"]},
+    {phase:"TOOL USE",title:"Execute Resolution",actions:["ML entity resolution","Apply survivorship","Update mapping"]},
+    {phase:"REFLECT",title:"Validate Merge Quality",actions:["Check false positives","Validate completeness","Trace impact"]},
+    {phase:"ACT",title:"Propagate & Sync",actions:["Push golden records","Trigger refresh","Notify managers"]},
+  ],
+};
+
+/* HITL rule presets */
+const HITL_RULE_PRESETS=[
+  {id:"mass_action",name:"Mass Data Action",desc:"Quarantine or modify >5,000 records at once",severity:"Critical",phase:"ACT",enabled:true},
+  {id:"schema_change",name:"Schema Propagation",desc:"DDL changes that affect downstream tables",severity:"High",phase:"ACT",enabled:true},
+  {id:"cross_system",name:"Cross-System Sync",desc:"Push changes across multiple integrated systems",severity:"High",phase:"ACT",enabled:true},
+  {id:"kpi_impact",name:"KPI Impact",desc:"Actions that could affect reported KPIs (TRx, NBRx)",severity:"Critical",phase:"REFLECT",enabled:true},
+  {id:"regulatory",name:"Regulatory Flag",desc:"Any action touching HIPAA/GxP regulated datasets",severity:"Critical",phase:"TOOL USE",enabled:true},
+  {id:"pii_exposure",name:"PII Exposure Risk",desc:"Unmasked PHI/PII detected in output payload",severity:"Critical",phase:"REFLECT",enabled:false},
+  {id:"new_entity",name:"New Entity Creation",desc:"Creating new HCP/HCO golden records in MDM",severity:"Medium",phase:"ACT",enabled:false},
+  {id:"auto_remediate",name:"Auto-Remediation",desc:"Agent attempts automatic data fix without prior human check",severity:"High",phase:"ACT",enabled:false},
+];
+
+/* Code snippet templates per tool */
+const TOOL_CODE_SNIPPETS={
+  snowflake:`# Snowflake + Cortex Integration
+async def execute_snowflake_check(self, ctx):
+    \"\"\"Run Data Metric Functions against target table\"\"\"
+    dmf_sql = f\"\"\"
+    SELECT
+      SNOWFLAKE.CORE.NULL_COUNT(
+        SELECT {ctx.column} FROM {ctx.table}
+      ) as null_count,
+      SNOWFLAKE.CORE.DUPLICATE_COUNT(
+        SELECT {ctx.column} FROM {ctx.table}
+      ) as dup_count
+    \"\"\"
+    results = await self.sf_client.execute(dmf_sql)
+
+    # Use Cortex LLM for root cause analysis
+    rca = await self.sf_client.cortex_complete(
+        model="llama3.1-70b",
+        prompt=f"Analyze DQ issue: {results}"
+    )
+    return {"dmf_results": results, "rca": rca}`,
+  montecarlo:`# Monte Carlo Anomaly Detection
+async def check_anomalies(self, ctx):
+    \"\"\"Query Monte Carlo for freshness & volume anomalies\"\"\"
+    anomalies = await self.mc_client.get_anomalies(
+        dataset=ctx.dataset,
+        start_time=ctx.window_start,
+        severity=["WARNING", "ERROR"]
+    )
+
+    # Check freshness SLA
+    freshness = await self.mc_client.get_freshness(
+        table_id=ctx.table_id
+    )
+    sla_breach = freshness.hours_since_update > ctx.sla_hours
+    return {"anomalies": anomalies, "sla_breach": sla_breach}`,
+  reltio:`# Reltio MDM Entity Resolution
+async def resolve_entities(self, ctx):
+    \"\"\"Match-merge entities and produce golden records\"\"\"
+    candidates = await self.reltio.search_entities(
+        type=ctx.entity_type,  # "HCP" or "HCO"
+        filters=ctx.match_criteria
+    )
+
+    # Execute ML-powered merge
+    merge_result = await self.reltio.merge_entities(
+        winner=candidates.best_match,
+        losers=candidates.duplicates,
+        survivorship_rules=ctx.survivorship
+    )
+    golden = await self.reltio.get_golden_record(merge_result.id)
+    return {"golden_record": golden, "merged_count": len(candidates)}`,
+  enkrypt:`# Enkrypt AI PHI/PII Scanning
+async def scan_for_phi(self, ctx):
+    \"\"\"Scan dataset for unmasked PHI/PII fields\"\"\"
+    scan_result = await self.enkrypt.scan_phi_pii(
+        dataset=ctx.dataset,
+        policy="HIPAA_SAFE_HARBOR",
+        sensitivity="HIGH"
+    )
+
+    if scan_result.violations:
+        # Auto-mask detected PHI
+        await self.enkrypt.mask_fields(
+            dataset=ctx.dataset,
+            fields=scan_result.violation_fields,
+            method="SHA256_TOKENIZE"
+        )
+    return {"violations": scan_result.violations, "masked": True}`,
+  collibra:`# Collibra Data Governance
+async def validate_lineage(self, ctx):
+    \"\"\"Trace full data lineage and validate certifications\"\"\"
+    lineage = await self.collibra.get_lineage(
+        asset_id=ctx.asset_id,
+        direction="BOTH",
+        depth=5
+    )
+
+    # Check for uncertified upstream assets
+    uncertified = [n for n in lineage.upstream
+                   if n.certification != "CERTIFIED"]
+
+    # Update quality score in catalog
+    await self.collibra.update_quality_score(
+        asset_id=ctx.asset_id,
+        score=ctx.computed_score,
+        dimensions=ctx.quality_dimensions
+    )
+    return {"lineage_depth": lineage.depth, "uncertified": uncertified}`,
+  veeva:`# Veeva CRM Data Access
+async def query_hcp_data(self, ctx):
+    \"\"\"Pull HCP prescribing and field activity data\"\"\"
+    hcp_data = await self.veeva.query_hcp(
+        territory=ctx.territory,
+        specialty=ctx.specialty_filter,
+        fields=["npi","name","trx_volume","nbrx_volume"]
+    )
+
+    # Get recent field activity
+    calls = await self.veeva.get_calls(
+        hcp_ids=[h.npi for h in hcp_data],
+        date_range=ctx.lookback_window
+    )
+    return {"hcp_records": len(hcp_data), "call_records": len(calls)}`,
+  airflow:`# Apache Airflow Pipeline Control
+async def manage_pipeline(self, ctx):
+    \"\"\"Trigger or pause Airflow DAGs based on findings\"\"\"
+    if ctx.action == "quarantine":
+        # Pause downstream DAGs to stop bad data flow
+        await self.airflow.pause_dag(dag_id=ctx.downstream_dag)
+
+    # Trigger remediation DAG
+    run = await self.airflow.trigger_dag(
+        dag_id="izo_remediation_pipeline",
+        conf={
+            "source_table": ctx.table,
+            "remediation_type": ctx.action,
+            "agent_id": self.agent_id
+        }
+    )
+    return {"dag_run_id": run.run_id, "status": run.state}`,
+  atc:`# ATC Dashboard Integration
+async def update_dashboard(self, ctx):
+    \"\"\"Push metrics and alerts to ATC monitoring\"\"\"
+    await self.atc.push_metric(
+        dashboard="izo_agent_health",
+        metrics={
+            "dq_score": ctx.quality_score,
+            "records_processed": ctx.record_count,
+            "anomalies_detected": ctx.anomaly_count
+        }
+    )
+
+    if ctx.severity in ["HIGH", "CRITICAL"]:
+        await self.atc.create_alert(
+            dashboard="izo_agent_health",
+            title=f"Agent {self.agent_id}: {ctx.severity} issue",
+            body=ctx.summary
+        )
+    return {"dashboard_updated": True}`,
+  slack:`# Slack Notification Integration
+async def notify_team(self, ctx):
+    \"\"\"Send structured notifications to Slack channels\"\"\"
+    blocks = [
+        {"type":"header","text":f"{ctx.icon} iZO Agent Alert"},
+        {"type":"section","text":f"*Agent:* {self.agent_id}\\n*Severity:* {ctx.severity}"},
+        {"type":"section","text":f"*Summary:* {ctx.summary}"},
+    ]
+
+    if ctx.requires_approval:
+        blocks.append({
+            "type": "actions",
+            "elements": [
+                {"type":"button","text":"✅ Approve","action_id":"hitl_approve"},
+                {"type":"button","text":"❌ Deny","action_id":"hitl_deny"}
+            ]
+        })
+
+    await self.slack.chat_postMessage(
+        channel=ctx.alert_channel,
+        blocks=blocks
+    )
+    return {"notified": True, "channel": ctx.alert_channel}`,
+  custom:`# Custom REST API Integration
+async def call_custom_api(self, ctx):
+    \"\"\"Execute custom REST API call with retries\"\"\"
+    response = await self.http_client.request(
+        method=ctx.method,
+        url=f"{ctx.base_url}{ctx.path}",
+        headers={"Authorization": f"Bearer {ctx.token}"},
+        json=ctx.payload,
+        retries=3,
+        timeout=30
+    )
+    return {"status": response.status, "data": response.json()}`,
+};
+
+/* Synthetic test data generators per persona */
+const TEST_SCENARIOS={
+  dq_eng:{
+    name:"Pipeline Quality Check — IQVIA Xponent Feed",
+    synthetic_data:[
+      {table:"RAW.IQVIA_XPONENT_WEEKLY",records:"2.4M",freshness:"3h ago",status:"anomaly_detected"},
+      {table:"CURATED.HCP_PRESCRIBING",records:"847K",freshness:"12h ago",status:"sla_breach"},
+      {table:"ANALYTICS.TRX_SUMMARY",records:"156K",freshness:"1h ago",status:"healthy"},
+    ],
+    expected_actions:["Scan 3 data products","Detect freshness SLA breach on HCP_PRESCRIBING","Run DMFs on IQVIA feed","Flag 2,847 null NPI records","Calculate blast radius: 14 downstream consumers","Generate RCA via Cortex LLM","Request HITL approval for quarantine"],
+  },
+  gov_spec:{
+    name:"Certification Audit — Patient Safety Dataset",
+    synthetic_data:[
+      {table:"CURATED.ADVERSE_EVENTS",records:"89K",freshness:"2h ago",status:"uncertified"},
+      {table:"RAW.FDA_FAERS_FEED",records:"340K",freshness:"6h ago",status:"expired_cert"},
+      {table:"ANALYTICS.SAFETY_SIGNALS",records:"12K",freshness:"30m ago",status:"healthy"},
+    ],
+    expected_actions:["Identify 2 uncertified datasets","Verify data source provenance","Run PHI/PII scan on ADVERSE_EVENTS","Check GxP compliance labels","Calculate trust score: 67/100","Block downstream consumption","Generate compliance playbook"],
+  },
+  master_arch:{
+    name:"Entity Resolution — HCP Duplicate Cleanup",
+    synthetic_data:[
+      {table:"MDM.HCP_STAGING",records:"12.4K",freshness:"1h ago",status:"duplicates_detected"},
+      {table:"MDM.HCO_AFFILIATIONS",records:"3.2K",freshness:"4h ago",status:"healthy"},
+      {table:"MDM.GOLDEN_HCP",records:"156K",freshness:"Real-time",status:"healthy"},
+    ],
+    expected_actions:["Query 847 match candidates","Run ML entity resolution","Apply survivorship rules","Validate with Veeva CRM source","Merge 312 duplicate HCPs","Update golden records","Trigger downstream refresh"],
+  },
+  intel_analyst:{
+    name:"KPI Analytics — Quarterly TRx Analysis",
+    synthetic_data:[
+      {table:"ANALYTICS.TRX_BY_TERRITORY",records:"45K",freshness:"2h ago",status:"healthy"},
+      {table:"ANALYTICS.NBRX_TRENDS",records:"23K",freshness:"4h ago",status:"drift_detected"},
+      {table:"CURATED.REP_ACTIVITY",records:"78K",freshness:"1h ago",status:"healthy"},
+    ],
+    expected_actions:["Aggregate territory-level TRx","Detect 12% NBRx drift in Southeast region","Correlate with rep call activity","Run Cortex predictive model","Generate territory recommendations","Push insights to ATC dashboard","Notify field leads via Slack"],
+  },
+  rel_eng:{
+    name:"Platform Health — SLA Monitoring Sweep",
+    synthetic_data:[
+      {table:"MONITORING.PIPELINE_METRICS",records:"1.2M",freshness:"Real-time",status:"healthy"},
+      {table:"MONITORING.AGENT_HEALTH",records:"24K",freshness:"5m ago",status:"warning"},
+      {table:"MONITORING.SLA_TRACKER",records:"890",freshness:"1m ago",status:"sla_breach"},
+    ],
+    expected_actions:["Sweep 47 monitored pipelines","Detect 3 SLA breaches","Check agent health metrics","Calculate platform uptime: 99.7%","Identify bottleneck: Airflow DAG #247","Create incident report","Escalate to on-call engineer"],
+  },
+};
+
+/* AI Agent description examples for the prompt assistant */
+const AI_PROMPT_EXAMPLES=[
+  {title:"Data Quality Monitor",prompt:"Create an agent that monitors our IQVIA Xponent and Veeva CRM data feeds every 5 minutes. It should check for null values, duplicates, and freshness SLAs using Snowflake DMFs and Monte Carlo. When anomalies exceed 1% threshold, quarantine affected records and notify the data-ops team on Slack. Require human approval before any mass quarantine over 5000 records."},
+  {title:"Compliance Auditor",prompt:"I need a governance agent that continuously audits all datasets in our Collibra catalog. It should verify PHI/PII compliance with Enkrypt AI, check data certification status, and ensure GxP regulatory labels are up to date. If any uncertified dataset is being consumed downstream, block access immediately and escalate to compliance team. All blocking actions need HITL approval."},
+  {title:"MDM Entity Resolver",prompt:"Build an agent to handle HCP/HCO entity resolution in Reltio MDM. It should detect duplicate records by running ML matching, apply survivorship rules for golden record creation, and sync the cleaned entities to Veeva CRM. Cross-system syncs must be approved by a human. Run every 15 minutes during business hours and notify the master data team on Slack."},
+  {title:"KPI Drift Detector",prompt:"Set up an analytics agent that tracks TRx, NBRx, and market share KPIs across territories. It should use Snowflake Cortex for predictive drift detection and push alerts to the ATC dashboard when any KPI deviates more than 10% from forecast. Generate weekly territory-level reports and flag any territory needing field rep attention."},
+];
+
+const AgentCreator=({onNav})=>{
+  const [mode,setMode]=useState(null); // null=chooser, "wizard"=step-by-step, "ai"=AI-assisted
+  const [step,setStep]=useState(0);
+  const [form,setForm]=useState({
+    name:"",persona:"",personaId:"",icon:"🤖",color:"#1E82BD",
+    desc:"",tools:[],toolConfigs:{},hitlGate:"ACT",hitlThreshold:"Medium",
+    hitlRules:HITL_RULE_PRESETS.map(r=>({...r})),
+    hitlNotifyChannel:"#izo-alerts",hitlReviewers:["data-ops@novartis.com"],
+    hitlAutoApproveBelow:"Low",hitlTimeoutMins:60,
+    schedule:"5m",phases:[
+      {phase:"PLAN",title:"",actions:[""],toolBindings:[]},
+      {phase:"TOOL USE",title:"",actions:[""],toolBindings:[]},
+      {phase:"REFLECT",title:"",actions:[""],toolBindings:[]},
+      {phase:"ACT",title:"",actions:[""],toolBindings:[]},
+    ],
+    envTarget:"staging",
+  });
+  const [testState,setTestState]=useState("idle"); // idle|running|pass|fail
+  const [testPhase,setTestPhase]=useState(-1);
+  const [testLogs,setTestLogs]=useState([]);
+  const [testMetrics,setTestMetrics]=useState(null);
+  const [deployed,setDeployed]=useState(false);
+  const [deployStage,setDeployStage]=useState(-1);
+  const [deployEnv,setDeployEnv]=useState("staging");
+  const [deployLogs,setDeployLogs]=useState([]);
+  const [expandedTool,setExpandedTool]=useState(null);
+  const [showCode,setShowCode]=useState(null);
+  const [activePhaseTab,setActivePhaseTab]=useState(0);
+
+  /* AI-Assisted mode state */
+  const [aiPrompt,setAiPrompt]=useState("");
+  const [aiState,setAiState]=useState("idle"); // idle|thinking|parsing|review
+  const [aiThinkingLines,setAiThinkingLines]=useState([]);
+  const [aiParsedConfig,setAiParsedConfig]=useState(null);
+  const [aiEditSection,setAiEditSection]=useState(null);
+
+  /* AI Natural Language → Config parser (simulated) */
+  const parseAiPrompt=(text)=>{
+    const lower=text.toLowerCase();
+    /* Detect persona */
+    let personaId="dq_eng",persona="Data Quality Engineer",icon="🔍",color="#1E82BD";
+    if(lower.match(/govern|compliance|certif|audit|gxp|hipaa|regulatory/)){personaId="gov_spec";persona="Data Governance Specialist";icon="🛡️";color="#0A5081";}
+    else if(lower.match(/entity|mdm|master data|golden record|duplicate|merge|hcp|hco|resolution/)){personaId="master_arch";persona="Master Data Architect";icon="🔗";color="#3A9BD5";}
+    else if(lower.match(/analytic|kpi|insight|forecast|trx|nbrx|territory|drift|predict/)){personaId="intel_analyst";persona="Decision Intelligence Analyst";icon="📊";color="#28426D";}
+    else if(lower.match(/monitor|health|sla|uptime|observab|reliab|pipeline status/)){personaId="rel_eng";persona="Data Reliability Engineer";icon="👁️";color="#5BA4CF";}
+    /* Detect name */
+    let name=persona.replace("Specialist","Agent").replace("Engineer","Agent").replace("Architect","Agent").replace("Analyst","Agent");
+    const nameMatch=text.match(/(?:create|build|set up|make|need)\s+(?:a|an)?\s*["""]?([^""".,!?]+?)["""]?\s+(?:agent|that|to|which|for)/i);
+    if(nameMatch&&nameMatch[1].length<40) name=nameMatch[1].trim().replace(/^(a|an)\s+/i,"")+" Agent";
+    /* Detect tools */
+    const tools=[];
+    if(lower.match(/snowflake|dmf|cortex|warehouse/)) tools.push("snowflake");
+    if(lower.match(/monte carlo|anomal|freshness|observ/)) tools.push("montecarlo");
+    if(lower.match(/reltio|mdm|entity|golden/)) tools.push("reltio");
+    if(lower.match(/enkrypt|phi|pii|guardrail/)) tools.push("enkrypt");
+    if(lower.match(/collibra|catalog|lineage|certif/)) tools.push("collibra");
+    if(lower.match(/veeva|crm|hcp|hco|rep|field/)) tools.push("veeva");
+    if(lower.match(/airflow|dag|pipeline|orchestrat/)) tools.push("airflow");
+    if(lower.match(/atc|dashboard|kpi|metric/)) tools.push("atc");
+    if(lower.match(/slack|notify|alert|message|team/)) tools.push("slack");
+    if(tools.length===0) tools.push("snowflake","collibra","slack");
+    /* Detect schedule */
+    let schedule="5m";
+    const schedMatch=lower.match(/every\s+(\d+)\s*(min|hour|h |m |second|day)/);
+    if(schedMatch) schedule=schedMatch[1]+(schedMatch[2].startsWith("h")?"h":schedMatch[2].startsWith("d")?"d":"m");
+    else if(lower.match(/hourly/)) schedule="1h";
+    else if(lower.match(/daily/)) schedule="24h";
+    else if(lower.match(/15\s*min/)) schedule="15m";
+    /* Detect HITL */
+    let hitlGate="ACT",hitlThreshold="Medium";
+    if(lower.match(/all.*approval|approve.*everything|critical only|human.*all/)){hitlThreshold="Critical";}
+    if(lower.match(/require.*human|need.*approv|hitl|human.*approval|must.*approv/)){hitlThreshold="High";}
+    if(lower.match(/before.*quarant|approv.*before|before.*block|before.*delete/)){hitlGate="ACT";}
+    if(lower.match(/before.*execut|approv.*tool|before.*run/)){hitlGate="TOOL USE";}
+    /* Detect HITL rules */
+    const hitlRules=HITL_RULE_PRESETS.map(r=>{
+      const enabled=
+        (r.id==="mass_action"&&lower.match(/mass|quarantine|bulk|5000|5,000/))||
+        (r.id==="schema_change"&&lower.match(/schema|ddl|alter/)) ||
+        (r.id==="cross_system"&&lower.match(/cross.system|sync|propagat/))||
+        (r.id==="kpi_impact"&&lower.match(/kpi|trx|nbrx|metric/))||
+        (r.id==="regulatory"&&lower.match(/regulat|hipaa|gxp|compliance|phi/))||
+        (r.id==="pii_exposure"&&lower.match(/pii|phi|personal|mask/))||
+        (r.id==="new_entity"&&lower.match(/new.*entity|create.*record|golden/))||
+        (r.id==="auto_remediate"&&lower.match(/auto.*fix|auto.*remed|self.heal/));
+      return {...r,enabled:!!enabled||r.id==="mass_action"||r.id==="regulatory"};
+    });
+    /* Build phases from templates or generate from text */
+    let phases;
+    if(PHASE_TEMPLATES[personaId]){
+      phases=PHASE_TEMPLATES[personaId].map(ph=>({...ph,actions:[...ph.actions],toolBindings:tools.filter(tid=>{
+        const t=TOOL_OPTIONS.find(x=>x.id===tid);
+        return t&&t.recommended.includes(personaId);
+      })}));
+    } else {
+      phases=[
+        {phase:"PLAN",title:"Analyze & Prioritize",actions:["Scan data sources","Evaluate context","Rank by impact"],toolBindings:tools.slice(0,2)},
+        {phase:"TOOL USE",title:"Execute Checks",actions:["Run primary tool checks","Validate results","Collect metrics"],toolBindings:tools},
+        {phase:"REFLECT",title:"Analyze Results",actions:["Cross-reference findings","Classify severity","Generate root cause"],toolBindings:["snowflake"]},
+        {phase:"ACT",title:"Remediate & Notify",actions:["Execute remediation","Send notifications","Update dashboards"],toolBindings:tools.filter(t=>["slack","airflow","atc"].includes(t))},
+      ];
+    }
+    /* Extract custom description */
+    let desc=text.length>120?text.substring(0,120)+"...":text;
+    /* Detect notify channel */
+    let notifyChannel="#izo-alerts";
+    const chanMatch=lower.match(/#([\w-]+)/);
+    if(chanMatch) notifyChannel="#"+chanMatch[1];
+    /* Detect reviewers */
+    let reviewers=["data-ops@novartis.com"];
+    const emailMatch=text.match(/[\w.-]+@[\w.-]+\.\w+/);
+    if(emailMatch) reviewers=[emailMatch[0]];
+
+    const toolConfigs={};
+    tools.forEach(tid=>{toolConfigs[tid]={verified:true,authMethod:"api_key",latency:Math.floor(Math.random()*150+50)+"ms"};});
+
+    return {name,persona,personaId,icon,color,desc,tools,toolConfigs,phases,
+      hitlGate,hitlThreshold,hitlRules,hitlNotifyChannel:notifyChannel,hitlReviewers:reviewers,
+      hitlAutoApproveBelow:hitlThreshold==="Critical"?"Medium":"Low",hitlTimeoutMins:60,
+      schedule,envTarget:"staging"};
+  };
+
+  /* Streaming AI "thinking" simulation */
+  const runAiParse=()=>{
+    setAiState("thinking");
+    setAiThinkingLines([]);
+    setAiParsedConfig(null);
+    const thinkSteps=[
+      {icon:"🧠",text:"Analyzing natural language description..."},
+      {icon:"🔍",text:"Identifying agent persona and domain context..."},
+      {icon:"🛠️",text:"Mapping tools from description keywords..."},
+      {icon:"📋",text:"Generating PLAN → TOOL USE → REFLECT → ACT phases..."},
+      {icon:"🔗",text:"Binding tools to appropriate phases..."},
+      {icon:"👤",text:"Configuring HITL gates and escalation rules..."},
+      {icon:"⏱️",text:"Setting schedule and notification routing..."},
+      {icon:"🔐",text:"Verifying tool connections and auth methods..."},
+      {icon:"📊",text:"Calculating complexity score and resource requirements..."},
+      {icon:"✅",text:"Configuration complete — ready for review"},
+    ];
+    let si=0;
+    const tick=()=>{
+      if(si<thinkSteps.length){
+        setAiThinkingLines(prev=>[...prev,thinkSteps[si]]);
+        si++;
+        setTimeout(tick,400+Math.random()*300);
+      } else {
+        setTimeout(()=>{
+          const config=parseAiPrompt(aiPrompt);
+          setAiParsedConfig(config);
+          setAiState("review");
+        },500);
+      }
+    };
+    tick();
+  };
+
+  /* Apply AI config to form and jump to Test */
+  const applyAiConfig=()=>{
+    if(!aiParsedConfig)return;
+    setForm(aiParsedConfig);
+    setMode("wizard");
+    setStep(5);
+  };
+
+  /* Apply AI config but go to specific step for editing */
+  const aiEditStep=(stepNum)=>{
+    if(!aiParsedConfig)return;
+    setForm(aiParsedConfig);
+    setMode("wizard");
+    setStep(stepNum);
+  };
+
+  const u=(k,v)=>setForm(p=>({...p,[k]:v}));
+
+  const selectPersona=(p)=>{
+    u("personaId",p.id);
+    u("persona",p.name);
+    u("icon",p.icon);
+    if(PHASE_TEMPLATES[p.id]){
+      u("phases",PHASE_TEMPLATES[p.id].map(ph=>({...ph,actions:[...ph.actions],toolBindings:[]})));
+    }
+    /* Auto-select recommended tools */
+    const recommended=TOOL_OPTIONS.filter(t=>t.recommended.includes(p.id)).map(t=>t.id);
+    u("tools",recommended);
+  };
+
+  const toggleTool=(id)=>{
+    setForm(p=>{
+      const tools=p.tools.includes(id)?p.tools.filter(t=>t!==id):[...p.tools,id];
+      const toolConfigs={...p.toolConfigs};
+      if(!toolConfigs[id]) toolConfigs[id]={verified:false,authMethod:"api_key"};
+      return {...p,tools,toolConfigs};
+    });
+  };
+
+  const verifyTool=(id)=>{
+    setForm(p=>{
+      const toolConfigs={...p.toolConfigs,[id]:{...p.toolConfigs[id],verifying:true}};
+      return {...p,toolConfigs};
+    });
+    setTimeout(()=>{
+      setForm(p=>{
+        const toolConfigs={...p.toolConfigs,[id]:{...p.toolConfigs[id],verified:true,verifying:false,latency:Math.floor(Math.random()*200+50)+"ms"}};
+        return {...p,toolConfigs};
+      });
+    },1200);
+  };
+
+  const toggleHitlRule=(idx)=>{
+    setForm(p=>{
+      const hitlRules=[...p.hitlRules];
+      hitlRules[idx]={...hitlRules[idx],enabled:!hitlRules[idx].enabled};
+      return {...p,hitlRules};
+    });
+  };
+
+  const updatePhaseAction=(pi,ai,val)=>{
+    setForm(p=>{
+      const phases=[...p.phases];
+      phases[pi]={...phases[pi],actions:[...phases[pi].actions]};
+      phases[pi].actions[ai]=val;
+      return {...p,phases};
+    });
+  };
+
+  const addPhaseAction=(pi)=>{
+    setForm(p=>{
+      const phases=[...p.phases];
+      phases[pi]={...phases[pi],actions:[...phases[pi].actions,""]};
+      return {...p,phases};
+    });
+  };
+
+  const removePhaseAction=(pi,ai)=>{
+    setForm(p=>{
+      const phases=[...p.phases];
+      const actions=[...phases[pi].actions];
+      if(actions.length>1){actions.splice(ai,1);phases[pi]={...phases[pi],actions};}
+      return {...p,phases};
+    });
+  };
+
+  const bindToolToPhase=(pi,toolId)=>{
+    setForm(p=>{
+      const phases=[...p.phases];
+      const bindings=[...(phases[pi].toolBindings||[])];
+      if(bindings.includes(toolId))bindings.splice(bindings.indexOf(toolId),1);
+      else bindings.push(toolId);
+      phases[pi]={...phases[pi],toolBindings:bindings};
+      return {...p,phases};
+    });
+  };
+
+  const runTest=()=>{
+    setTestState("running");setTestPhase(0);setTestLogs([]);setTestMetrics(null);
+    const phases=form.phases;
+    const scenario=TEST_SCENARIOS[form.personaId]||TEST_SCENARIOS.dq_eng;
+    let i=0;
+    let totalLatency=0;
+    const addLog=(phase,msg,status,detail)=>{
+      setTestLogs(prev=>[...prev,{ts:new Date().toLocaleTimeString(),phase,msg,status,detail:detail||null}]);
+    };
+
+    addLog("INIT",`Initializing test scenario: ${scenario.name}`,"info");
+    addLog("INIT",`Loading ${scenario.synthetic_data.length} synthetic datasets...`,"info");
+
+    setTimeout(()=>{
+      scenario.synthetic_data.forEach(d=>{
+        addLog("DATA",`📦 ${d.table} — ${d.records} records, ${d.freshness}, ${d.status==="healthy"?"✅ Healthy":d.status==="sla_breach"?"⚠️ SLA Breach":"🔴 "+d.status}`,"data");
+      });
+
+      const doPhase=()=>{
+        const ph=phases[i];
+        const phaseStart=Date.now();
+        addLog(ph.phase,`▶ Starting ${ph.title||ph.phase}...`,"running");
+
+        /* Simulate each action in the phase */
+        const actions=scenario.expected_actions.filter((_,idx)=>{
+          const perPhase=Math.ceil(scenario.expected_actions.length/4);
+          return idx>=i*perPhase&&idx<(i+1)*perPhase;
+        });
+
+        let ai=0;
+        const doAction=()=>{
+          if(ai<actions.length){
+            setTimeout(()=>{
+              const passed=Math.random()>0.05;
+              addLog(ph.phase,passed?`  ✓ ${actions[ai]}`:`  ⚠ ${actions[ai]} — retrying...`,passed?"pass":"warn");
+              ai++;
+              doAction();
+            },400+Math.random()*300);
+          } else {
+            /* Phase done — check HITL gate */
+            const latency=Date.now()-phaseStart;
+            totalLatency+=latency;
+            if(ph.phase===form.hitlGate){
+              addLog("HITL","👤 HITL gate triggered — simulating human approval...","hitl");
+              setTimeout(()=>{
+                addLog("HITL","✅ Human reviewer approved action (simulated, 2.3s response)","pass");
+                finishPhase();
+              },800);
+            } else {
+              finishPhase();
+            }
+          }
+        };
+
+        const finishPhase=()=>{
+          const toolsBound=(ph.toolBindings||[]).length;
+          addLog(ph.phase,`✅ ${ph.title||ph.phase} complete — ${actions.length} actions, ${toolsBound} tools invoked`,"pass");
+          i++;
+          setTestPhase(i);
+          if(i<phases.length){setTimeout(doPhase,500);}
+          else{
+            setTimeout(()=>{
+              addLog("DONE","━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━","divider");
+              addLog("DONE","✅ All 4 phases passed. Agent is ready for deployment.","pass");
+              setTestMetrics({
+                totalActions:scenario.expected_actions.length,
+                totalLatency:totalLatency,
+                avgPhaseTime:Math.round(totalLatency/4),
+                toolCalls:form.tools.length*2,
+                hitlTriggers:1,
+                memoryUsed:Math.floor(Math.random()*200+100)+"MB",
+                score:Math.floor(Math.random()*10+90),
+              });
+              setTestState("pass");
+            },500);
+          }
+        };
+
+        doAction();
+      };
+
+      setTimeout(doPhase,600);
+    },800);
+  };
+
+  const DEPLOY_STAGES=[
+    {name:"Pre-flight validation",icon:"🔍",detail:"Checking config schema, tool bindings, HITL rules..."},
+    {name:"Building agent container",icon:"📦",detail:"Packaging Python runtime, dependencies, model weights..."},
+    {name:"Provisioning resources",icon:"☁️",detail:"Allocating compute (2 vCPU, 4GB RAM), setting up secrets vault..."},
+    {name:"Connecting tool bindings",icon:"🔗",detail:"Establishing mTLS connections to Snowflake, Monte Carlo, Collibra..."},
+    {name:"Registering with iZO Orchestrator",icon:"🌐",detail:"Adding to agent mesh, configuring heartbeat, setting schedule..."},
+    {name:"Running smoke test",icon:"🧪",detail:"Executing lightweight end-to-end cycle with test data..."},
+    {name:"Health check & activation",icon:"💚",detail:"Verifying liveness probe, enabling production traffic..."},
+  ];
+
+  const runDeploy=()=>{
+    setDeployStage(0);setDeployLogs([]);
+    let si=0;
+    const addDLog=(msg,status)=>setDeployLogs(prev=>[...prev,{ts:new Date().toLocaleTimeString(),msg,status}]);
+
+    const next=()=>{
+      if(si<DEPLOY_STAGES.length){
+        addDLog(`${DEPLOY_STAGES[si].icon} ${DEPLOY_STAGES[si].name}: ${DEPLOY_STAGES[si].detail}`,"running");
+        setTimeout(()=>{
+          addDLog(`  ✓ ${DEPLOY_STAGES[si].name} — complete`,"pass");
+          si++;setDeployStage(si);
+          next();
+        },1000+Math.random()*800);
+      } else {
+        setTimeout(()=>{
+          addDLog("🎉 Agent deployed successfully to "+deployEnv,"done");
+          setDeployed(true);
+        },600);
+      }
+    };
+    next();
+  };
+
+  const STEPS=["Persona","Metadata","Tools","Phases","HITL","Test","Deploy"];
+
+  const Input=({label,value,onChange,placeholder,area,mono})=>(
+    <div style={{marginBottom:14}}>
+      <label style={{display:"block",fontSize:11,fontWeight:600,color:C.heading,marginBottom:5,textTransform:"uppercase",letterSpacing:.5}}>{label}</label>
+      {area?
+        <textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{width:"100%",padding:"10px 14px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:mono?"'JetBrains Mono',monospace":"inherit",color:C.text,background:"#FAFBFC",resize:"vertical",minHeight:80,outline:"none"}}/>
+        :<input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{width:"100%",padding:"10px 14px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:mono?"'JetBrains Mono',monospace":"inherit",color:C.text,background:"#FAFBFC",outline:"none"}}/>
+      }
+    </div>
+  );
+
+  return (
+    <div><TopBar crumbs={["iZO Platform","Agent Creator"]}/>
+    <div style={{padding:28}}>
+
+      {/* ═══ MODE CHOOSER (entry screen) ═══ */}
+      {mode===null&&(
+        <div style={{animation:"fadeUp .3s ease-out"}}>
+          <div style={{textAlign:"center",marginBottom:32}}>
+            <h2 style={{fontSize:24,fontWeight:800,color:C.heading,margin:0}}>Create New Agent</h2>
+            <p style={{fontSize:14,color:C.muted,marginTop:6}}>Choose how you want to configure your autonomous agent</p>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,maxWidth:860,margin:"0 auto"}}>
+            {/* Option 1: AI-Assisted */}
+            <div onClick={()=>setMode("ai")} style={{padding:32,borderRadius:16,border:`2px solid ${C.primary}44`,background:`linear-gradient(135deg,${C.primaryBg},#fff)`,cursor:"pointer",transition:"all .2s",position:"relative",overflow:"hidden"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=C.primary;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 8px 30px ${C.primary}22`}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=C.primary+"44";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none"}}>
+              <div style={{position:"absolute",top:12,right:12,padding:"4px 10px",borderRadius:6,background:`linear-gradient(135deg,${C.primary},#8B5CF6)`,fontSize:9,fontWeight:700,color:"#fff",letterSpacing:.5}}>✨ RECOMMENDED</div>
+              <div style={{width:64,height:64,borderRadius:16,background:`linear-gradient(135deg,${C.primary}20,#8B5CF620)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,marginBottom:16}}>🧠</div>
+              <div style={{fontWeight:800,fontSize:18,color:C.heading,marginBottom:6}}>AI-Assisted Setup</div>
+              <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:16}}>Describe what your agent should do in plain English. iZO AI will automatically configure the persona, tools, phases, HITL rules, and everything else.</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {["Natural Language","Auto-Configure","Smart Defaults","Instant Setup"].map(t=>(
+                  <span key={t} style={{padding:"4px 10px",borderRadius:6,background:C.primaryBg,fontSize:10,fontWeight:600,color:C.primary}}>{t}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Option 2: Step-by-Step Wizard */}
+            <div onClick={()=>{setMode("wizard");setStep(0)}} style={{padding:32,borderRadius:16,border:`2px solid ${C.border}`,background:C.card,cursor:"pointer",transition:"all .2s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=C.primary;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 8px 30px ${C.primary}11`}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none"}}>
+              <div style={{width:64,height:64,borderRadius:16,background:"#EDF2F7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,marginBottom:16}}>🔧</div>
+              <div style={{fontWeight:800,fontSize:18,color:C.heading,marginBottom:6}}>Step-by-Step Wizard</div>
+              <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:16}}>Manually configure every detail through a 7-step guided wizard. Choose persona, select tools, define phases, set HITL rules, test, and deploy.</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {["Full Control","7 Steps","Granular Config","Advanced Options"].map(t=>(
+                  <span key={t} style={{padding:"4px 10px",borderRadius:6,background:"#EDF2F7",fontSize:10,fontWeight:600,color:C.muted}}>{t}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ AI-ASSISTED MODE ═══ */}
+      {mode==="ai"&&(
+        <div style={{animation:"fadeUp .3s ease-out"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
+            <button onClick={()=>{setMode(null);setAiState("idle");setAiThinkingLines([]);setAiParsedConfig(null)}} style={{padding:"6px 14px",borderRadius:6,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:12}}>← Back</button>
+            <div>
+              <h2 style={{fontSize:20,fontWeight:700,color:C.heading,margin:0,display:"flex",alignItems:"center",gap:8}}>🧠 AI-Assisted Agent Creator</h2>
+              <p style={{fontSize:12,color:C.muted,marginTop:2}}>Describe your agent in natural language and let iZO AI do the rest</p>
+            </div>
+          </div>
+
+          {aiState==="idle"&&(
+            <div>
+              {/* Prompt Input */}
+              <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.primary}33`,padding:24,marginBottom:16}}>
+                <div style={{fontWeight:700,fontSize:14,color:C.heading,marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:16}}>✍️</span> Describe Your Agent
+                </div>
+                <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Tell iZO what the agent should monitor, which tools it needs, when to alert, and any approval requirements. Be as detailed as you like.</div>
+                <textarea value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)} placeholder={"Describe your agent here...\n\nExample: Create an agent that monitors our IQVIA data feeds using Snowflake and Monte Carlo, checks for quality anomalies every 5 minutes, and notifies the team on #data-ops Slack channel when issues are found. Require human approval before quarantining more than 5000 records."}
+                  style={{width:"100%",padding:16,borderRadius:10,border:`2px solid ${aiPrompt.length>20?C.primary+"44":C.border}`,fontSize:14,color:C.text,background:"#FAFBFC",resize:"vertical",minHeight:150,outline:"none",lineHeight:1.6,fontFamily:"inherit",transition:"border-color .2s"}}/>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:14}}>
+                  <div style={{fontSize:11,color:aiPrompt.length>20?C.success:C.muted}}>{aiPrompt.length} chars {aiPrompt.length>20?"✓":""}</div>
+                  <button onClick={runAiParse} disabled={aiPrompt.length<20} style={{padding:"12px 32px",borderRadius:8,background:aiPrompt.length>=20?`linear-gradient(135deg,${C.primary},#8B5CF6)`:"#D9E2EC",color:"#fff",fontWeight:700,fontSize:14,boxShadow:aiPrompt.length>=20?`0 4px 16px ${C.primary}33`:"none"}}>
+                    🧠 Generate Agent Configuration
+                  </button>
+                </div>
+              </div>
+
+              {/* Example Prompts */}
+              <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:20}}>
+                <div style={{fontWeight:700,fontSize:13,color:C.heading,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>💡 Example Prompts <span style={{fontSize:10,fontWeight:400,color:C.muted}}>— click to use</span></div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  {AI_PROMPT_EXAMPLES.map((ex,i)=>(
+                    <div key={i} onClick={()=>setAiPrompt(ex.prompt)} style={{padding:14,borderRadius:10,border:`1px solid ${aiPrompt===ex.prompt?C.primary:C.border}`,background:aiPrompt===ex.prompt?C.primaryBg:"#FAFBFC",cursor:"pointer",transition:"all .15s"}}
+                      onMouseEnter={e=>{if(aiPrompt!==ex.prompt)e.currentTarget.style.borderColor=C.primary+"66"}}
+                      onMouseLeave={e=>{if(aiPrompt!==ex.prompt)e.currentTarget.style.borderColor=C.border}}>
+                      <div style={{fontWeight:700,fontSize:12,color:aiPrompt===ex.prompt?C.primary:C.heading,marginBottom:4}}>{ex.title}</div>
+                      <div style={{fontSize:10,color:C.muted,lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{ex.prompt}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* AI Thinking / Streaming Parse */}
+          {aiState==="thinking"&&(
+            <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.primary}44`,padding:24}}>
+              <div style={{fontWeight:700,fontSize:16,color:C.heading,marginBottom:16,display:"flex",alignItems:"center",gap:8}}>
+                <span style={{animation:"spin 2s linear infinite",display:"inline-block",fontSize:20}}>🧠</span>
+                iZO AI is configuring your agent...
+              </div>
+              <div style={{background:"#F8FAFC",borderRadius:10,padding:16,border:`1px solid ${C.border}`}}>
+                {aiThinkingLines.map((line,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${C.border}22`,animation:`fadeUp .3s ease-out ${i*.04}s both`}}>
+                    <span style={{fontSize:16}}>{line.icon}</span>
+                    <span style={{fontSize:13,color:i===aiThinkingLines.length-1?C.primary:C.success,fontWeight:i===aiThinkingLines.length-1?600:400}}>
+                      {line.text}
+                    </span>
+                    {i<aiThinkingLines.length-1&&<span style={{marginLeft:"auto",color:C.success,fontSize:12}}>✓</span>}
+                    {i===aiThinkingLines.length-1&&<span style={{marginLeft:"auto",animation:"pulse 1s infinite",width:8,height:8,borderRadius:"50%",background:C.primary}}/>}
+                  </div>
+                ))}
+              </div>
+              {/* User's original prompt, dimmed */}
+              <div style={{marginTop:16,padding:12,borderRadius:8,background:"#F1F5F9",border:`1px solid ${C.border}`,fontSize:11,color:C.muted,lineHeight:1.5,fontStyle:"italic",maxHeight:60,overflow:"hidden"}}>
+                "{aiPrompt.substring(0,200)}{aiPrompt.length>200?"...":""}"
+              </div>
+            </div>
+          )}
+
+          {/* AI Review — Parsed Config */}
+          {aiState==="review"&&aiParsedConfig&&(
+            <div>
+              <div style={{background:`linear-gradient(135deg,${C.primaryBg},#F0F0FF)`,borderRadius:14,border:`1px solid ${C.primary}33`,padding:20,marginBottom:16,display:"flex",alignItems:"center",gap:14}}>
+                <div style={{width:48,height:48,borderRadius:12,background:`${aiParsedConfig.color}15`,border:`2px solid ${aiParsedConfig.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{aiParsedConfig.icon}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:800,fontSize:18,color:C.heading}}>{aiParsedConfig.name}</div>
+                  <div style={{fontSize:12,color:aiParsedConfig.color,fontWeight:600}}>{aiParsedConfig.persona}</div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={applyAiConfig} style={{padding:"10px 28px",borderRadius:8,background:`linear-gradient(135deg,${C.success},#059669)`,color:"#fff",fontWeight:700,fontSize:13,boxShadow:"0 4px 14px rgba(16,185,129,.25)"}}>✅ Accept & Test</button>
+                  <button onClick={()=>{setAiState("idle")}} style={{padding:"10px 20px",borderRadius:8,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:13}}>✏️ Edit Prompt</button>
+                </div>
+              </div>
+
+              {/* Parsed Config Grid */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+                {/* Left: Agent Details */}
+                <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+                  <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,background:"#F8FAFC",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontWeight:700,fontSize:13,color:C.heading}}>🤖 Agent Configuration</span>
+                    <button onClick={()=>aiEditStep(1)} style={{fontSize:10,color:C.primary,fontWeight:600,background:"none",border:"none",cursor:"pointer",padding:"4px 8px",borderRadius:4}}>Edit ✎</button>
+                  </div>
+                  <div style={{padding:16}}>
+                    <div style={{display:"grid",gap:8,fontSize:12}}>
+                      {[
+                        {l:"Name",v:aiParsedConfig.name},
+                        {l:"Persona",v:aiParsedConfig.persona},
+                        {l:"Schedule",v:`Every ${aiParsedConfig.schedule}`},
+                        {l:"Description",v:aiParsedConfig.desc},
+                      ].map((item,i)=>(
+                        <div key={i} style={{display:"flex",gap:8}}>
+                          <span style={{fontSize:10,color:C.muted,minWidth:70,textTransform:"uppercase",fontWeight:600,paddingTop:2}}>{item.l}</span>
+                          <span style={{color:C.text,lineHeight:1.4}}>{item.v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Tools */}
+                <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+                  <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,background:"#F8FAFC",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontWeight:700,fontSize:13,color:C.heading}}>🔗 Connected Tools ({aiParsedConfig.tools.length})</span>
+                    <button onClick={()=>aiEditStep(2)} style={{fontSize:10,color:C.primary,fontWeight:600,background:"none",border:"none",cursor:"pointer",padding:"4px 8px",borderRadius:4}}>Edit ✎</button>
+                  </div>
+                  <div style={{padding:12}}>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {aiParsedConfig.tools.map(tid=>{
+                        const t=TOOL_OPTIONS.find(x=>x.id===tid);
+                        return t?(
+                          <div key={tid} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:C.primaryBg,border:`1px solid ${C.primary}22`}}>
+                            <span style={{fontSize:14}}>{t.icon}</span>
+                            <span style={{fontSize:11,fontWeight:600,color:C.primary}}>{t.name}</span>
+                            <span style={{fontSize:9,color:C.success}}>✓</span>
+                          </div>
+                        ):null;
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+                {/* Phases */}
+                <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+                  <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,background:"#F8FAFC",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontWeight:700,fontSize:13,color:C.heading}}>🔄 Agentic Phases</span>
+                    <button onClick={()=>aiEditStep(3)} style={{fontSize:10,color:C.primary,fontWeight:600,background:"none",border:"none",cursor:"pointer",padding:"4px 8px",borderRadius:4}}>Edit ✎</button>
+                  </div>
+                  <div style={{padding:12}}>
+                    {aiParsedConfig.phases.map((ph,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:6,borderLeft:`3px solid ${PHASE_COLORS[ph.phase]}`,background:`${PHASE_COLORS[ph.phase]}06`,marginBottom:6}}>
+                        <span style={{fontSize:12}}>{PHASE_ICONS[ph.phase]}</span>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:11,fontWeight:700,color:PHASE_COLORS[ph.phase]}}>{ph.phase}: {ph.title}</div>
+                          <div style={{fontSize:9,color:C.muted}}>{ph.actions.join(" → ")}</div>
+                        </div>
+                        <span style={{fontSize:9,color:C.muted}}>{(ph.toolBindings||[]).length} tools</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* HITL Config */}
+                <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+                  <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,background:"#F8FAFC",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontWeight:700,fontSize:13,color:C.heading}}>👤 HITL Configuration</span>
+                    <button onClick={()=>aiEditStep(4)} style={{fontSize:10,color:C.primary,fontWeight:600,background:"none",border:"none",cursor:"pointer",padding:"4px 8px",borderRadius:4}}>Edit ✎</button>
+                  </div>
+                  <div style={{padding:12}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,fontSize:11,marginBottom:10}}>
+                      <div style={{padding:"8px 10px",borderRadius:6,background:"#FFF7ED",border:"1px solid #FB923C22"}}>
+                        <div style={{fontSize:9,color:C.muted}}>Gate Phase</div>
+                        <div style={{fontWeight:700,color:"#EA580C"}}>{PHASE_ICONS[aiParsedConfig.hitlGate]} {aiParsedConfig.hitlGate}</div>
+                      </div>
+                      <div style={{padding:"8px 10px",borderRadius:6,background:"#F8FAFC",border:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:9,color:C.muted}}>Threshold</div>
+                        <div style={{fontWeight:700,color:C.heading}}>{aiParsedConfig.hitlThreshold}</div>
+                      </div>
+                      <div style={{padding:"8px 10px",borderRadius:6,background:"#F8FAFC",border:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:9,color:C.muted}}>Notify</div>
+                        <div style={{fontWeight:700,color:C.heading}}>{aiParsedConfig.hitlNotifyChannel}</div>
+                      </div>
+                      <div style={{padding:"8px 10px",borderRadius:6,background:"#F8FAFC",border:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:9,color:C.muted}}>Timeout</div>
+                        <div style={{fontWeight:700,color:C.heading}}>{aiParsedConfig.hitlTimeoutMins}m</div>
+                      </div>
+                    </div>
+                    <div style={{fontSize:10,fontWeight:600,color:C.heading,marginBottom:4}}>Active Rules ({aiParsedConfig.hitlRules.filter(r=>r.enabled).length})</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                      {aiParsedConfig.hitlRules.filter(r=>r.enabled).map(r=>(
+                        <span key={r.id} style={{padding:"3px 8px",borderRadius:4,background:"#FFF7ED",border:"1px solid #FB923C22",fontSize:9,fontWeight:600,color:"#EA580C"}}>{r.name}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Source Prompt Reference */}
+              <div style={{background:C.card,borderRadius:10,border:`1px solid ${C.border}`,padding:14,marginBottom:16}}>
+                <div style={{fontSize:10,fontWeight:600,color:C.muted,marginBottom:4}}>SOURCE PROMPT</div>
+                <div style={{fontSize:11,color:C.text,lineHeight:1.5,fontStyle:"italic"}}>{aiPrompt}</div>
+              </div>
+
+              {/* Actions */}
+              <div style={{display:"flex",justifyContent:"center",gap:12}}>
+                <button onClick={applyAiConfig} style={{padding:"12px 36px",borderRadius:8,background:`linear-gradient(135deg,${C.success},#059669)`,color:"#fff",fontWeight:700,fontSize:14,boxShadow:"0 4px 14px rgba(16,185,129,.25)"}}>✅ Accept & Run Test</button>
+                <button onClick={()=>{setForm(aiParsedConfig);setMode("wizard");setStep(0)}} style={{padding:"12px 24px",borderRadius:8,background:"#EDF2F7",color:C.heading,fontWeight:600,fontSize:13}}>🔧 Open in Wizard</button>
+                <button onClick={()=>{setAiState("idle")}} style={{padding:"12px 24px",borderRadius:8,background:"#FFF7ED",color:"#EA580C",fontWeight:600,fontSize:13,border:"1px solid #FB923C33"}}>✏️ Refine Prompt</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ WIZARD MODE ═══ */}
+      {mode==="wizard"&&(
+      <div>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
+        <button onClick={()=>{setMode(null)}} style={{padding:"6px 14px",borderRadius:6,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:12}}>← Back</button>
+        <div>
+          <h2 style={{fontSize:20,fontWeight:700,color:C.heading,margin:0}}>Create New Agent</h2>
+          <p style={{fontSize:12,color:C.muted,marginTop:2}}>Step-by-step configuration wizard</p>
+        </div>
+      </div>
+
+      {/* Progress Steps */}
+      <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:28,background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:"14px 20px"}}>
+        {STEPS.map((s,i)=>(
+          <Fragment key={s}>
+            <div onClick={()=>{if(i<=Math.max(step,0))setStep(i)}} style={{display:"flex",alignItems:"center",gap:8,cursor:i<=step?"pointer":"default",opacity:i<=step?1:.4}}>
+              <div style={{width:28,height:28,borderRadius:"50%",background:i<step?C.success:i===step?C.primary:"#EDF2F7",color:i<=step?"#fff":C.muted,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,transition:"all .3s"}}>
+                {i<step?"✓":(i+1)}
+              </div>
+              <span style={{fontSize:12,fontWeight:i===step?700:500,color:i===step?C.heading:C.muted}}>{s}</span>
+            </div>
+            {i<STEPS.length-1&&<div style={{flex:1,height:2,background:i<step?C.success:C.border,margin:"0 12px",transition:"background .3s"}}/>}
+          </Fragment>
+        ))}
+      </div>
+
+      {/* Step 0: Persona Selection */}
+      {step===0&&(
+        <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:24,animation:"fadeUp .3s ease-out"}}>
+          <div style={{fontWeight:700,fontSize:16,color:C.heading,marginBottom:4}}>Choose Agent Persona</div>
+          <div style={{fontSize:12,color:C.muted,marginBottom:20}}>Select a pre-built persona template or create a custom one</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
+            {PERSONA_TEMPLATES.map(p=>(
+              <div key={p.id} onClick={()=>selectPersona(p)} style={{padding:20,borderRadius:12,border:`2px solid ${form.personaId===p.id?C.primary:C.border}`,background:form.personaId===p.id?C.primaryBg:C.card,cursor:"pointer",transition:"all .2s"}}>
+                <div style={{fontSize:28,marginBottom:8}}>{p.icon}</div>
+                <div style={{fontWeight:700,fontSize:13,color:C.heading,marginBottom:4}}>{p.name}</div>
+                <div style={{fontSize:11,color:C.muted,lineHeight:1.5}}>{p.desc}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"flex",justifyContent:"flex-end",marginTop:20}}>
+            <button onClick={()=>setStep(1)} disabled={!form.personaId} style={{padding:"10px 28px",borderRadius:8,background:form.personaId?`linear-gradient(135deg,${C.primary},${C.primaryDark})`:"#D9E2EC",color:"#fff",fontWeight:600,fontSize:13}}>Next: Metadata →</button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 1: Metadata */}
+      {step===1&&(
+        <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:24,animation:"fadeUp .3s ease-out"}}>
+          <div style={{fontWeight:700,fontSize:16,color:C.heading,marginBottom:4}}>Agent Metadata</div>
+          <div style={{fontSize:12,color:C.muted,marginBottom:20}}>Define the agent's identity, description, and operational parameters</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+            <div>
+              <Input label="Agent Name" value={form.name} onChange={v=>u("name",v)} placeholder="e.g., Data Quality Agent"/>
+              <Input label="Persona Title" value={form.persona} onChange={v=>u("persona",v)} placeholder="e.g., Data Quality Engineer"/>
+              <Input label="Description" value={form.desc} onChange={v=>u("desc",v)} placeholder="Describe what this agent does..." area/>
+            </div>
+            <div>
+              <div style={{marginBottom:14}}>
+                <label style={{display:"block",fontSize:11,fontWeight:600,color:C.heading,marginBottom:5,textTransform:"uppercase",letterSpacing:.5}}>Agent Icon</label>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {["🔍","🛡️","🔗","📊","👁️","⚡","🧠","🔧","💊","🌊","🔐","📋"].map(ic=>(
+                    <div key={ic} onClick={()=>u("icon",ic)} style={{width:40,height:40,borderRadius:10,border:`2px solid ${form.icon===ic?C.primary:C.border}`,background:form.icon===ic?C.primaryBg:"#FAFBFC",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,cursor:"pointer"}}>{ic}</div>
+                  ))}
+                </div>
+              </div>
+              <div style={{marginBottom:14}}>
+                <label style={{display:"block",fontSize:11,fontWeight:600,color:C.heading,marginBottom:5,textTransform:"uppercase",letterSpacing:.5}}>Brand Color</label>
+                <div style={{display:"flex",gap:8}}>
+                  {["#1E82BD","#0A5081","#3A9BD5","#28426D","#5BA4CF","#10B981","#8B5CF6","#F59E0B","#EF4444","#EA580C"].map(c=>(
+                    <div key={c} onClick={()=>u("color",c)} style={{width:32,height:32,borderRadius:8,background:c,border:`2px solid ${form.color===c?"#fff":c}`,cursor:"pointer",boxShadow:form.color===c?`0 0 0 2px ${c}`:""}}/>
+                  ))}
+                </div>
+              </div>
+              <Input label="Scan Schedule" value={form.schedule} onChange={v=>u("schedule",v)} placeholder="e.g., 5m, 1h, daily" mono/>
+            </div>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
+            <button onClick={()=>setStep(0)} style={{padding:"10px 24px",borderRadius:8,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:13}}>← Back</button>
+            <button onClick={()=>setStep(2)} disabled={!form.name} style={{padding:"10px 28px",borderRadius:8,background:form.name?`linear-gradient(135deg,${C.primary},${C.primaryDark})`:"#D9E2EC",color:"#fff",fontWeight:600,fontSize:13}}>Next: Tools →</button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Tool Selection & Configuration */}
+      {step===2&&(
+        <div style={{animation:"fadeUp .3s ease-out"}}>
+          <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:24,marginBottom:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <div style={{fontWeight:700,fontSize:16,color:C.heading}}>Connect Tools</div>
+              <div style={{fontSize:12,color:C.primary,fontWeight:600}}>{form.tools.length} of {TOOL_OPTIONS.length} selected</div>
+            </div>
+            <div style={{fontSize:12,color:C.muted,marginBottom:6}}>Select which tools this agent can call during its execution loop</div>
+            {form.personaId&&form.personaId!=="custom"&&(
+              <div style={{padding:"8px 14px",borderRadius:8,background:"#EDF8FF",border:"1px solid #1E82BD22",fontSize:11,color:C.primary,marginBottom:16}}>
+                💡 Recommended tools for <strong>{form.persona}</strong> are pre-selected. Add or remove as needed.
+              </div>
+            )}
+
+            {/* Tool Grid */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:16}}>
+              {TOOL_OPTIONS.map(t=>{
+                const sel=form.tools.includes(t.id);
+                const isRec=t.recommended.includes(form.personaId);
+                return (
+                  <div key={t.id} onClick={()=>toggleTool(t.id)} style={{padding:14,borderRadius:12,border:`2px solid ${sel?C.primary:C.border}`,background:sel?C.primaryBg:"#FAFBFC",cursor:"pointer",textAlign:"center",transition:"all .2s",position:"relative"}}>
+                    {isRec&&<div style={{position:"absolute",top:6,right:6,fontSize:8,background:"#DBEAFE",color:C.primary,padding:"1px 5px",borderRadius:4,fontWeight:700}}>REC</div>}
+                    <div style={{fontSize:24,marginBottom:4}}>{t.icon}</div>
+                    <div style={{fontWeight:600,fontSize:11,color:sel?C.primary:C.heading}}>{t.name}</div>
+                    <div style={{fontSize:9,color:C.muted,marginTop:2}}>{t.cat}</div>
+                    {sel&&<div style={{marginTop:6,width:18,height:18,borderRadius:"50%",background:C.primary,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10}}>✓</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Selected Tool Details & Connection Config */}
+          {form.tools.length>0&&(
+            <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",marginBottom:16}}>
+              <div style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,fontWeight:700,fontSize:13,color:C.heading,background:"#F8FAFC",display:"flex",alignItems:"center",gap:8}}>
+                🔗 Tool Connection Configuration
+                <span style={{fontSize:11,color:C.muted,fontWeight:400}}>— Verify each tool endpoint before proceeding</span>
+              </div>
+              <div style={{padding:0}}>
+                {form.tools.map(tid=>{
+                  const t=TOOL_OPTIONS.find(x=>x.id===tid);
+                  if(!t) return null;
+                  const conf=form.toolConfigs[tid]||{};
+                  const expanded=expandedTool===tid;
+                  return (
+                    <div key={tid} style={{borderBottom:`1px solid ${C.border}`}}>
+                      <div onClick={()=>setExpandedTool(expanded?null:tid)} style={{padding:"12px 20px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",background:expanded?"#F8FAFC":"transparent"}}>
+                        <span style={{fontSize:20}}>{t.icon}</span>
+                        <div style={{flex:1}}>
+                          <div style={{fontWeight:600,fontSize:13,color:C.heading}}>{t.name}</div>
+                          <div style={{fontSize:11,color:C.muted}}>{t.desc}</div>
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          {conf.verified&&<span style={{fontSize:10,color:C.success,fontWeight:600}}>✅ Connected ({conf.latency})</span>}
+                          {conf.verifying&&<span style={{fontSize:10,color:C.primary,fontWeight:600}}>⟳ Verifying...</span>}
+                          {!conf.verified&&!conf.verifying&&<span style={{fontSize:10,color:"#F59E0B",fontWeight:600}}>⚠ Not verified</span>}
+                          <span style={{fontSize:10,color:C.muted,transform:expanded?"rotate(180deg)":"rotate(0)",transition:"transform .2s"}}>▼</span>
+                        </div>
+                      </div>
+                      {expanded&&(
+                        <div style={{padding:"0 20px 16px",background:"#F8FAFC"}}>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                            <div>
+                              <div style={{fontSize:10,fontWeight:600,color:C.heading,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Endpoint URL</div>
+                              <div style={{padding:"8px 12px",borderRadius:6,background:"#fff",border:`1px solid ${C.border}`,fontSize:11,fontFamily:"'JetBrains Mono',monospace",color:C.text}}>{t.endpoint}</div>
+                              <div style={{fontSize:10,fontWeight:600,color:C.heading,marginTop:10,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Auth Method</div>
+                              <div style={{display:"flex",gap:6}}>
+                                {["api_key","oauth2","mtls"].map(am=>(
+                                  <span key={am} style={{padding:"4px 10px",borderRadius:6,background:(conf.authMethod||"api_key")===am?C.primaryBg:"#fff",border:`1px solid ${(conf.authMethod||"api_key")===am?C.primary:C.border}`,fontSize:10,fontWeight:600,color:(conf.authMethod||"api_key")===am?C.primary:C.muted,cursor:"pointer"}}
+                                    onClick={e=>{e.stopPropagation();setForm(p=>({...p,toolConfigs:{...p.toolConfigs,[tid]:{...p.toolConfigs[tid],authMethod:am}}}))}}
+                                  >{am.toUpperCase()}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{fontSize:10,fontWeight:600,color:C.heading,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Available Methods</div>
+                              <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                                {t.methods.map(m=>(
+                                  <span key={m} style={{padding:"3px 8px",borderRadius:4,background:"#EDF2F7",fontSize:9,fontFamily:"'JetBrains Mono',monospace",color:C.heading}}>{m}</span>
+                                ))}
+                              </div>
+                              <button onClick={e=>{e.stopPropagation();verifyTool(tid)}} disabled={conf.verified||conf.verifying} style={{marginTop:10,padding:"8px 18px",borderRadius:6,background:conf.verified?C.success:conf.verifying?"#CBD5E0":`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:600,fontSize:11}}>
+                                {conf.verified?"✓ Connection Verified":conf.verifying?"Verifying...":"Verify Connection"}
+                              </button>
+                            </div>
+                          </div>
+                          {/* Code Preview */}
+                          {TOOL_CODE_SNIPPETS[tid]&&(
+                            <div style={{marginTop:12}}>
+                              <div onClick={e=>{e.stopPropagation();setShowCode(showCode===tid?null:tid)}} style={{fontSize:10,fontWeight:600,color:C.primary,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                                {"<>"} {showCode===tid?"Hide":"View"} Integration Code
+                              </div>
+                              {showCode===tid&&(
+                                <pre style={{marginTop:8,padding:14,borderRadius:8,background:"#1E293B",color:"#E2E8F0",fontSize:10,fontFamily:"'JetBrains Mono',monospace",lineHeight:1.6,overflowX:"auto",maxHeight:280,overflowY:"auto"}}>{TOOL_CODE_SNIPPETS[tid]}</pre>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div style={{display:"flex",justifyContent:"space-between"}}>
+            <button onClick={()=>setStep(1)} style={{padding:"10px 24px",borderRadius:8,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:13}}>← Back</button>
+            <button onClick={()=>setStep(3)} disabled={form.tools.length===0} style={{padding:"10px 28px",borderRadius:8,background:form.tools.length?`linear-gradient(135deg,${C.primary},${C.primaryDark})`:"#D9E2EC",color:"#fff",fontWeight:600,fontSize:13}}>Next: Phases →</button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Phase Configuration */}
+      {step===3&&(
+        <div style={{animation:"fadeUp .3s ease-out"}}>
+          <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:24,marginBottom:16}}>
+            <div style={{fontWeight:700,fontSize:16,color:C.heading,marginBottom:4}}>Configure Agentic Loop</div>
+            <div style={{fontSize:12,color:C.muted,marginBottom:16}}>Define actions, bind tools, and preview code for each phase of the PLAN → TOOL USE → REFLECT → ACT loop</div>
+
+            {/* Phase Tabs */}
+            <div style={{display:"flex",gap:0,marginBottom:0,borderBottom:`2px solid ${C.border}`}}>
+              {form.phases.map((ph,pi)=>{
+                const active=activePhaseTab===pi;
+                const col=PHASE_COLORS[ph.phase];
+                return (
+                  <div key={pi} onClick={()=>setActivePhaseTab(pi)} style={{padding:"10px 20px",cursor:"pointer",borderBottom:active?`3px solid ${col}`:"3px solid transparent",marginBottom:-2,display:"flex",alignItems:"center",gap:6,transition:"all .2s"}}>
+                    <span style={{fontSize:14}}>{PHASE_ICONS[ph.phase]}</span>
+                    <span style={{fontSize:12,fontWeight:active?700:500,color:active?col:C.muted}}>{ph.phase}</span>
+                    <span style={{fontSize:9,background:active?`${col}15`:"#EDF2F7",color:active?col:C.muted,padding:"1px 6px",borderRadius:4,fontWeight:600}}>{ph.actions.filter(a=>a).length}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Active Phase Detail */}
+          {(()=>{
+            const ph=form.phases[activePhaseTab];
+            const pi=activePhaseTab;
+            const col=PHASE_COLORS[ph.phase];
+            return (
+              <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:16,marginBottom:16}}>
+                {/* Left: Actions */}
+                <div style={{background:C.card,borderRadius:14,border:`1px solid ${col}33`,borderTop:`3px solid ${col}`,padding:20}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                    <span style={{padding:"4px 12px",borderRadius:6,background:`${col}15`,fontSize:11,fontWeight:700,color:col}}>{PHASE_ICONS[ph.phase]} {ph.phase}</span>
+                    <input value={ph.title} onChange={e=>{const phases=[...form.phases];phases[pi]={...phases[pi],title:e.target.value};u("phases",phases)}} placeholder="Phase title..." style={{flex:1,padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:13,fontWeight:600,color:C.heading,outline:"none"}}/>
+                  </div>
+
+                  <div style={{fontSize:10,fontWeight:600,color:C.heading,marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>Actions ({ph.actions.length})</div>
+                  {ph.actions.map((ac,ai)=>(
+                    <div key={ai} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
+                      <div style={{width:24,height:24,borderRadius:6,background:`${col}12`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:col,flexShrink:0}}>{ai+1}</div>
+                      <input value={ac} onChange={e=>updatePhaseAction(pi,ai,e.target.value)} placeholder={`Action ${ai+1}...`} style={{flex:1,padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:12,color:C.text,outline:"none",background:"#FAFBFC"}}/>
+                      {ph.actions.length>1&&<div onClick={()=>removePhaseAction(pi,ai)} style={{width:22,height:22,borderRadius:6,background:"#FEE2E2",color:C.error,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,cursor:"pointer",flexShrink:0}}>×</div>}
+                    </div>
+                  ))}
+                  <button onClick={()=>addPhaseAction(pi)} style={{padding:"6px 14px",borderRadius:6,background:"#EDF2F7",color:C.muted,fontSize:11,fontWeight:600,marginTop:4}}>+ Add Action</button>
+
+                  {/* Phase Description */}
+                  <div style={{marginTop:16,padding:14,borderRadius:8,background:`${col}06`,border:`1px solid ${col}15`}}>
+                    <div style={{fontSize:10,fontWeight:600,color:col,marginBottom:4}}>Phase Behavior</div>
+                    <div style={{fontSize:11,color:C.muted,lineHeight:1.6}}>
+                      {ph.phase==="PLAN"&&"The agent analyzes context, queries metadata, ranks priorities by impact score, and creates an execution plan for the current cycle."}
+                      {ph.phase==="TOOL USE"&&"The agent invokes bound tools in parallel (asyncio.gather), collecting raw results from each API. Failed calls trigger automatic retry with exponential backoff."}
+                      {ph.phase==="REFLECT"&&"The agent cross-references tool results, uses Cortex LLM for root cause analysis, calculates blast radius, and classifies severity (LOW/MEDIUM/HIGH/CRITICAL)."}
+                      {ph.phase==="ACT"&&"The agent executes remediation actions, triggers pipelines, sends notifications, and checks whether a HITL gate should pause execution for human approval."}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Tool Bindings */}
+                <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:18}}>
+                  <div style={{fontWeight:700,fontSize:13,color:C.heading,marginBottom:4}}>Tool Bindings</div>
+                  <div style={{fontSize:11,color:C.muted,marginBottom:12}}>Which tools should this phase invoke?</div>
+                  {form.tools.map(tid=>{
+                    const t=TOOL_OPTIONS.find(x=>x.id===tid);
+                    const bound=(ph.toolBindings||[]).includes(tid);
+                    return t?(
+                      <div key={tid} onClick={()=>bindToolToPhase(pi,tid)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,border:`1px solid ${bound?C.primary+"44":C.border}`,background:bound?C.primaryBg:"#FAFBFC",cursor:"pointer",marginBottom:6,transition:"all .15s"}}>
+                        <span style={{fontSize:16}}>{t.icon}</span>
+                        <div style={{flex:1}}>
+                          <div style={{fontWeight:600,fontSize:11,color:bound?C.primary:C.heading}}>{t.name}</div>
+                          <div style={{fontSize:9,color:C.muted}}>{t.methods.slice(0,2).join(", ")}</div>
+                        </div>
+                        <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${bound?C.primary:C.border}`,background:bound?C.primary:"transparent",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:10}}>{bound&&"✓"}</div>
+                      </div>
+                    ):null;
+                  })}
+                  {form.tools.length===0&&<div style={{fontSize:11,color:C.muted,fontStyle:"italic",padding:12}}>No tools selected. Go back to Step 2 to add tools.</div>}
+
+                  {/* Quick code preview */}
+                  {(ph.toolBindings||[]).length>0&&(
+                    <div style={{marginTop:12,padding:10,borderRadius:8,background:"#1E293B",maxHeight:200,overflowY:"auto"}}>
+                      <div style={{fontSize:9,fontWeight:600,color:"#94A3B8",marginBottom:6}}>GENERATED ORCHESTRATOR CODE</div>
+                      <pre style={{fontSize:9,fontFamily:"'JetBrains Mono',monospace",color:"#E2E8F0",lineHeight:1.5,margin:0}}>{`async def ${ph.phase.toLowerCase().replace(" ","_")}(self, ctx):\n    \"\"\"${ph.title||ph.phase} phase\"\"\"\n    results = await asyncio.gather(\n${(ph.toolBindings||[]).map(tid=>{const t=TOOL_OPTIONS.find(x=>x.id===tid);return `        self.${tid}_client.${(t?.methods[0]||"execute()").replace("()","")}\n            (ctx=${tid}_params)`}).join(",\n")}\n    )\n    return self.merge_results(results)`}</pre>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Mini phase flow at bottom */}
+          <div style={{background:C.card,borderRadius:10,border:`1px solid ${C.border}`,padding:"12px 20px",display:"flex",alignItems:"center",gap:0,marginBottom:16}}>
+            {form.phases.map((p,i)=>(
+              <Fragment key={i}>
+                <div onClick={()=>setActivePhaseTab(i)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",borderRadius:8,background:activePhaseTab===i?`${PHASE_COLORS[p.phase]}15`:"transparent",cursor:"pointer",transition:"all .2s"}}>
+                  <span style={{fontSize:12}}>{PHASE_ICONS[p.phase]}</span>
+                  <span style={{fontSize:11,fontWeight:activePhaseTab===i?700:500,color:activePhaseTab===i?PHASE_COLORS[p.phase]:C.muted}}>{p.phase}</span>
+                  <span style={{fontSize:9,color:C.muted}}>({p.actions.filter(a=>a).length} actions, {(p.toolBindings||[]).length} tools)</span>
+                </div>
+                {i<3&&<span style={{color:C.light,fontSize:12,margin:"0 4px"}}>→</span>}
+              </Fragment>
+            ))}
+          </div>
+
+          <div style={{display:"flex",justifyContent:"space-between"}}>
+            <button onClick={()=>setStep(2)} style={{padding:"10px 24px",borderRadius:8,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:13}}>← Back</button>
+            <button onClick={()=>setStep(4)} style={{padding:"10px 28px",borderRadius:8,background:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:600,fontSize:13}}>Next: HITL →</button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: HITL Configuration */}
+      {step===4&&(
+        <div style={{animation:"fadeUp .3s ease-out"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+            {/* Left: Gate & Threshold */}
+            <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:20}}>
+              <div style={{fontWeight:700,fontSize:14,color:C.heading,marginBottom:14}}>👤 Approval Gate & Threshold</div>
+              <div style={{fontSize:10,fontWeight:600,color:C.heading,marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>HITL Gate Phase</div>
+              <div style={{display:"grid",gap:6,marginBottom:18}}>
+                {["PLAN","TOOL USE","REFLECT","ACT"].map(ph=>(
+                  <div key={ph} onClick={()=>u("hitlGate",ph)} style={{padding:"10px 14px",borderRadius:8,border:`2px solid ${form.hitlGate===ph?"#EA580C":C.border}`,background:form.hitlGate===ph?"#FFF7ED":"#FAFBFC",cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:14}}>{PHASE_ICONS[ph]}</span>
+                    <span style={{fontWeight:600,fontSize:12,color:form.hitlGate===ph?"#EA580C":C.heading}}>{ph}</span>
+                    {form.hitlGate===ph&&<span style={{marginLeft:"auto",fontSize:10,color:"#EA580C",fontWeight:600}}>👤 Gate Active</span>}
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:10,fontWeight:600,color:C.heading,marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>Escalation Threshold</div>
+              <div style={{display:"grid",gap:6}}>
+                {["Low","Medium","High","Critical"].map(th=>(
+                  <div key={th} onClick={()=>u("hitlThreshold",th)} style={{padding:"10px 14px",borderRadius:8,border:`2px solid ${form.hitlThreshold===th?C.primary:C.border}`,background:form.hitlThreshold===th?C.primaryBg:"#FAFBFC",cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:th==="Low"?C.success:th==="Medium"?"#F59E0B":th==="High"?"#EA580C":C.error}}/>
+                    <span style={{fontWeight:600,fontSize:12,color:form.hitlThreshold===th?C.primary:C.heading}}>{th}</span>
+                    <span style={{fontSize:10,color:C.muted,marginLeft:4}}>{th==="Low"?"Auto-approve most":th==="Medium"?"High-impact needs approval":th==="High"?"Most need approval":"All need approval"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Escalation Rules */}
+            <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:20}}>
+              <div style={{fontWeight:700,fontSize:14,color:C.heading,marginBottom:4}}>⚡ Escalation Rules</div>
+              <div style={{fontSize:11,color:C.muted,marginBottom:12}}>Toggle rules that trigger mandatory human review</div>
+              <div style={{display:"grid",gap:6}}>
+                {form.hitlRules.map((rule,idx)=>(
+                  <div key={rule.id} onClick={()=>toggleHitlRule(idx)} style={{padding:"10px 14px",borderRadius:8,border:`1px solid ${rule.enabled?"#EA580C33":C.border}`,background:rule.enabled?"#FFF7ED":"#FAFBFC",cursor:"pointer",display:"flex",alignItems:"center",gap:10,transition:"all .15s"}}>
+                    <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${rule.enabled?"#EA580C":C.border}`,background:rule.enabled?"#EA580C":"transparent",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:10,flexShrink:0}}>{rule.enabled&&"✓"}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:600,fontSize:11,color:rule.enabled?"#EA580C":C.heading}}>{rule.name}</div>
+                      <div style={{fontSize:9,color:C.muted}}>{rule.desc}</div>
+                    </div>
+                    <div style={{display:"flex",gap:4,flexShrink:0}}>
+                      <span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:rule.severity==="Critical"?"#FEE2E2":rule.severity==="High"?"#FFF7ED":"#FEF3C7",color:rule.severity==="Critical"?C.error:rule.severity==="High"?"#EA580C":"#92400E",fontWeight:700}}>{rule.severity}</span>
+                      <span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:`${PHASE_COLORS[rule.phase]}15`,color:PHASE_COLORS[rule.phase],fontWeight:700}}>{rule.phase}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Notification & Auto-Approve Settings */}
+          <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:16}}>
+            <div style={{fontWeight:700,fontSize:14,color:C.heading,marginBottom:14}}>📋 Routing & Automation</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16}}>
+              <div>
+                <div style={{fontSize:10,fontWeight:600,color:C.heading,marginBottom:5,textTransform:"uppercase",letterSpacing:.5}}>Notification Channel</div>
+                <div style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:12,fontFamily:"'JetBrains Mono',monospace",color:C.text,background:"#FAFBFC",display:"flex",alignItems:"center",gap:6}}>
+                  <span>💬</span>
+                  <input value={form.hitlNotifyChannel} onChange={e=>u("hitlNotifyChannel",e.target.value)} style={{border:"none",outline:"none",background:"transparent",fontSize:12,fontFamily:"'JetBrains Mono',monospace",color:C.text,width:"100%"}}/>
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:10,fontWeight:600,color:C.heading,marginBottom:5,textTransform:"uppercase",letterSpacing:.5}}>Primary Reviewer</div>
+                <div style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:12,fontFamily:"'JetBrains Mono',monospace",color:C.text,background:"#FAFBFC",display:"flex",alignItems:"center",gap:6}}>
+                  <span>👤</span>
+                  <input value={form.hitlReviewers[0]||""} onChange={e=>u("hitlReviewers",[e.target.value])} style={{border:"none",outline:"none",background:"transparent",fontSize:12,fontFamily:"'JetBrains Mono',monospace",color:C.text,width:"100%"}}/>
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:10,fontWeight:600,color:C.heading,marginBottom:5,textTransform:"uppercase",letterSpacing:.5}}>Auto-Approve Below</div>
+                <div style={{display:"flex",gap:4}}>
+                  {["None","Low","Medium"].map(lv=>(
+                    <span key={lv} onClick={()=>u("hitlAutoApproveBelow",lv)} style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${form.hitlAutoApproveBelow===lv?C.primary:C.border}`,background:form.hitlAutoApproveBelow===lv?C.primaryBg:"#FAFBFC",fontSize:11,fontWeight:600,color:form.hitlAutoApproveBelow===lv?C.primary:C.muted,cursor:"pointer",flex:1,textAlign:"center"}}>{lv}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:10,fontWeight:600,color:C.heading,marginBottom:5,textTransform:"uppercase",letterSpacing:.5}}>Approval Timeout</div>
+                <div style={{display:"flex",gap:4}}>
+                  {[{l:"30m",v:30},{l:"1h",v:60},{l:"4h",v:240}].map(opt=>(
+                    <span key={opt.v} onClick={()=>u("hitlTimeoutMins",opt.v)} style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${form.hitlTimeoutMins===opt.v?C.primary:C.border}`,background:form.hitlTimeoutMins===opt.v?C.primaryBg:"#FAFBFC",fontSize:11,fontWeight:600,color:form.hitlTimeoutMins===opt.v?C.primary:C.muted,cursor:"pointer",flex:1,textAlign:"center"}}>{opt.l}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* HITL Flow Preview */}
+            <div style={{marginTop:16,padding:14,borderRadius:10,background:"#FFF7ED",border:"1px solid #FB923C22"}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#EA580C",marginBottom:6}}>HITL DECISION FLOW</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:C.text,flexWrap:"wrap"}}>
+                <span style={{padding:"3px 8px",borderRadius:4,background:`${PHASE_COLORS[form.hitlGate]}15`,fontWeight:700,color:PHASE_COLORS[form.hitlGate]}}>{form.hitlGate}</span>
+                <span>→</span>
+                <span style={{padding:"3px 8px",borderRadius:4,background:"#FEE2E2",color:C.error,fontWeight:600}}>Check {form.hitlRules.filter(r=>r.enabled).length} rules</span>
+                <span>→</span>
+                <span style={{padding:"3px 8px",borderRadius:4,background:"#DBEAFE",color:C.primary,fontWeight:600}}>Severity ≥ {form.hitlThreshold}?</span>
+                <span>→</span>
+                <span style={{padding:"3px 8px",borderRadius:4,background:"#FFF7ED",color:"#EA580C",fontWeight:600}}>Route to {form.hitlNotifyChannel}</span>
+                <span>→</span>
+                <span style={{padding:"3px 8px",borderRadius:4,background:"#ECFDF5",color:C.success,fontWeight:600}}>Reviewer approves/denies ({form.hitlTimeoutMins}min timeout)</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{display:"flex",justifyContent:"space-between"}}>
+            <button onClick={()=>setStep(3)} style={{padding:"10px 24px",borderRadius:8,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:13}}>← Back</button>
+            <button onClick={()=>setStep(5)} style={{padding:"10px 28px",borderRadius:8,background:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:600,fontSize:13}}>Next: Test →</button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 5: Test Runner */}
+      {step===5&&(
+        <div style={{animation:"fadeUp .3s ease-out"}}>
+          {/* Test Scenario Header */}
+          {(()=>{
+            const scenario=TEST_SCENARIOS[form.personaId]||TEST_SCENARIOS.dq_eng;
+            return (
+              <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:16}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:16,color:C.heading}}>Agent Test Runner</div>
+                    <div style={{fontSize:12,color:C.muted,marginTop:2}}>Simulate a full agent cycle with synthetic Novartis data</div>
+                  </div>
+                  <button onClick={runTest} disabled={testState==="running"} style={{padding:"12px 32px",borderRadius:8,background:testState==="running"?`${C.primary}66`:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:700,fontSize:14,boxShadow:`0 4px 14px ${C.primary}33`}}>
+                    {testState==="idle"?"▶ Run Agent Test":testState==="running"?"⟳ Testing...":"↻ Re-run Test"}
+                  </button>
+                </div>
+
+                {/* Scenario Info */}
+                <div style={{padding:14,borderRadius:10,background:"#F8FAFC",border:`1px solid ${C.border}`}}>
+                  <div style={{fontWeight:700,fontSize:12,color:C.heading,marginBottom:8}}>📋 Test Scenario: {scenario.name}</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                    {scenario.synthetic_data.map((d,i)=>(
+                      <div key={i} style={{padding:"10px 12px",borderRadius:8,background:C.card,border:`1px solid ${d.status==="healthy"?C.success+"33":d.status==="sla_breach"?"#F59E0B33":"#EF444433"}`}}>
+                        <div style={{fontWeight:600,fontSize:10,color:C.heading,fontFamily:"'JetBrains Mono',monospace"}}>{d.table.split(".").pop()}</div>
+                        <div style={{display:"flex",gap:8,marginTop:4,fontSize:9,color:C.muted}}>
+                          <span>{d.records} rows</span>
+                          <span>•</span>
+                          <span>{d.freshness}</span>
+                        </div>
+                        <div style={{marginTop:4,fontSize:9,fontWeight:600,color:d.status==="healthy"?C.success:d.status==="sla_breach"?"#F59E0B":"#EF4444"}}>
+                          {d.status==="healthy"?"✅ Healthy":d.status==="sla_breach"?"⚠️ SLA Breach":"🔴 "+d.status.replace(/_/g," ")}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 320px",gap:16,marginBottom:16}}>
+            {/* Left: Execution Log */}
+            <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+              <div style={{padding:"12px 20px",borderBottom:`1px solid ${C.border}`,fontWeight:700,fontSize:13,color:C.heading,background:"#F8FAFC",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span>📋 Execution Log</span>
+                <span style={{fontSize:10,color:C.muted}}>{testLogs.length} entries</span>
+              </div>
+              <div style={{maxHeight:400,overflowY:"auto",padding:"4px 0",background:testLogs.length>0?"#FAFBFC":"#fff"}}>
+                {testLogs.length===0?(
+                  <div style={{padding:40,textAlign:"center",color:C.muted,fontSize:12}}>Click "Run Agent Test" to start the simulation</div>
+                ):testLogs.map((log,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 16px",fontSize:11,borderBottom:"1px solid #F1F5F9",animation:`fadeUp .15s ease-out ${Math.min(i*.02,.3)}s both`}}>
+                    <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:C.muted,minWidth:62,paddingTop:2}}>{log.ts}</span>
+                    <span style={{padding:"1px 8px",borderRadius:4,fontSize:8,fontWeight:700,minWidth:56,textAlign:"center",flexShrink:0,
+                      background:log.status==="pass"?"#ECFDF5":log.status==="running"?C.primaryBg:log.status==="hitl"?"#FFF7ED":log.status==="data"?"#EDF2F7":log.status==="info"?"#F0F9FF":log.status==="divider"?"transparent":"#FFFBEB",
+                      color:log.status==="pass"?C.success:log.status==="running"?C.primary:log.status==="hitl"?"#EA580C":log.status==="data"?C.heading:log.status==="info"?"#0EA5E9":log.status==="divider"?"transparent":"#F59E0B",
+                    }}>{log.status!=="divider"?log.phase:""}</span>
+                    <span style={{color:log.status==="pass"?C.success:log.status==="hitl"?"#EA580C":log.status==="divider"?C.border:C.text,fontSize:log.status==="divider"?9:11,fontFamily:log.status==="divider"?"'JetBrains Mono',monospace":"inherit"}}>{log.msg}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Phase Progress + Agent Card + Metrics */}
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              {/* Agent Summary */}
+              <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:16}}>
+                <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:12}}>
+                  <div style={{width:44,height:44,borderRadius:12,background:`${form.color}15`,border:`2px solid ${form.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{form.icon}</div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14,color:C.heading}}>{form.name||"Untitled Agent"}</div>
+                    <div style={{fontSize:11,color:form.color,fontWeight:600}}>{form.persona}</div>
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,fontSize:10}}>
+                  <div style={{padding:"6px 10px",borderRadius:6,background:"#F8FAFC",border:`1px solid ${C.border}`}}><span style={{color:C.muted}}>Tools:</span> <strong>{form.tools.length}</strong></div>
+                  <div style={{padding:"6px 10px",borderRadius:6,background:"#F8FAFC",border:`1px solid ${C.border}`}}><span style={{color:C.muted}}>Schedule:</span> <strong>{form.schedule}</strong></div>
+                  <div style={{padding:"6px 10px",borderRadius:6,background:"#FFF7ED",border:"1px solid #FB923C22"}}><span style={{color:C.muted}}>HITL:</span> <strong style={{color:"#EA580C"}}>{form.hitlGate}</strong></div>
+                  <div style={{padding:"6px 10px",borderRadius:6,background:"#F8FAFC",border:`1px solid ${C.border}`}}><span style={{color:C.muted}}>Rules:</span> <strong>{form.hitlRules.filter(r=>r.enabled).length} active</strong></div>
+                </div>
+              </div>
+
+              {/* Phase Progress */}
+              <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:16}}>
+                <div style={{fontWeight:700,fontSize:12,color:C.heading,marginBottom:10}}>Phase Progress</div>
+                {form.phases.map((p,i)=>{
+                  const isDone=testPhase>i;
+                  const isActive=testPhase===i&&testState==="running";
+                  return (
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:8,border:`1px solid ${isDone?C.success+"33":isActive?C.primary+"44":C.border}`,background:isDone?"#ECFDF5":isActive?C.primaryBg:"#FAFBFC",marginBottom:6}}>
+                      <div style={{width:20,height:20,borderRadius:5,background:isDone?C.success:isActive?C.primary:"#EDF2F7",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700}}>
+                        {isDone?"✓":isActive?"⟳":(i+1)}
+                      </div>
+                      <span style={{fontSize:11,fontWeight:600,color:isDone?C.success:isActive?C.primary:C.muted,flex:1}}>{p.phase}</span>
+                      {p.phase===form.hitlGate&&<span style={{fontSize:9,color:"#EA580C"}}>👤</span>}
+                      {isDone&&<span style={{fontSize:9,color:C.success}}>✓</span>}
+                    </div>
+                  );
+                })}
+                {testState==="pass"&&<div style={{marginTop:8,padding:"8px 10px",borderRadius:6,background:"#ECFDF5",border:"1px solid #10B98133",color:C.success,fontWeight:600,fontSize:11,textAlign:"center"}}>✅ All phases passed</div>}
+              </div>
+
+              {/* Test Metrics */}
+              {testMetrics&&(
+                <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.success}33`,padding:16}}>
+                  <div style={{fontWeight:700,fontSize:12,color:C.heading,marginBottom:10}}>📊 Test Metrics</div>
+                  <div style={{display:"grid",gap:6}}>
+                    {[
+                      {l:"Total Actions",v:testMetrics.totalActions,c:C.heading},
+                      {l:"Tool API Calls",v:testMetrics.toolCalls,c:C.primary},
+                      {l:"HITL Triggers",v:testMetrics.hitlTriggers,c:"#EA580C"},
+                      {l:"Avg Phase Time",v:testMetrics.avgPhaseTime+"ms",c:C.heading},
+                      {l:"Memory Usage",v:testMetrics.memoryUsed,c:C.heading},
+                      {l:"Health Score",v:testMetrics.score+"/100",c:C.success},
+                    ].map((m,i)=>(
+                      <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:`1px solid ${C.border}22`}}>
+                        <span style={{fontSize:10,color:C.muted}}>{m.l}</span>
+                        <span style={{fontSize:11,fontWeight:700,color:m.c}}>{m.v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{display:"flex",justifyContent:"space-between"}}>
+            <button onClick={()=>setStep(4)} style={{padding:"10px 24px",borderRadius:8,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:13}}>← Back</button>
+            <button onClick={()=>setStep(6)} disabled={testState!=="pass"} style={{padding:"10px 28px",borderRadius:8,background:testState==="pass"?`linear-gradient(135deg,${C.success},#059669)`:"#D9E2EC",color:"#fff",fontWeight:600,fontSize:13}}>Next: Deploy →</button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 6: Deploy */}
+      {step===6&&(
+        <div style={{animation:"fadeUp .3s ease-out"}}>
+          {!deployed?(
+            <div>
+              {/* Pre-Deploy Config */}
+              {deployStage<0&&(
+                <div>
+                  <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:24,marginBottom:16}}>
+                    <div style={{fontWeight:700,fontSize:16,color:C.heading,marginBottom:4}}>Deploy Agent</div>
+                    <div style={{fontSize:12,color:C.muted,marginBottom:20}}>Choose target environment and review configuration before deploying <strong>{form.name||"your agent"}</strong></div>
+
+                    {/* Environment Selection */}
+                    <div style={{fontSize:10,fontWeight:600,color:C.heading,marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>Target Environment</div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+                      {[
+                        {id:"staging",name:"Staging",icon:"🧪",desc:"Test with production-like data, no live impact",color:"#F59E0B"},
+                        {id:"production",name:"Production",icon:"🚀",desc:"Live environment — affects real Novartis data pipelines",color:C.success},
+                        {id:"canary",name:"Canary (10%)",icon:"🐤",desc:"Route 10% of traffic to new agent, monitor before full rollout",color:C.primary},
+                      ].map(env=>(
+                        <div key={env.id} onClick={()=>setDeployEnv(env.id)} style={{padding:18,borderRadius:12,border:`2px solid ${deployEnv===env.id?env.color:C.border}`,background:deployEnv===env.id?`${env.color}08`:"#FAFBFC",cursor:"pointer",textAlign:"center",transition:"all .2s"}}>
+                          <div style={{fontSize:28,marginBottom:6}}>{env.icon}</div>
+                          <div style={{fontWeight:700,fontSize:13,color:deployEnv===env.id?env.color:C.heading}}>{env.name}</div>
+                          <div style={{fontSize:10,color:C.muted,marginTop:4,lineHeight:1.4}}>{env.desc}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Deployment Summary */}
+                    <div style={{padding:16,borderRadius:10,background:"#F8FAFC",border:`1px solid ${C.border}`,marginBottom:20}}>
+                      <div style={{fontWeight:700,fontSize:12,color:C.heading,marginBottom:10}}>📋 Deployment Summary</div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+                        {[
+                          {l:"Agent",v:form.name||"Untitled",icon:form.icon},
+                          {l:"Persona",v:form.persona},
+                          {l:"Tools",v:`${form.tools.length} connected`},
+                          {l:"Phases",v:`4 phases, ${form.phases.reduce((s,p)=>s+p.actions.filter(a=>a).length,0)} actions`},
+                          {l:"HITL Gate",v:`${form.hitlGate} (${form.hitlRules.filter(r=>r.enabled).length} rules)`},
+                          {l:"Schedule",v:`Every ${form.schedule}`},
+                          {l:"Environment",v:deployEnv.charAt(0).toUpperCase()+deployEnv.slice(1)},
+                          {l:"Compute",v:"2 vCPU / 4GB RAM"},
+                          {l:"Notifications",v:form.hitlNotifyChannel},
+                        ].map((item,i)=>(
+                          <div key={i} style={{padding:"8px 12px",borderRadius:6,background:C.card,border:`1px solid ${C.border}`}}>
+                            <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:.5}}>{item.l}</div>
+                            <div style={{fontSize:11,fontWeight:600,color:C.heading,marginTop:2}}>{item.icon?`${item.icon} `:""}{item.v}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Deploy Button */}
+                    <div style={{textAlign:"center"}}>
+                      <button onClick={runDeploy} style={{padding:"14px 48px",borderRadius:10,background:deployEnv==="production"?`linear-gradient(135deg,${C.success},#059669)`:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:700,fontSize:15,boxShadow:deployEnv==="production"?"0 6px 20px rgba(16,185,129,.3)":`0 6px 20px ${C.primary}33`}}>
+                        🚀 Deploy to {deployEnv.charAt(0).toUpperCase()+deployEnv.slice(1)}
+                      </button>
+                      {deployEnv==="production"&&<div style={{fontSize:10,color:"#EA580C",marginTop:8,fontWeight:600}}>⚠️ This will affect live Novartis data pipelines</div>}
+                    </div>
+                  </div>
+
+                  <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <button onClick={()=>setStep(5)} style={{padding:"10px 24px",borderRadius:8,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:13}}>← Back</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Deployment In Progress */}
+              {deployStage>=0&&(
+                <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:16}}>
+                  {/* Left: Pipeline Stages */}
+                  <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:20}}>
+                    <div style={{fontWeight:700,fontSize:16,color:C.heading,marginBottom:4}}>Deployment Pipeline</div>
+                    <div style={{fontSize:12,color:C.muted,marginBottom:16}}>Deploying to <strong>{deployEnv}</strong> environment</div>
+                    <div style={{display:"grid",gap:8}}>
+                      {DEPLOY_STAGES.map((stage,i)=>{
+                        const done=deployStage>i;
+                        const active=deployStage===i;
+                        return (
+                          <div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderRadius:10,border:`1px solid ${done?C.success+"33":active?C.primary+"44":C.border}`,background:done?"#ECFDF5":active?C.primaryBg:"#FAFBFC",animation:`fadeUp .3s ease-out ${i*.05}s both`}}>
+                            <div style={{width:32,height:32,borderRadius:8,background:done?C.success:active?C.primary:"#EDF2F7",color:done||active?"#fff":C.muted,display:"flex",alignItems:"center",justifyContent:"center",fontSize:done?14:16,fontWeight:700}}>
+                              {done?"✓":active?<span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span>:stage.icon}
+                            </div>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:13,fontWeight:600,color:done?C.success:active?C.primary:C.muted}}>{stage.name}</div>
+                              <div style={{fontSize:10,color:C.muted,marginTop:1}}>{stage.detail}</div>
+                            </div>
+                            {done&&<span style={{fontSize:10,color:C.success,fontWeight:600}}>✓ Done</span>}
+                            {active&&<span style={{fontSize:10,color:C.primary,fontWeight:600}}>Running...</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Progress bar */}
+                    <div style={{marginTop:16,background:"#EDF2F7",borderRadius:8,height:6,overflow:"hidden"}}>
+                      <div style={{height:"100%",background:`linear-gradient(90deg,${C.primary},${C.success})`,borderRadius:8,width:`${Math.min((deployStage/DEPLOY_STAGES.length)*100,100)}%`,transition:"width .5s ease"}}/>
+                    </div>
+                    <div style={{fontSize:10,color:C.muted,textAlign:"center",marginTop:6}}>{Math.round((deployStage/DEPLOY_STAGES.length)*100)}% complete</div>
+                  </div>
+
+                  {/* Right: Deploy Logs */}
+                  <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+                    <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.border}`,fontWeight:700,fontSize:12,color:C.heading,background:"#F8FAFC"}}>📋 Deployment Log</div>
+                    <div style={{flex:1,maxHeight:500,overflowY:"auto",padding:"6px 0",background:"#1E293B"}}>
+                      {deployLogs.map((log,i)=>(
+                        <div key={i} style={{padding:"4px 14px",fontSize:10,fontFamily:"'JetBrains Mono',monospace",color:log.status==="pass"?"#4ADE80":log.status==="done"?"#38BDF8":"#94A3B8",animation:`fadeUp .15s ease-out`}}>
+                          <span style={{color:"#64748B"}}>[{log.ts}]</span> {log.msg}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ):(
+            /* Deployment Success */
+            <div>
+              <div style={{background:C.card,borderRadius:14,border:`2px solid ${C.success}44`,padding:32,marginBottom:16}}>
+                <div style={{textAlign:"center",marginBottom:24}}>
+                  <div style={{width:80,height:80,borderRadius:20,background:"#ECFDF5",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:40,marginBottom:16,border:"2px solid #10B98133"}}>✅</div>
+                  <div style={{fontSize:22,fontWeight:800,color:C.success,marginBottom:4}}>Agent Deployed Successfully!</div>
+                  <div style={{fontSize:13,color:C.muted}}><strong>{form.name}</strong> is now live on the iZO platform ({deployEnv})</div>
+                </div>
+
+                {/* Post-Deploy Info Cards */}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
+                  {[
+                    {l:"Agent ID",v:`izo.agent.${(form.name||"new").toLowerCase().replace(/\s+/g,"_")}`,icon:"🆔"},
+                    {l:"Status",v:"🟢 Active",icon:""},
+                    {l:"Environment",v:deployEnv.charAt(0).toUpperCase()+deployEnv.slice(1),icon:deployEnv==="production"?"🚀":"🧪"},
+                    {l:"First Run",v:"In ~"+form.schedule,icon:"⏰"},
+                  ].map((m,i)=>(
+                    <div key={i} style={{padding:"14px 16px",borderRadius:10,background:"#F8FAFC",border:`1px solid ${C.border}`}}>
+                      <div style={{fontSize:10,color:C.muted}}>{m.l}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:C.heading,marginTop:3}}>{m.icon} {m.v}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Agent YAML Config */}
+                <div style={{borderRadius:10,overflow:"hidden",marginBottom:24}}>
+                  <div style={{padding:"10px 16px",background:"#1E293B",fontSize:10,fontWeight:600,color:"#94A3B8",display:"flex",justifyContent:"space-between"}}>
+                    <span>GENERATED AGENT CONFIGURATION (YAML)</span>
+                    <span style={{color:"#4ADE80"}}>✓ Deployed</span>
+                  </div>
+                  <pre style={{padding:16,background:"#0F172A",color:"#E2E8F0",fontSize:10,fontFamily:"'JetBrains Mono',monospace",lineHeight:1.6,margin:0,maxHeight:260,overflowY:"auto"}}>{`agent:
+  id: izo.agent.${(form.name||"new").toLowerCase().replace(/\s+/g,"_")}
+  name: "${form.name}"
+  persona: "${form.persona}"
+  version: 1.0.0
+  environment: ${deployEnv}
+
+schedule:
+  interval: "${form.schedule}"
+  timezone: "UTC"
+
+tools:
+${form.tools.map(tid=>{const t=TOOL_OPTIONS.find(x=>x.id===tid);return `  - id: ${tid}\n    name: "${t?.name}"\n    endpoint: "${t?.endpoint}"\n    auth: ${form.toolConfigs[tid]?.authMethod||"api_key"}`}).join("\n")}
+
+phases:
+${form.phases.map(p=>`  - phase: "${p.phase}"
+    title: "${p.title}"
+    actions: [${p.actions.filter(a=>a).map(a=>`"${a}"`).join(", ")}]
+    tool_bindings: [${(p.toolBindings||[]).join(", ")}]`).join("\n")}
+
+hitl:
+  gate_phase: "${form.hitlGate}"
+  escalation_threshold: "${form.hitlThreshold}"
+  auto_approve_below: "${form.hitlAutoApproveBelow}"
+  timeout_minutes: ${form.hitlTimeoutMins}
+  notify_channel: "${form.hitlNotifyChannel}"
+  reviewers: [${form.hitlReviewers.map(r=>`"${r}"`).join(", ")}]
+  rules:
+${form.hitlRules.filter(r=>r.enabled).map(r=>`    - id: ${r.id}\n      severity: ${r.severity}\n      phase: ${r.phase}`).join("\n")}
+
+resources:
+  compute: "2 vCPU / 4GB RAM"
+  secrets_vault: "nvs-pharma-vault"
+  log_group: "izo-agents/${(form.name||"new").toLowerCase().replace(/\s+/g,"-")}"`}</pre>
+                </div>
+
+                {/* Post-Deploy Actions */}
+                <div style={{display:"flex",justifyContent:"center",gap:12}}>
+                  <button onClick={()=>onNav("registry")} style={{padding:"12px 32px",borderRadius:8,background:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:600,fontSize:14}}>View in Agent Registry →</button>
+                  <button onClick={()=>onNav("orchestration")} style={{padding:"12px 24px",borderRadius:8,background:"#EDF2F7",color:C.heading,fontWeight:600,fontSize:14}}>Open Orchestration View</button>
+                  <button onClick={()=>onNav("hitl")} style={{padding:"12px 24px",borderRadius:8,background:"#FFF7ED",color:"#EA580C",fontWeight:600,fontSize:14,border:"1px solid #FB923C33"}}>HITL Operations</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      </div>
+      )}
+
+    </div>
+    </div>
+  );
+};
+
+/* ══ MAIN APP ══ */
+function App(){
+  const [view,setView]=useState("registry");
+  const agent=AGENTS.find(a=>a.id===view);
+
+  return (
+    <div style={{display:"flex",height:"100vh",background:C.bg,fontFamily:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif"}}>
+      <Sidebar view={view} onNav={setView}/>
+      <div style={{flex:1,overflowY:"auto"}}>
+        {view==="registry"&&<AgentRegistry onNav={setView}/>}
+        {view==="orchestration"&&<OrchestrationView onNav={setView}/>}
+        {view==="hitl"&&<HITLOperationsPanel onNav={setView}/>}
+        {view==="creator"&&<AgentCreator onNav={setView}/>}
+        {agent&&<AgentDetail agent={agent} onBack={()=>setView("registry")}/>}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
