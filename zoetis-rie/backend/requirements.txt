@@ -1,0 +1,10 @@
+# Zoetis RIE backend -- intentionally lean. The generator, engine, QC, scoring
+# and narratives use only the Python standard library, so the analytics layer
+# has zero third-party dependencies. These are only for the web API + tests.
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.6
+
+# test-only
+pytest>=8.0
+httpx>=0.27

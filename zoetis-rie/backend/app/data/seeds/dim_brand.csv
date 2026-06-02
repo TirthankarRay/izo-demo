@@ -1,0 +1,26 @@
+brand,category,is_zoetis,is_private_label,role,base_share,unit_price
+Simparica Trio,Parasiticides,True,False,zoetis,0.31,28.0
+VectraGuard,Parasiticides,False,False,competitor,0.22,26.0
+TickShield Plus,Parasiticides,False,False,competitor,0.17,24.0
+FleaStop Pro,Parasiticides,False,False,competitor,0.13,21.0
+VetSelect Flea & Tick,Parasiticides,False,True,private_label,0.17,17.0
+Vanguard,Vaccines,True,False,zoetis,0.28,22.0
+ImmunoCore Canine,Vaccines,False,False,competitor,0.24,21.0
+BioShield Vax,Vaccines,False,False,competitor,0.19,20.0
+VetGuard Immunize,Vaccines,False,False,competitor,0.16,19.0
+VetSelect Core Vax,Vaccines,False,True,private_label,0.13,14.0
+Apoquel,Dermatology,True,False,zoetis,0.35,65.0
+DermaCalm,Dermatology,False,False,competitor,0.21,58.0
+AllerVet RX,Dermatology,False,False,competitor,0.18,54.0
+SkinRelief Pro,Dermatology,False,False,competitor,0.14,49.0
+VetSelect Derma,Dermatology,False,True,private_label,0.12,38.0
+Librela,Pain/Osteoarthritis,True,False,zoetis,0.26,48.0
+FlexiCare Joint,Pain/Osteoarthritis,False,False,competitor,0.23,44.0
+OsteoEase Vet,Pain/Osteoarthritis,False,False,competitor,0.2,41.0
+PainAway Canine,Pain/Osteoarthritis,False,False,competitor,0.16,37.0
+VetSelect Joint,Pain/Osteoarthritis,False,True,private_label,0.15,29.0
+Vetscan,Petcare Diagnostics,True,False,zoetis,0.3,18.0
+DiagnosTech Vet,Petcare Diagnostics,False,False,competitor,0.25,17.0
+RapidVet Dx,Petcare Diagnostics,False,False,competitor,0.22,16.0
+PetLab Analyzer,Petcare Diagnostics,False,False,competitor,0.13,15.0
+VetSelect Dx,Petcare Diagnostics,False,True,private_label,0.1,12.0

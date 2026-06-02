@@ -1,0 +1,51 @@
+sku_canonical,brand,category,pack,pack_desc
+PAR-SIMPARICA--S,Simparica Trio,Parasiticides,S,Small / starter pack
+PAR-SIMPARICA--L,Simparica Trio,Parasiticides,L,Large / value pack
+PAR-VECTRAGUAR-S,VectraGuard,Parasiticides,S,Small / starter pack
+PAR-VECTRAGUAR-L,VectraGuard,Parasiticides,L,Large / value pack
+PAR-TICKSHIELD-S,TickShield Plus,Parasiticides,S,Small / starter pack
+PAR-TICKSHIELD-L,TickShield Plus,Parasiticides,L,Large / value pack
+PAR-FLEASTOP-P-S,FleaStop Pro,Parasiticides,S,Small / starter pack
+PAR-FLEASTOP-P-L,FleaStop Pro,Parasiticides,L,Large / value pack
+PAR-VETSELECT--S,VetSelect Flea & Tick,Parasiticides,S,Small / starter pack
+PAR-VETSELECT--L,VetSelect Flea & Tick,Parasiticides,L,Large / value pack
+VAC-VANGUARD-S,Vanguard,Vaccines,S,Small / starter pack
+VAC-VANGUARD-L,Vanguard,Vaccines,L,Large / value pack
+VAC-IMMUNOCORE-S,ImmunoCore Canine,Vaccines,S,Small / starter pack
+VAC-IMMUNOCORE-L,ImmunoCore Canine,Vaccines,L,Large / value pack
+VAC-BIOSHIELD--S,BioShield Vax,Vaccines,S,Small / starter pack
+VAC-BIOSHIELD--L,BioShield Vax,Vaccines,L,Large / value pack
+VAC-VETGUARD-I-S,VetGuard Immunize,Vaccines,S,Small / starter pack
+VAC-VETGUARD-I-L,VetGuard Immunize,Vaccines,L,Large / value pack
+VAC-VETSELECT--S,VetSelect Core Vax,Vaccines,S,Small / starter pack
+VAC-VETSELECT--L,VetSelect Core Vax,Vaccines,L,Large / value pack
+DRM-APOQUEL-S,Apoquel,Dermatology,S,Small / starter pack
+DRM-APOQUEL-L,Apoquel,Dermatology,L,Large / value pack
+DRM-DERMACALM-S,DermaCalm,Dermatology,S,Small / starter pack
+DRM-DERMACALM-L,DermaCalm,Dermatology,L,Large / value pack
+DRM-ALLERVET-R-S,AllerVet RX,Dermatology,S,Small / starter pack
+DRM-ALLERVET-R-L,AllerVet RX,Dermatology,L,Large / value pack
+DRM-SKINRELIEF-S,SkinRelief Pro,Dermatology,S,Small / starter pack
+DRM-SKINRELIEF-L,SkinRelief Pro,Dermatology,L,Large / value pack
+DRM-VETSELECT--S,VetSelect Derma,Dermatology,S,Small / starter pack
+DRM-VETSELECT--L,VetSelect Derma,Dermatology,L,Large / value pack
+PAN-LIBRELA-S,Librela,Pain/Osteoarthritis,S,Small / starter pack
+PAN-LIBRELA-L,Librela,Pain/Osteoarthritis,L,Large / value pack
+PAN-FLEXICARE--S,FlexiCare Joint,Pain/Osteoarthritis,S,Small / starter pack
+PAN-FLEXICARE--L,FlexiCare Joint,Pain/Osteoarthritis,L,Large / value pack
+PAN-OSTEOEASE--S,OsteoEase Vet,Pain/Osteoarthritis,S,Small / starter pack
+PAN-OSTEOEASE--L,OsteoEase Vet,Pain/Osteoarthritis,L,Large / value pack
+PAN-PAINAWAY-C-S,PainAway Canine,Pain/Osteoarthritis,S,Small / starter pack
+PAN-PAINAWAY-C-L,PainAway Canine,Pain/Osteoarthritis,L,Large / value pack
+PAN-VETSELECT--S,VetSelect Joint,Pain/Osteoarthritis,S,Small / starter pack
+PAN-VETSELECT--L,VetSelect Joint,Pain/Osteoarthritis,L,Large / value pack
+DIA-VETSCAN-S,Vetscan,Petcare Diagnostics,S,Small / starter pack
+DIA-VETSCAN-L,Vetscan,Petcare Diagnostics,L,Large / value pack
+DIA-DIAGNOSTEC-S,DiagnosTech Vet,Petcare Diagnostics,S,Small / starter pack
+DIA-DIAGNOSTEC-L,DiagnosTech Vet,Petcare Diagnostics,L,Large / value pack
+DIA-RAPIDVET-D-S,RapidVet Dx,Petcare Diagnostics,S,Small / starter pack
+DIA-RAPIDVET-D-L,RapidVet Dx,Petcare Diagnostics,L,Large / value pack
+DIA-PETLAB-ANA-S,PetLab Analyzer,Petcare Diagnostics,S,Small / starter pack
+DIA-PETLAB-ANA-L,PetLab Analyzer,Petcare Diagnostics,L,Large / value pack
+DIA-VETSELECT--S,VetSelect Dx,Petcare Diagnostics,S,Small / starter pack
+DIA-VETSELECT--L,VetSelect Dx,Petcare Diagnostics,L,Large / value pack

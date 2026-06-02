@@ -1,0 +1,361 @@
+month,quarter,category,channel,control_total_sales
+2024-04,2024-Q2,Dermatology,E-commerce,13823678.77
+2024-04,2024-Q2,Dermatology,Retail,12244960.28
+2024-04,2024-Q2,Dermatology,Veterinary,54698003.97
+2024-04,2024-Q2,Pain/Osteoarthritis,E-commerce,7425767.23
+2024-04,2024-Q2,Pain/Osteoarthritis,Retail,5683627.24
+2024-04,2024-Q2,Pain/Osteoarthritis,Veterinary,35177553.35
+2024-04,2024-Q2,Parasiticides,E-commerce,23448943.58
+2024-04,2024-Q2,Parasiticides,Retail,48681888.08
+2024-04,2024-Q2,Parasiticides,Veterinary,49286489.75
+2024-04,2024-Q2,Petcare Diagnostics,E-commerce,7054549.96
+2024-04,2024-Q2,Petcare Diagnostics,Retail,3557920.26
+2024-04,2024-Q2,Petcare Diagnostics,Veterinary,42480595.55
+2024-04,2024-Q2,Vaccines,E-commerce,6069270.36
+2024-04,2024-Q2,Vaccines,Retail,6052608.75
+2024-04,2024-Q2,Vaccines,Veterinary,53859767.22
+2024-05,2024-Q2,Dermatology,E-commerce,15649572.58
+2024-05,2024-Q2,Dermatology,Retail,13071583.62
+2024-05,2024-Q2,Dermatology,Veterinary,60433280.08
+2024-05,2024-Q2,Pain/Osteoarthritis,E-commerce,7087275.45
+2024-05,2024-Q2,Pain/Osteoarthritis,Retail,5303662.66
+2024-05,2024-Q2,Pain/Osteoarthritis,Veterinary,33242578.62
+2024-05,2024-Q2,Parasiticides,E-commerce,26898047.86
+2024-05,2024-Q2,Parasiticides,Retail,54116047.37
+2024-05,2024-Q2,Parasiticides,Veterinary,55556250.7
+2024-05,2024-Q2,Petcare Diagnostics,E-commerce,7225384.46
+2024-05,2024-Q2,Petcare Diagnostics,Retail,3486979.65
+2024-05,2024-Q2,Petcare Diagnostics,Veterinary,42161943.29
+2024-05,2024-Q2,Vaccines,E-commerce,6558764.2
+2024-05,2024-Q2,Vaccines,Retail,6246511.17
+2024-05,2024-Q2,Vaccines,Veterinary,54983637.79
+2024-06,2024-Q2,Dermatology,E-commerce,17156621.1
+2024-06,2024-Q2,Dermatology,Retail,14049932.76
+2024-06,2024-Q2,Dermatology,Veterinary,64064306.32
+2024-06,2024-Q2,Pain/Osteoarthritis,E-commerce,6945054.88
+2024-06,2024-Q2,Pain/Osteoarthritis,Retail,4971169.3
+2024-06,2024-Q2,Pain/Osteoarthritis,Veterinary,31317710.52
+2024-06,2024-Q2,Parasiticides,E-commerce,24257230.61
+2024-06,2024-Q2,Parasiticides,Retail,55465330.7
+2024-06,2024-Q2,Parasiticides,Veterinary,57833214.55
+2024-06,2024-Q2,Petcare Diagnostics,E-commerce,7313419.25
+2024-06,2024-Q2,Petcare Diagnostics,Retail,3392110.51
+2024-06,2024-Q2,Petcare Diagnostics,Veterinary,41590140.54
+2024-06,2024-Q2,Vaccines,E-commerce,6757968.26
+2024-06,2024-Q2,Vaccines,Retail,6064126.14
+2024-06,2024-Q2,Vaccines,Veterinary,54117076.91
+2024-07,2024-Q3,Dermatology,E-commerce,17929062.74
+2024-07,2024-Q3,Dermatology,Retail,14381080.45
+2024-07,2024-Q3,Dermatology,Veterinary,64896958.6
+2024-07,2024-Q3,Pain/Osteoarthritis,E-commerce,6920320.46
+2024-07,2024-Q3,Pain/Osteoarthritis,Retail,4619442.62
+2024-07,2024-Q3,Pain/Osteoarthritis,Veterinary,30099158.23
+2024-07,2024-Q3,Parasiticides,E-commerce,27714988.26
+2024-07,2024-Q3,Parasiticides,Retail,54415981.32
+2024-07,2024-Q3,Parasiticides,Veterinary,54996568.37
+2024-07,2024-Q3,Petcare Diagnostics,E-commerce,7575654.6
+2024-07,2024-Q3,Petcare Diagnostics,Retail,3390052.19
+2024-07,2024-Q3,Petcare Diagnostics,Veterinary,41266458.08
+2024-07,2024-Q3,Vaccines,E-commerce,6834644.52
+2024-07,2024-Q3,Vaccines,Retail,5875799.81
+2024-07,2024-Q3,Vaccines,Veterinary,52067046.68
+2024-08,2024-Q3,Dermatology,E-commerce,18072501.69
+2024-08,2024-Q3,Dermatology,Retail,13936681.77
+2024-08,2024-Q3,Dermatology,Veterinary,64558461.72
+2024-08,2024-Q3,Pain/Osteoarthritis,E-commerce,7042554.36
+2024-08,2024-Q3,Pain/Osteoarthritis,Retail,4583505.06
+2024-08,2024-Q3,Pain/Osteoarthritis,Veterinary,29308081.52
+2024-08,2024-Q3,Parasiticides,E-commerce,25988677.71
+2024-08,2024-Q3,Parasiticides,Retail,48955132.02
+2024-08,2024-Q3,Parasiticides,Veterinary,49437788.78
+2024-08,2024-Q3,Petcare Diagnostics,E-commerce,7687096.62
+2024-08,2024-Q3,Petcare Diagnostics,Retail,3274977.36
+2024-08,2024-Q3,Petcare Diagnostics,Veterinary,40130065.62
+2024-08,2024-Q3,Vaccines,E-commerce,6764691.93
+2024-08,2024-Q3,Vaccines,Retail,5378766.35
+2024-08,2024-Q3,Vaccines,Veterinary,48275101.07
+2024-09,2024-Q3,Dermatology,E-commerce,17963698.46
+2024-09,2024-Q3,Dermatology,Retail,13710091.18
+2024-09,2024-Q3,Dermatology,Veterinary,62081644.87
+2024-09,2024-Q3,Pain/Osteoarthritis,E-commerce,7248105.08
+2024-09,2024-Q3,Pain/Osteoarthritis,Retail,4634024.44
+2024-09,2024-Q3,Pain/Osteoarthritis,Veterinary,29868098.13
+2024-09,2024-Q3,Parasiticides,E-commerce,22570171.41
+2024-09,2024-Q3,Parasiticides,Retail,41950008.34
+2024-09,2024-Q3,Parasiticides,Veterinary,41605410.32
+2024-09,2024-Q3,Petcare Diagnostics,E-commerce,7617861.45
+2024-09,2024-Q3,Petcare Diagnostics,Retail,3111781.69
+2024-09,2024-Q3,Petcare Diagnostics,Veterinary,39092495.77
+2024-09,2024-Q3,Vaccines,E-commerce,6607941.71
+2024-09,2024-Q3,Vaccines,Retail,5037926.55
+2024-09,2024-Q3,Vaccines,Veterinary,45896270.6
+2024-10,2024-Q4,Dermatology,E-commerce,17084664.73
+2024-10,2024-Q4,Dermatology,Retail,12467235.15
+2024-10,2024-Q4,Dermatology,Veterinary,56441941.34
+2024-10,2024-Q4,Pain/Osteoarthritis,E-commerce,7922715.19
+2024-10,2024-Q4,Pain/Osteoarthritis,Retail,4876988.47
+2024-10,2024-Q4,Pain/Osteoarthritis,Veterinary,31680676.19
+2024-10,2024-Q4,Parasiticides,E-commerce,19339976.56
+2024-10,2024-Q4,Parasiticides,Retail,34555576.7
+2024-10,2024-Q4,Parasiticides,Veterinary,34688074.25
+2024-10,2024-Q4,Petcare Diagnostics,E-commerce,7752203.23
+2024-10,2024-Q4,Petcare Diagnostics,Retail,3016428.79
+2024-10,2024-Q4,Petcare Diagnostics,Veterinary,38775945.43
+2024-10,2024-Q4,Vaccines,E-commerce,6554540.92
+2024-10,2024-Q4,Vaccines,Retail,4760098.85
+2024-10,2024-Q4,Vaccines,Veterinary,42944282.83
+2024-11,2024-Q4,Dermatology,E-commerce,15703370.2
+2024-11,2024-Q4,Dermatology,Retail,11128213.13
+2024-11,2024-Q4,Dermatology,Veterinary,51456074.12
+2024-11,2024-Q4,Pain/Osteoarthritis,E-commerce,8987490.31
+2024-11,2024-Q4,Pain/Osteoarthritis,Retail,5261093.04
+2024-11,2024-Q4,Pain/Osteoarthritis,Veterinary,33849139.71
+2024-11,2024-Q4,Parasiticides,E-commerce,16740256.74
+2024-11,2024-Q4,Parasiticides,Retail,29611058.73
+2024-11,2024-Q4,Parasiticides,Veterinary,29360892.32
+2024-11,2024-Q4,Petcare Diagnostics,E-commerce,8287238.93
+2024-11,2024-Q4,Petcare Diagnostics,Retail,3115208.11
+2024-11,2024-Q4,Petcare Diagnostics,Veterinary,39414880.3
+2024-11,2024-Q4,Vaccines,E-commerce,6595309.44
+2024-11,2024-Q4,Vaccines,Retail,4725047.26
+2024-11,2024-Q4,Vaccines,Veterinary,41733714.44
+2024-12,2024-Q4,Dermatology,E-commerce,15005484.15
+2024-12,2024-Q4,Dermatology,Retail,10188594.23
+2024-12,2024-Q4,Dermatology,Veterinary,47192945.82
+2024-12,2024-Q4,Pain/Osteoarthritis,E-commerce,9733051.5
+2024-12,2024-Q4,Pain/Osteoarthritis,Retail,5584285.18
+2024-12,2024-Q4,Pain/Osteoarthritis,Veterinary,35910665.91
+2024-12,2024-Q4,Parasiticides,E-commerce,16112488.97
+2024-12,2024-Q4,Parasiticides,Retail,27952006.7
+2024-12,2024-Q4,Parasiticides,Veterinary,27221576.53
+2024-12,2024-Q4,Petcare Diagnostics,E-commerce,8784519.94
+2024-12,2024-Q4,Petcare Diagnostics,Retail,3156606.86
+2024-12,2024-Q4,Petcare Diagnostics,Veterinary,40047391.12
+2024-12,2024-Q4,Vaccines,E-commerce,6786185.58
+2024-12,2024-Q4,Vaccines,Retail,4558157.53
+2024-12,2024-Q4,Vaccines,Veterinary,42062332.62
+2025-01,2025-Q1,Dermatology,E-commerce,14598174.98
+2025-01,2025-Q1,Dermatology,Retail,10010479.34
+2025-01,2025-Q1,Dermatology,Veterinary,46180009.62
+2025-01,2025-Q1,Pain/Osteoarthritis,E-commerce,10658483.09
+2025-01,2025-Q1,Pain/Osteoarthritis,Retail,6040376.77
+2025-01,2025-Q1,Pain/Osteoarthritis,Veterinary,38188390.13
+2025-01,2025-Q1,Parasiticides,E-commerce,17482853.21
+2025-01,2025-Q1,Parasiticides,Retail,29192832.33
+2025-01,2025-Q1,Parasiticides,Veterinary,28836149.2
+2025-01,2025-Q1,Petcare Diagnostics,E-commerce,9226662.52
+2025-01,2025-Q1,Petcare Diagnostics,Retail,3223085.45
+2025-01,2025-Q1,Petcare Diagnostics,Veterinary,41263946.54
+2025-01,2025-Q1,Vaccines,E-commerce,7646718.51
+2025-01,2025-Q1,Vaccines,Retail,4912415.74
+2025-01,2025-Q1,Vaccines,Veterinary,45039264.54
+2025-02,2025-Q1,Dermatology,E-commerce,15389320.64
+2025-02,2025-Q1,Dermatology,Retail,10302872.25
+2025-02,2025-Q1,Dermatology,Veterinary,46758862.77
+2025-02,2025-Q1,Pain/Osteoarthritis,E-commerce,10628985.99
+2025-02,2025-Q1,Pain/Osteoarthritis,Retail,5869659.47
+2025-02,2025-Q1,Pain/Osteoarthritis,Veterinary,37986971.91
+2025-02,2025-Q1,Parasiticides,E-commerce,20642882.13
+2025-02,2025-Q1,Parasiticides,Retail,34927898.58
+2025-02,2025-Q1,Parasiticides,Veterinary,33888058.03
+2025-02,2025-Q1,Petcare Diagnostics,E-commerce,9588130.4
+2025-02,2025-Q1,Petcare Diagnostics,Retail,3266202.72
+2025-02,2025-Q1,Petcare Diagnostics,Veterinary,42191970.59
+2025-02,2025-Q1,Vaccines,E-commerce,8489485.58
+2025-02,2025-Q1,Vaccines,Retail,5209403.96
+2025-02,2025-Q1,Vaccines,Veterinary,49518754.03
+2025-03,2025-Q1,Dermatology,E-commerce,17585474.16
+2025-03,2025-Q1,Dermatology,Retail,11116837.57
+2025-03,2025-Q1,Dermatology,Veterinary,50873118.59
+2025-03,2025-Q1,Pain/Osteoarthritis,E-commerce,10965052.54
+2025-03,2025-Q1,Pain/Osteoarthritis,Retail,5795570.01
+2025-03,2025-Q1,Pain/Osteoarthritis,Veterinary,37792037.42
+2025-03,2025-Q1,Parasiticides,E-commerce,26873824.33
+2025-03,2025-Q1,Parasiticides,Retail,43576332.56
+2025-03,2025-Q1,Parasiticides,Veterinary,35558698.97
+2025-03,2025-Q1,Petcare Diagnostics,E-commerce,10126258.38
+2025-03,2025-Q1,Petcare Diagnostics,Retail,3249292.23
+2025-03,2025-Q1,Petcare Diagnostics,Veterinary,43536487.95
+2025-03,2025-Q1,Vaccines,E-commerce,9261545.69
+2025-03,2025-Q1,Vaccines,Retail,5482206.85
+2025-03,2025-Q1,Vaccines,Veterinary,51812562.0
+2025-04,2025-Q2,Dermatology,E-commerce,19792619.16
+2025-04,2025-Q2,Dermatology,Retail,12383731.56
+2025-04,2025-Q2,Dermatology,Veterinary,57072816.66
+2025-04,2025-Q2,Pain/Osteoarthritis,E-commerce,11156331.49
+2025-04,2025-Q2,Pain/Osteoarthritis,Retail,5810994.04
+2025-04,2025-Q2,Pain/Osteoarthritis,Veterinary,37101526.57
+2025-04,2025-Q2,Parasiticides,E-commerce,31654867.1
+2025-04,2025-Q2,Parasiticides,Retail,49821237.32
+2025-04,2025-Q2,Parasiticides,Veterinary,48255344.57
+2025-04,2025-Q2,Petcare Diagnostics,E-commerce,10410193.79
+2025-04,2025-Q2,Petcare Diagnostics,Retail,3232883.67
+2025-04,2025-Q2,Petcare Diagnostics,Veterinary,41983270.62
+2025-04,2025-Q2,Vaccines,E-commerce,9655977.4
+2025-04,2025-Q2,Vaccines,Retail,5426163.28
+2025-04,2025-Q2,Vaccines,Veterinary,52398267.42
+2025-05,2025-Q2,Dermatology,E-commerce,22459405.44
+2025-05,2025-Q2,Dermatology,Retail,13379946.22
+2025-05,2025-Q2,Dermatology,Veterinary,62208417.47
+2025-05,2025-Q2,Pain/Osteoarthritis,E-commerce,10619438.91
+2025-05,2025-Q2,Pain/Osteoarthritis,Retail,5366254.89
+2025-05,2025-Q2,Pain/Osteoarthritis,Veterinary,35055481.39
+2025-05,2025-Q2,Parasiticides,E-commerce,35054242.25
+2025-05,2025-Q2,Parasiticides,Retail,55006770.45
+2025-05,2025-Q2,Parasiticides,Veterinary,52564946.08
+2025-05,2025-Q2,Petcare Diagnostics,E-commerce,10793053.93
+2025-05,2025-Q2,Petcare Diagnostics,Retail,3233375.33
+2025-05,2025-Q2,Petcare Diagnostics,Veterinary,42799532.7
+2025-05,2025-Q2,Vaccines,E-commerce,10440611.0
+2025-05,2025-Q2,Vaccines,Retail,5632451.54
+2025-05,2025-Q2,Vaccines,Veterinary,53443361.39
+2025-06,2025-Q2,Dermatology,E-commerce,23853105.82
+2025-06,2025-Q2,Dermatology,Retail,14137895.79
+2025-06,2025-Q2,Dermatology,Veterinary,65489290.23
+2025-06,2025-Q2,Pain/Osteoarthritis,E-commerce,10416192.39
+2025-06,2025-Q2,Pain/Osteoarthritis,Retail,5047170.39
+2025-06,2025-Q2,Pain/Osteoarthritis,Veterinary,33494539.88
+2025-06,2025-Q2,Parasiticides,E-commerce,37845959.24
+2025-06,2025-Q2,Parasiticides,Retail,57074966.91
+2025-06,2025-Q2,Parasiticides,Veterinary,54221776.55
+2025-06,2025-Q2,Petcare Diagnostics,E-commerce,10641716.06
+2025-06,2025-Q2,Petcare Diagnostics,Retail,3104436.04
+2025-06,2025-Q2,Petcare Diagnostics,Veterinary,41937190.13
+2025-06,2025-Q2,Vaccines,E-commerce,10461111.31
+2025-06,2025-Q2,Vaccines,Retail,5522867.78
+2025-06,2025-Q2,Vaccines,Veterinary,52399972.01
+2025-07,2025-Q3,Dermatology,E-commerce,25980230.01
+2025-07,2025-Q3,Dermatology,Retail,14818796.82
+2025-07,2025-Q3,Dermatology,Veterinary,68845931.87
+2025-07,2025-Q3,Pain/Osteoarthritis,E-commerce,10089348.78
+2025-07,2025-Q3,Pain/Osteoarthritis,Retail,4709821.17
+2025-07,2025-Q3,Pain/Osteoarthritis,Veterinary,31204792.79
+2025-07,2025-Q3,Parasiticides,E-commerce,37290432.07
+2025-07,2025-Q3,Parasiticides,Retail,55968227.25
+2025-07,2025-Q3,Parasiticides,Veterinary,53005695.15
+2025-07,2025-Q3,Petcare Diagnostics,E-commerce,10995654.09
+2025-07,2025-Q3,Petcare Diagnostics,Retail,3080696.93
+2025-07,2025-Q3,Petcare Diagnostics,Veterinary,41963601.12
+2025-07,2025-Q3,Vaccines,E-commerce,10649515.61
+2025-07,2025-Q3,Vaccines,Retail,5229546.28
+2025-07,2025-Q3,Vaccines,Veterinary,50949189.35
+2025-08,2025-Q3,Dermatology,E-commerce,25155353.72
+2025-08,2025-Q3,Dermatology,Retail,14119560.69
+2025-08,2025-Q3,Dermatology,Veterinary,66432244.53
+2025-08,2025-Q3,Pain/Osteoarthritis,E-commerce,10043368.59
+2025-08,2025-Q3,Pain/Osteoarthritis,Retail,4616666.9
+2025-08,2025-Q3,Pain/Osteoarthritis,Veterinary,31372420.64
+2025-08,2025-Q3,Parasiticides,E-commerce,34034776.93
+2025-08,2025-Q3,Parasiticides,Retail,49850635.59
+2025-08,2025-Q3,Parasiticides,Veterinary,46319357.47
+2025-08,2025-Q3,Petcare Diagnostics,E-commerce,10549913.4
+2025-08,2025-Q3,Petcare Diagnostics,Retail,2869972.36
+2025-08,2025-Q3,Petcare Diagnostics,Veterinary,39718708.45
+2025-08,2025-Q3,Vaccines,E-commerce,9928889.02
+2025-08,2025-Q3,Vaccines,Retail,4835718.35
+2025-08,2025-Q3,Vaccines,Veterinary,46671804.49
+2025-09,2025-Q3,Dermatology,E-commerce,24512783.82
+2025-09,2025-Q3,Dermatology,Retail,13437068.71
+2025-09,2025-Q3,Dermatology,Veterinary,62825834.02
+2025-09,2025-Q3,Pain/Osteoarthritis,E-commerce,10638843.21
+2025-09,2025-Q3,Pain/Osteoarthritis,Retail,4771655.34
+2025-09,2025-Q3,Pain/Osteoarthritis,Veterinary,32252705.25
+2025-09,2025-Q3,Parasiticides,E-commerce,29480917.58
+2025-09,2025-Q3,Parasiticides,Retail,42435298.22
+2025-09,2025-Q3,Parasiticides,Veterinary,39529644.53
+2025-09,2025-Q3,Petcare Diagnostics,E-commerce,10850824.82
+2025-09,2025-Q3,Petcare Diagnostics,Retail,2778000.69
+2025-09,2025-Q3,Petcare Diagnostics,Veterinary,38767105.78
+2025-09,2025-Q3,Vaccines,E-commerce,9588831.02
+2025-09,2025-Q3,Vaccines,Retail,4448030.49
+2025-09,2025-Q3,Vaccines,Veterinary,44978979.5
+2025-10,2025-Q4,Dermatology,E-commerce,23332072.04
+2025-10,2025-Q4,Dermatology,Retail,12406087.36
+2025-10,2025-Q4,Dermatology,Veterinary,57667826.55
+2025-10,2025-Q4,Pain/Osteoarthritis,E-commerce,11706993.33
+2025-10,2025-Q4,Pain/Osteoarthritis,Retail,5053483.38
+2025-10,2025-Q4,Pain/Osteoarthritis,Veterinary,33814871.75
+2025-10,2025-Q4,Parasiticides,E-commerce,25933034.94
+2025-10,2025-Q4,Parasiticides,Retail,36103929.49
+2025-10,2025-Q4,Parasiticides,Veterinary,33399819.51
+2025-10,2025-Q4,Petcare Diagnostics,E-commerce,11323754.62
+2025-10,2025-Q4,Petcare Diagnostics,Retail,2800027.28
+2025-10,2025-Q4,Petcare Diagnostics,Veterinary,39600879.55
+2025-10,2025-Q4,Vaccines,E-commerce,9482051.32
+2025-10,2025-Q4,Vaccines,Retail,4329024.32
+2025-10,2025-Q4,Vaccines,Veterinary,41824527.64
+2025-11,2025-Q4,Dermatology,E-commerce,21390156.89
+2025-11,2025-Q4,Dermatology,Retail,11306730.19
+2025-11,2025-Q4,Dermatology,Veterinary,52825907.93
+2025-11,2025-Q4,Pain/Osteoarthritis,E-commerce,12641281.28
+2025-11,2025-Q4,Pain/Osteoarthritis,Retail,5231637.07
+2025-11,2025-Q4,Pain/Osteoarthritis,Veterinary,35677939.71
+2025-11,2025-Q4,Parasiticides,E-commerce,21857074.33
+2025-11,2025-Q4,Parasiticides,Retail,30458629.2
+2025-11,2025-Q4,Parasiticides,Veterinary,27832970.98
+2025-11,2025-Q4,Petcare Diagnostics,E-commerce,11590876.24
+2025-11,2025-Q4,Petcare Diagnostics,Retail,2742406.47
+2025-11,2025-Q4,Petcare Diagnostics,Veterinary,39326392.65
+2025-11,2025-Q4,Vaccines,E-commerce,9698534.02
+2025-11,2025-Q4,Vaccines,Retail,4334079.44
+2025-11,2025-Q4,Vaccines,Veterinary,41577987.4
+2025-12,2025-Q4,Dermatology,E-commerce,20123813.45
+2025-12,2025-Q4,Dermatology,Retail,10336271.8
+2025-12,2025-Q4,Dermatology,Veterinary,48100556.54
+2025-12,2025-Q4,Pain/Osteoarthritis,E-commerce,13769812.92
+2025-12,2025-Q4,Pain/Osteoarthritis,Retail,5642509.92
+2025-12,2025-Q4,Pain/Osteoarthritis,Veterinary,38137976.7
+2025-12,2025-Q4,Parasiticides,E-commerce,20845044.33
+2025-12,2025-Q4,Parasiticides,Retail,27590178.62
+2025-12,2025-Q4,Parasiticides,Veterinary,25822479.11
+2025-12,2025-Q4,Petcare Diagnostics,E-commerce,12142197.7
+2025-12,2025-Q4,Petcare Diagnostics,Retail,2766733.35
+2025-12,2025-Q4,Petcare Diagnostics,Veterinary,40989557.82
+2025-12,2025-Q4,Vaccines,E-commerce,10124856.76
+2025-12,2025-Q4,Vaccines,Retail,4186042.01
+2025-12,2025-Q4,Vaccines,Veterinary,41574036.76
+2026-01,2026-Q1,Dermatology,E-commerce,20127060.17
+2026-01,2026-Q1,Dermatology,Retail,10153514.87
+2026-01,2026-Q1,Dermatology,Veterinary,47653528.31
+2026-01,2026-Q1,Pain/Osteoarthritis,E-commerce,14510761.57
+2026-01,2026-Q1,Pain/Osteoarthritis,Retail,5897042.35
+2026-01,2026-Q1,Pain/Osteoarthritis,Veterinary,39132721.15
+2026-01,2026-Q1,Parasiticides,E-commerce,22289087.26
+2026-01,2026-Q1,Parasiticides,Retail,30110101.33
+2026-01,2026-Q1,Parasiticides,Veterinary,27263084.11
+2026-01,2026-Q1,Petcare Diagnostics,E-commerce,12486325.83
+2026-01,2026-Q1,Petcare Diagnostics,Retail,2778613.15
+2026-01,2026-Q1,Petcare Diagnostics,Veterinary,41106789.62
+2026-01,2026-Q1,Vaccines,E-commerce,10732934.89
+2026-01,2026-Q1,Vaccines,Retail,4323982.42
+2026-01,2026-Q1,Vaccines,Veterinary,43082053.75
+2026-02,2026-Q1,Dermatology,E-commerce,21620113.38
+2026-02,2026-Q1,Dermatology,Retail,10574393.46
+2026-02,2026-Q1,Dermatology,Veterinary,49668679.63
+2026-02,2026-Q1,Pain/Osteoarthritis,E-commerce,15089020.08
+2026-02,2026-Q1,Pain/Osteoarthritis,Retail,5839608.17
+2026-02,2026-Q1,Pain/Osteoarthritis,Veterinary,39972641.74
+2026-02,2026-Q1,Parasiticides,E-commerce,27165023.69
+2026-02,2026-Q1,Parasiticides,Retail,35592149.72
+2026-02,2026-Q1,Parasiticides,Veterinary,32725113.64
+2026-02,2026-Q1,Petcare Diagnostics,E-commerce,13217417.0
+2026-02,2026-Q1,Petcare Diagnostics,Retail,2869200.88
+2026-02,2026-Q1,Petcare Diagnostics,Veterinary,42934459.77
+2026-02,2026-Q1,Vaccines,E-commerce,11691325.1
+2026-02,2026-Q1,Vaccines,Retail,4518687.8
+2026-02,2026-Q1,Vaccines,Veterinary,45823180.38
+2026-03,2026-Q1,Dermatology,E-commerce,23886115.07
+2026-03,2026-Q1,Dermatology,Retail,11298930.43
+2026-03,2026-Q1,Dermatology,Veterinary,52854615.04
+2026-03,2026-Q1,Pain/Osteoarthritis,E-commerce,15318634.24
+2026-03,2026-Q1,Pain/Osteoarthritis,Retail,5828606.07
+2026-03,2026-Q1,Pain/Osteoarthritis,Veterinary,40259412.21
+2026-03,2026-Q1,Parasiticides,E-commerce,33490175.31
+2026-03,2026-Q1,Parasiticides,Retail,43561473.66
+2026-03,2026-Q1,Parasiticides,Veterinary,38641623.99
+2026-03,2026-Q1,Petcare Diagnostics,E-commerce,13844842.64
+2026-03,2026-Q1,Petcare Diagnostics,Retail,2906133.97
+2026-03,2026-Q1,Petcare Diagnostics,Veterinary,43716868.37
+2026-03,2026-Q1,Vaccines,E-commerce,12834877.44
+2026-03,2026-Q1,Vaccines,Retail,4855400.24
+2026-03,2026-Q1,Vaccines,Veterinary,49775280.73
