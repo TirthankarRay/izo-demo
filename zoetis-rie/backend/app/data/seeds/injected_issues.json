@@ -1,0 +1,395 @@
+{
+  "summary": {
+    "outlier": 30,
+    "unmapped_sku": 4,
+    "hierarchy_mismatch": 2,
+    "missing_row": 6,
+    "control_total_off": 2
+  },
+  "issues": [
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "zoetis_vet_internal",
+      "brand": "DermaCalm",
+      "geo": "Northeast",
+      "month": "2025-01",
+      "detail": "drop x0.11 (2033844 -> 230312)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "zoetis_vet_internal",
+      "brand": "SkinRelief Pro",
+      "geo": "Northeast",
+      "month": "2025-01",
+      "detail": "spike x4.94 (1364401 -> 6736081)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "nielsen_scanner",
+      "brand": "VetSelect Flea & Tick",
+      "geo": "South",
+      "month": "2025-03",
+      "detail": "spike x6.47 (2882079 -> 18635640)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "nielsen_scanner",
+      "brand": "OsteoEase Vet",
+      "geo": "South",
+      "month": "2025-10",
+      "detail": "drop x0.05 (269303 -> 13919)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "ciq_ecommerce",
+      "brand": "PainAway Canine",
+      "geo": "Midwest",
+      "month": "2025-01",
+      "detail": "drop x0.20 (292629 -> 57875)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "zoetis_vet_internal",
+      "brand": "VetSelect Flea & Tick",
+      "geo": "Midwest",
+      "month": "2026-02",
+      "detail": "drop x0.06 (625081 -> 40593)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "nielsen_scanner",
+      "brand": "RapidVet Dx",
+      "geo": "West",
+      "month": "2025-07",
+      "detail": "spike x5.11 (118907 -> 607049)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "stackline_ecommerce",
+      "brand": "PetLab Analyzer",
+      "geo": "Northeast",
+      "month": "2025-07",
+      "detail": "drop x0.09 (289676 -> 25255)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "nielsen_scanner",
+      "brand": "Apoquel",
+      "geo": "Midwest",
+      "month": "2024-04",
+      "detail": "drop x0.12 (632313 -> 75418)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "stackline_ecommerce",
+      "brand": "PetLab Analyzer",
+      "geo": "Northeast",
+      "month": "2025-01",
+      "detail": "drop x0.12 (255756 -> 30601)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "nielsen_scanner",
+      "brand": "RapidVet Dx",
+      "geo": "Northeast",
+      "month": "2024-08",
+      "detail": "spike x4.27 (124619 -> 531707)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "ciq_ecommerce",
+      "brand": "Apoquel",
+      "geo": "Midwest",
+      "month": "2026-02",
+      "detail": "spike x4.49 (1186275 -> 5324540)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "ciq_ecommerce",
+      "brand": "VetSelect Core Vax",
+      "geo": "West",
+      "month": "2024-04",
+      "detail": "drop x0.06 (162522 -> 9297)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "nielsen_scanner",
+      "brand": "VetSelect Dx",
+      "geo": "Northeast",
+      "month": "2025-03",
+      "detail": "drop x0.23 (221012 -> 51646)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "nielsen_scanner",
+      "brand": "VectraGuard",
+      "geo": "Midwest",
+      "month": "2025-05",
+      "detail": "drop x0.19 (2210913 -> 410138)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "nielsen_scanner",
+      "brand": "OsteoEase Vet",
+      "geo": "West",
+      "month": "2025-09",
+      "detail": "spike x5.94 (161302 -> 958927)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "ciq_ecommerce",
+      "brand": "PetLab Analyzer",
+      "geo": "Midwest",
+      "month": "2025-11",
+      "detail": "spike x5.34 (278276 -> 1485914)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "nielsen_scanner",
+      "brand": "PetLab Analyzer",
+      "geo": "Midwest",
+      "month": "2025-07",
+      "detail": "drop x0.17 (64917 -> 10878)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "zoetis_vet_internal",
+      "brand": "Apoquel",
+      "geo": "Midwest",
+      "month": "2024-09",
+      "detail": "drop x0.18 (4643369 -> 830554)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "ciq_ecommerce",
+      "brand": "Librela",
+      "geo": "Northeast",
+      "month": "2025-11",
+      "detail": "drop x0.08 (527904 -> 40693)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "ciq_ecommerce",
+      "brand": "VetSelect Flea & Tick",
+      "geo": "West",
+      "month": "2025-12",
+      "detail": "drop x0.07 (679009 -> 48325)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "stackline_ecommerce",
+      "brand": "ImmunoCore Canine",
+      "geo": "West",
+      "month": "2025-09",
+      "detail": "drop x0.20 (460599 -> 91223)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "nielsen_scanner",
+      "brand": "Librela",
+      "geo": "Midwest",
+      "month": "2024-09",
+      "detail": "spike x3.99 (142877 -> 570000)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "zoetis_vet_internal",
+      "brand": "SkinRelief Pro",
+      "geo": "South",
+      "month": "2025-05",
+      "detail": "drop x0.24 (2896644 -> 681040)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "nielsen_scanner",
+      "brand": "ImmunoCore Canine",
+      "geo": "Midwest",
+      "month": "2026-02",
+      "detail": "spike x6.15 (164319 -> 1009959)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "zoetis_vet_internal",
+      "brand": "FleaStop Pro",
+      "geo": "Northeast",
+      "month": "2024-06",
+      "detail": "spike x6.16 (1559876 -> 9607825)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "zoetis_vet_internal",
+      "brand": "Vanguard",
+      "geo": "Midwest",
+      "month": "2024-07",
+      "detail": "spike x3.94 (3035413 -> 11949763)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "zoetis_vet_internal",
+      "brand": "FlexiCare Joint",
+      "geo": "Midwest",
+      "month": "2025-11",
+      "detail": "spike x4.91 (1691230 -> 8302017)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "drop",
+      "source": "nielsen_scanner",
+      "brand": "SkinRelief Pro",
+      "geo": "West",
+      "month": "2025-07",
+      "detail": "drop x0.12 (406944 -> 50222)"
+    },
+    {
+      "type": "outlier",
+      "subtype": "spike",
+      "source": "stackline_ecommerce",
+      "brand": "DermaCalm",
+      "geo": "Midwest",
+      "month": "2025-01",
+      "detail": "spike x5.92 (630521 -> 3735822)"
+    },
+    {
+      "type": "unmapped_sku",
+      "source": "stackline_ecommerce",
+      "sku_raw": "TEMP-SKU-0091",
+      "geo": "Northeast",
+      "month": "2024-10",
+      "detail": "SKU string not present in dim_sku_variants"
+    },
+    {
+      "type": "unmapped_sku",
+      "source": "ciq_ecommerce",
+      "sku_raw": "UNKNOWN_LISTING_4471",
+      "geo": "Northeast",
+      "month": "2024-04",
+      "detail": "SKU string not present in dim_sku_variants"
+    },
+    {
+      "type": "unmapped_sku",
+      "source": "nielsen_scanner",
+      "sku_raw": "PRIVATE LABEL UNSPEC",
+      "geo": "Northeast",
+      "month": "2024-04",
+      "detail": "SKU string not present in dim_sku_variants"
+    },
+    {
+      "type": "unmapped_sku",
+      "source": "stackline_ecommerce",
+      "sku_raw": "promo-bundle-xx",
+      "geo": "Northeast",
+      "month": "2024-10",
+      "detail": "SKU string not present in dim_sku_variants"
+    },
+    {
+      "type": "hierarchy_mismatch",
+      "source": "nielsen_scanner",
+      "brand": "DermaCalm",
+      "month": "2024-09",
+      "detail": "National inflated 25% vs region sum (2396309 -> 2995386)"
+    },
+    {
+      "type": "hierarchy_mismatch",
+      "source": "zoetis_vet_internal",
+      "brand": "PainAway Canine",
+      "month": "2025-04",
+      "detail": "National inflated 25% vs region sum (5623562 -> 7029452)"
+    },
+    {
+      "type": "missing_row",
+      "source": "nielsen_scanner",
+      "brand": "RapidVet Dx",
+      "sku_raw": "RAPIDVET DX SMALL",
+      "geo": "South",
+      "month": "2026-02",
+      "detail": "row removed from feed"
+    },
+    {
+      "type": "missing_row",
+      "source": "zoetis_vet_internal",
+      "brand": "RapidVet Dx",
+      "sku_raw": "DIA-RAPIDVET-D-S",
+      "geo": "Northeast",
+      "month": "2025-06",
+      "detail": "row removed from feed"
+    },
+    {
+      "type": "missing_row",
+      "source": "zoetis_vet_internal",
+      "brand": "FlexiCare Joint",
+      "sku_raw": "PAN-FLEXICARE--L",
+      "geo": "South",
+      "month": "2024-11",
+      "detail": "row removed from feed"
+    },
+    {
+      "type": "missing_row",
+      "source": "stackline_ecommerce",
+      "brand": "VetSelect Joint",
+      "sku_raw": "vetselect_joint-l",
+      "geo": "South",
+      "month": "2024-10",
+      "detail": "row removed from feed"
+    },
+    {
+      "type": "missing_row",
+      "source": "ciq_ecommerce",
+      "brand": "TickShield Plus",
+      "sku_raw": "TICKSHIELD-PLUS_S",
+      "geo": "South",
+      "month": "2026-02",
+      "detail": "row removed from feed"
+    },
+    {
+      "type": "missing_row",
+      "source": "stackline_ecommerce",
+      "brand": "VectraGuard",
+      "sku_raw": "vectraguard-l",
+      "geo": "West",
+      "month": "2025-07",
+      "detail": "row removed from feed"
+    },
+    {
+      "type": "control_total_off",
+      "month": "2025-03",
+      "category": "Parasiticides",
+      "channel": "Veterinary",
+      "detail": "control total moved (41833763 -> 35558699)"
+    },
+    {
+      "type": "control_total_off",
+      "month": "2024-06",
+      "category": "Parasiticides",
+      "channel": "E-commerce",
+      "detail": "control total moved (28537918 -> 24257231)"
+    }
+  ]
+}

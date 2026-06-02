@@ -1,0 +1,201 @@
+source,sku_raw,sku_canonical,brand
+ciq_ecommerce,SIMPARICA-TRIO_S,PAR-SIMPARICA--S,Simparica Trio
+stackline_ecommerce,simparica_trio-s,PAR-SIMPARICA--S,Simparica Trio
+nielsen_scanner,SIMPARICA TRIO SMALL,PAR-SIMPARICA--S,Simparica Trio
+zoetis_vet_internal,PAR-SIMPARICA--S,PAR-SIMPARICA--S,Simparica Trio
+ciq_ecommerce,SIMPARICA-TRIO_L,PAR-SIMPARICA--L,Simparica Trio
+stackline_ecommerce,simparica_trio-l,PAR-SIMPARICA--L,Simparica Trio
+nielsen_scanner,SIMPARICA TRIO LARGE,PAR-SIMPARICA--L,Simparica Trio
+zoetis_vet_internal,PAR-SIMPARICA--L,PAR-SIMPARICA--L,Simparica Trio
+ciq_ecommerce,VECTRAGUARD_S,PAR-VECTRAGUAR-S,VectraGuard
+stackline_ecommerce,vectraguard-s,PAR-VECTRAGUAR-S,VectraGuard
+nielsen_scanner,VECTRAGUARD SMALL,PAR-VECTRAGUAR-S,VectraGuard
+zoetis_vet_internal,PAR-VECTRAGUAR-S,PAR-VECTRAGUAR-S,VectraGuard
+ciq_ecommerce,VECTRAGUARD_L,PAR-VECTRAGUAR-L,VectraGuard
+stackline_ecommerce,vectraguard-l,PAR-VECTRAGUAR-L,VectraGuard
+nielsen_scanner,VECTRAGUARD LARGE,PAR-VECTRAGUAR-L,VectraGuard
+zoetis_vet_internal,PAR-VECTRAGUAR-L,PAR-VECTRAGUAR-L,VectraGuard
+ciq_ecommerce,TICKSHIELD-PLUS_S,PAR-TICKSHIELD-S,TickShield Plus
+stackline_ecommerce,tickshield_plus-s,PAR-TICKSHIELD-S,TickShield Plus
+nielsen_scanner,TICKSHIELD PLUS SMALL,PAR-TICKSHIELD-S,TickShield Plus
+zoetis_vet_internal,PAR-TICKSHIELD-S,PAR-TICKSHIELD-S,TickShield Plus
+ciq_ecommerce,TICKSHIELD-PLUS_L,PAR-TICKSHIELD-L,TickShield Plus
+stackline_ecommerce,tickshield_plus-l,PAR-TICKSHIELD-L,TickShield Plus
+nielsen_scanner,TICKSHIELD PLUS LARGE,PAR-TICKSHIELD-L,TickShield Plus
+zoetis_vet_internal,PAR-TICKSHIELD-L,PAR-TICKSHIELD-L,TickShield Plus
+ciq_ecommerce,FLEASTOP-PRO_S,PAR-FLEASTOP-P-S,FleaStop Pro
+stackline_ecommerce,fleastop_pro-s,PAR-FLEASTOP-P-S,FleaStop Pro
+nielsen_scanner,FLEASTOP PRO SMALL,PAR-FLEASTOP-P-S,FleaStop Pro
+zoetis_vet_internal,PAR-FLEASTOP-P-S,PAR-FLEASTOP-P-S,FleaStop Pro
+ciq_ecommerce,FLEASTOP-PRO_L,PAR-FLEASTOP-P-L,FleaStop Pro
+stackline_ecommerce,fleastop_pro-l,PAR-FLEASTOP-P-L,FleaStop Pro
+nielsen_scanner,FLEASTOP PRO LARGE,PAR-FLEASTOP-P-L,FleaStop Pro
+zoetis_vet_internal,PAR-FLEASTOP-P-L,PAR-FLEASTOP-P-L,FleaStop Pro
+ciq_ecommerce,VETSELECT-FLEA-TICK_S,PAR-VETSELECT--S,VetSelect Flea & Tick
+stackline_ecommerce,vetselect_flea_and_tick-s,PAR-VETSELECT--S,VetSelect Flea & Tick
+nielsen_scanner,VETSELECT FLEA & TICK SMALL,PAR-VETSELECT--S,VetSelect Flea & Tick
+zoetis_vet_internal,PAR-VETSELECT--S,PAR-VETSELECT--S,VetSelect Flea & Tick
+ciq_ecommerce,VETSELECT-FLEA-TICK_L,PAR-VETSELECT--L,VetSelect Flea & Tick
+stackline_ecommerce,vetselect_flea_and_tick-l,PAR-VETSELECT--L,VetSelect Flea & Tick
+nielsen_scanner,VETSELECT FLEA & TICK LARGE,PAR-VETSELECT--L,VetSelect Flea & Tick
+zoetis_vet_internal,PAR-VETSELECT--L,PAR-VETSELECT--L,VetSelect Flea & Tick
+ciq_ecommerce,VANGUARD_S,VAC-VANGUARD-S,Vanguard
+stackline_ecommerce,vanguard-s,VAC-VANGUARD-S,Vanguard
+nielsen_scanner,VANGUARD SMALL,VAC-VANGUARD-S,Vanguard
+zoetis_vet_internal,VAC-VANGUARD-S,VAC-VANGUARD-S,Vanguard
+ciq_ecommerce,VANGUARD_L,VAC-VANGUARD-L,Vanguard
+stackline_ecommerce,vanguard-l,VAC-VANGUARD-L,Vanguard
+nielsen_scanner,VANGUARD LARGE,VAC-VANGUARD-L,Vanguard
+zoetis_vet_internal,VAC-VANGUARD-L,VAC-VANGUARD-L,Vanguard
+ciq_ecommerce,IMMUNOCORE-CANINE_S,VAC-IMMUNOCORE-S,ImmunoCore Canine
+stackline_ecommerce,immunocore_canine-s,VAC-IMMUNOCORE-S,ImmunoCore Canine
+nielsen_scanner,IMMUNOCORE CANINE SMALL,VAC-IMMUNOCORE-S,ImmunoCore Canine
+zoetis_vet_internal,VAC-IMMUNOCORE-S,VAC-IMMUNOCORE-S,ImmunoCore Canine
+ciq_ecommerce,IMMUNOCORE-CANINE_L,VAC-IMMUNOCORE-L,ImmunoCore Canine
+stackline_ecommerce,immunocore_canine-l,VAC-IMMUNOCORE-L,ImmunoCore Canine
+nielsen_scanner,IMMUNOCORE CANINE LARGE,VAC-IMMUNOCORE-L,ImmunoCore Canine
+zoetis_vet_internal,VAC-IMMUNOCORE-L,VAC-IMMUNOCORE-L,ImmunoCore Canine
+ciq_ecommerce,BIOSHIELD-VAX_S,VAC-BIOSHIELD--S,BioShield Vax
+stackline_ecommerce,bioshield_vax-s,VAC-BIOSHIELD--S,BioShield Vax
+nielsen_scanner,BIOSHIELD VAX SMALL,VAC-BIOSHIELD--S,BioShield Vax
+zoetis_vet_internal,VAC-BIOSHIELD--S,VAC-BIOSHIELD--S,BioShield Vax
+ciq_ecommerce,BIOSHIELD-VAX_L,VAC-BIOSHIELD--L,BioShield Vax
+stackline_ecommerce,bioshield_vax-l,VAC-BIOSHIELD--L,BioShield Vax
+nielsen_scanner,BIOSHIELD VAX LARGE,VAC-BIOSHIELD--L,BioShield Vax
+zoetis_vet_internal,VAC-BIOSHIELD--L,VAC-BIOSHIELD--L,BioShield Vax
+ciq_ecommerce,VETGUARD-IMMUNIZE_S,VAC-VETGUARD-I-S,VetGuard Immunize
+stackline_ecommerce,vetguard_immunize-s,VAC-VETGUARD-I-S,VetGuard Immunize
+nielsen_scanner,VETGUARD IMMUNIZE SMALL,VAC-VETGUARD-I-S,VetGuard Immunize
+zoetis_vet_internal,VAC-VETGUARD-I-S,VAC-VETGUARD-I-S,VetGuard Immunize
+ciq_ecommerce,VETGUARD-IMMUNIZE_L,VAC-VETGUARD-I-L,VetGuard Immunize
+stackline_ecommerce,vetguard_immunize-l,VAC-VETGUARD-I-L,VetGuard Immunize
+nielsen_scanner,VETGUARD IMMUNIZE LARGE,VAC-VETGUARD-I-L,VetGuard Immunize
+zoetis_vet_internal,VAC-VETGUARD-I-L,VAC-VETGUARD-I-L,VetGuard Immunize
+ciq_ecommerce,VETSELECT-CORE-VAX_S,VAC-VETSELECT--S,VetSelect Core Vax
+stackline_ecommerce,vetselect_core_vax-s,VAC-VETSELECT--S,VetSelect Core Vax
+nielsen_scanner,VETSELECT CORE VAX SMALL,VAC-VETSELECT--S,VetSelect Core Vax
+zoetis_vet_internal,VAC-VETSELECT--S,VAC-VETSELECT--S,VetSelect Core Vax
+ciq_ecommerce,VETSELECT-CORE-VAX_L,VAC-VETSELECT--L,VetSelect Core Vax
+stackline_ecommerce,vetselect_core_vax-l,VAC-VETSELECT--L,VetSelect Core Vax
+nielsen_scanner,VETSELECT CORE VAX LARGE,VAC-VETSELECT--L,VetSelect Core Vax
+zoetis_vet_internal,VAC-VETSELECT--L,VAC-VETSELECT--L,VetSelect Core Vax
+ciq_ecommerce,APOQUEL_S,DRM-APOQUEL-S,Apoquel
+stackline_ecommerce,apoquel-s,DRM-APOQUEL-S,Apoquel
+nielsen_scanner,APOQUEL SMALL,DRM-APOQUEL-S,Apoquel
+zoetis_vet_internal,DRM-APOQUEL-S,DRM-APOQUEL-S,Apoquel
+ciq_ecommerce,APOQUEL_L,DRM-APOQUEL-L,Apoquel
+stackline_ecommerce,apoquel-l,DRM-APOQUEL-L,Apoquel
+nielsen_scanner,APOQUEL LARGE,DRM-APOQUEL-L,Apoquel
+zoetis_vet_internal,DRM-APOQUEL-L,DRM-APOQUEL-L,Apoquel
+ciq_ecommerce,DERMACALM_S,DRM-DERMACALM-S,DermaCalm
+stackline_ecommerce,dermacalm-s,DRM-DERMACALM-S,DermaCalm
+nielsen_scanner,DERMACALM SMALL,DRM-DERMACALM-S,DermaCalm
+zoetis_vet_internal,DRM-DERMACALM-S,DRM-DERMACALM-S,DermaCalm
+ciq_ecommerce,DERMACALM_L,DRM-DERMACALM-L,DermaCalm
+stackline_ecommerce,dermacalm-l,DRM-DERMACALM-L,DermaCalm
+nielsen_scanner,DERMACALM LARGE,DRM-DERMACALM-L,DermaCalm
+zoetis_vet_internal,DRM-DERMACALM-L,DRM-DERMACALM-L,DermaCalm
+ciq_ecommerce,ALLERVET-RX_S,DRM-ALLERVET-R-S,AllerVet RX
+stackline_ecommerce,allervet_rx-s,DRM-ALLERVET-R-S,AllerVet RX
+nielsen_scanner,ALLERVET RX SMALL,DRM-ALLERVET-R-S,AllerVet RX
+zoetis_vet_internal,DRM-ALLERVET-R-S,DRM-ALLERVET-R-S,AllerVet RX
+ciq_ecommerce,ALLERVET-RX_L,DRM-ALLERVET-R-L,AllerVet RX
+stackline_ecommerce,allervet_rx-l,DRM-ALLERVET-R-L,AllerVet RX
+nielsen_scanner,ALLERVET RX LARGE,DRM-ALLERVET-R-L,AllerVet RX
+zoetis_vet_internal,DRM-ALLERVET-R-L,DRM-ALLERVET-R-L,AllerVet RX
+ciq_ecommerce,SKINRELIEF-PRO_S,DRM-SKINRELIEF-S,SkinRelief Pro
+stackline_ecommerce,skinrelief_pro-s,DRM-SKINRELIEF-S,SkinRelief Pro
+nielsen_scanner,SKINRELIEF PRO SMALL,DRM-SKINRELIEF-S,SkinRelief Pro
+zoetis_vet_internal,DRM-SKINRELIEF-S,DRM-SKINRELIEF-S,SkinRelief Pro
+ciq_ecommerce,SKINRELIEF-PRO_L,DRM-SKINRELIEF-L,SkinRelief Pro
+stackline_ecommerce,skinrelief_pro-l,DRM-SKINRELIEF-L,SkinRelief Pro
+nielsen_scanner,SKINRELIEF PRO LARGE,DRM-SKINRELIEF-L,SkinRelief Pro
+zoetis_vet_internal,DRM-SKINRELIEF-L,DRM-SKINRELIEF-L,SkinRelief Pro
+ciq_ecommerce,VETSELECT-DERMA_S,DRM-VETSELECT--S,VetSelect Derma
+stackline_ecommerce,vetselect_derma-s,DRM-VETSELECT--S,VetSelect Derma
+nielsen_scanner,VETSELECT DERMA SMALL,DRM-VETSELECT--S,VetSelect Derma
+zoetis_vet_internal,DRM-VETSELECT--S,DRM-VETSELECT--S,VetSelect Derma
+ciq_ecommerce,VETSELECT-DERMA_L,DRM-VETSELECT--L,VetSelect Derma
+stackline_ecommerce,vetselect_derma-l,DRM-VETSELECT--L,VetSelect Derma
+nielsen_scanner,VETSELECT DERMA LARGE,DRM-VETSELECT--L,VetSelect Derma
+zoetis_vet_internal,DRM-VETSELECT--L,DRM-VETSELECT--L,VetSelect Derma
+ciq_ecommerce,LIBRELA_S,PAN-LIBRELA-S,Librela
+stackline_ecommerce,librela-s,PAN-LIBRELA-S,Librela
+nielsen_scanner,LIBRELA SMALL,PAN-LIBRELA-S,Librela
+zoetis_vet_internal,PAN-LIBRELA-S,PAN-LIBRELA-S,Librela
+ciq_ecommerce,LIBRELA_L,PAN-LIBRELA-L,Librela
+stackline_ecommerce,librela-l,PAN-LIBRELA-L,Librela
+nielsen_scanner,LIBRELA LARGE,PAN-LIBRELA-L,Librela
+zoetis_vet_internal,PAN-LIBRELA-L,PAN-LIBRELA-L,Librela
+ciq_ecommerce,FLEXICARE-JOINT_S,PAN-FLEXICARE--S,FlexiCare Joint
+stackline_ecommerce,flexicare_joint-s,PAN-FLEXICARE--S,FlexiCare Joint
+nielsen_scanner,FLEXICARE JOINT SMALL,PAN-FLEXICARE--S,FlexiCare Joint
+zoetis_vet_internal,PAN-FLEXICARE--S,PAN-FLEXICARE--S,FlexiCare Joint
+ciq_ecommerce,FLEXICARE-JOINT_L,PAN-FLEXICARE--L,FlexiCare Joint
+stackline_ecommerce,flexicare_joint-l,PAN-FLEXICARE--L,FlexiCare Joint
+nielsen_scanner,FLEXICARE JOINT LARGE,PAN-FLEXICARE--L,FlexiCare Joint
+zoetis_vet_internal,PAN-FLEXICARE--L,PAN-FLEXICARE--L,FlexiCare Joint
+ciq_ecommerce,OSTEOEASE-VET_S,PAN-OSTEOEASE--S,OsteoEase Vet
+stackline_ecommerce,osteoease_vet-s,PAN-OSTEOEASE--S,OsteoEase Vet
+nielsen_scanner,OSTEOEASE VET SMALL,PAN-OSTEOEASE--S,OsteoEase Vet
+zoetis_vet_internal,PAN-OSTEOEASE--S,PAN-OSTEOEASE--S,OsteoEase Vet
+ciq_ecommerce,OSTEOEASE-VET_L,PAN-OSTEOEASE--L,OsteoEase Vet
+stackline_ecommerce,osteoease_vet-l,PAN-OSTEOEASE--L,OsteoEase Vet
+nielsen_scanner,OSTEOEASE VET LARGE,PAN-OSTEOEASE--L,OsteoEase Vet
+zoetis_vet_internal,PAN-OSTEOEASE--L,PAN-OSTEOEASE--L,OsteoEase Vet
+ciq_ecommerce,PAINAWAY-CANINE_S,PAN-PAINAWAY-C-S,PainAway Canine
+stackline_ecommerce,painaway_canine-s,PAN-PAINAWAY-C-S,PainAway Canine
+nielsen_scanner,PAINAWAY CANINE SMALL,PAN-PAINAWAY-C-S,PainAway Canine
+zoetis_vet_internal,PAN-PAINAWAY-C-S,PAN-PAINAWAY-C-S,PainAway Canine
+ciq_ecommerce,PAINAWAY-CANINE_L,PAN-PAINAWAY-C-L,PainAway Canine
+stackline_ecommerce,painaway_canine-l,PAN-PAINAWAY-C-L,PainAway Canine
+nielsen_scanner,PAINAWAY CANINE LARGE,PAN-PAINAWAY-C-L,PainAway Canine
+zoetis_vet_internal,PAN-PAINAWAY-C-L,PAN-PAINAWAY-C-L,PainAway Canine
+ciq_ecommerce,VETSELECT-JOINT_S,PAN-VETSELECT--S,VetSelect Joint
+stackline_ecommerce,vetselect_joint-s,PAN-VETSELECT--S,VetSelect Joint
+nielsen_scanner,VETSELECT JOINT SMALL,PAN-VETSELECT--S,VetSelect Joint
+zoetis_vet_internal,PAN-VETSELECT--S,PAN-VETSELECT--S,VetSelect Joint
+ciq_ecommerce,VETSELECT-JOINT_L,PAN-VETSELECT--L,VetSelect Joint
+stackline_ecommerce,vetselect_joint-l,PAN-VETSELECT--L,VetSelect Joint
+nielsen_scanner,VETSELECT JOINT LARGE,PAN-VETSELECT--L,VetSelect Joint
+zoetis_vet_internal,PAN-VETSELECT--L,PAN-VETSELECT--L,VetSelect Joint
+ciq_ecommerce,VETSCAN_S,DIA-VETSCAN-S,Vetscan
+stackline_ecommerce,vetscan-s,DIA-VETSCAN-S,Vetscan
+nielsen_scanner,VETSCAN SMALL,DIA-VETSCAN-S,Vetscan
+zoetis_vet_internal,DIA-VETSCAN-S,DIA-VETSCAN-S,Vetscan
+ciq_ecommerce,VETSCAN_L,DIA-VETSCAN-L,Vetscan
+stackline_ecommerce,vetscan-l,DIA-VETSCAN-L,Vetscan
+nielsen_scanner,VETSCAN LARGE,DIA-VETSCAN-L,Vetscan
+zoetis_vet_internal,DIA-VETSCAN-L,DIA-VETSCAN-L,Vetscan
+ciq_ecommerce,DIAGNOSTECH-VET_S,DIA-DIAGNOSTEC-S,DiagnosTech Vet
+stackline_ecommerce,diagnostech_vet-s,DIA-DIAGNOSTEC-S,DiagnosTech Vet
+nielsen_scanner,DIAGNOSTECH VET SMALL,DIA-DIAGNOSTEC-S,DiagnosTech Vet
+zoetis_vet_internal,DIA-DIAGNOSTEC-S,DIA-DIAGNOSTEC-S,DiagnosTech Vet
+ciq_ecommerce,DIAGNOSTECH-VET_L,DIA-DIAGNOSTEC-L,DiagnosTech Vet
+stackline_ecommerce,diagnostech_vet-l,DIA-DIAGNOSTEC-L,DiagnosTech Vet
+nielsen_scanner,DIAGNOSTECH VET LARGE,DIA-DIAGNOSTEC-L,DiagnosTech Vet
+zoetis_vet_internal,DIA-DIAGNOSTEC-L,DIA-DIAGNOSTEC-L,DiagnosTech Vet
+ciq_ecommerce,RAPIDVET-DX_S,DIA-RAPIDVET-D-S,RapidVet Dx
+stackline_ecommerce,rapidvet_dx-s,DIA-RAPIDVET-D-S,RapidVet Dx
+nielsen_scanner,RAPIDVET DX SMALL,DIA-RAPIDVET-D-S,RapidVet Dx
+zoetis_vet_internal,DIA-RAPIDVET-D-S,DIA-RAPIDVET-D-S,RapidVet Dx
+ciq_ecommerce,RAPIDVET-DX_L,DIA-RAPIDVET-D-L,RapidVet Dx
+stackline_ecommerce,rapidvet_dx-l,DIA-RAPIDVET-D-L,RapidVet Dx
+nielsen_scanner,RAPIDVET DX LARGE,DIA-RAPIDVET-D-L,RapidVet Dx
+zoetis_vet_internal,DIA-RAPIDVET-D-L,DIA-RAPIDVET-D-L,RapidVet Dx
+ciq_ecommerce,PETLAB-ANALYZER_S,DIA-PETLAB-ANA-S,PetLab Analyzer
+stackline_ecommerce,petlab_analyzer-s,DIA-PETLAB-ANA-S,PetLab Analyzer
+nielsen_scanner,PETLAB ANALYZER SMALL,DIA-PETLAB-ANA-S,PetLab Analyzer
+zoetis_vet_internal,DIA-PETLAB-ANA-S,DIA-PETLAB-ANA-S,PetLab Analyzer
+ciq_ecommerce,PETLAB-ANALYZER_L,DIA-PETLAB-ANA-L,PetLab Analyzer
+stackline_ecommerce,petlab_analyzer-l,DIA-PETLAB-ANA-L,PetLab Analyzer
+nielsen_scanner,PETLAB ANALYZER LARGE,DIA-PETLAB-ANA-L,PetLab Analyzer
+zoetis_vet_internal,DIA-PETLAB-ANA-L,DIA-PETLAB-ANA-L,PetLab Analyzer
+ciq_ecommerce,VETSELECT-DX_S,DIA-VETSELECT--S,VetSelect Dx
+stackline_ecommerce,vetselect_dx-s,DIA-VETSELECT--S,VetSelect Dx
+nielsen_scanner,VETSELECT DX SMALL,DIA-VETSELECT--S,VetSelect Dx
+zoetis_vet_internal,DIA-VETSELECT--S,DIA-VETSELECT--S,VetSelect Dx
+ciq_ecommerce,VETSELECT-DX_L,DIA-VETSELECT--L,VetSelect Dx
+stackline_ecommerce,vetselect_dx-l,DIA-VETSELECT--L,VetSelect Dx
+nielsen_scanner,VETSELECT DX LARGE,DIA-VETSELECT--L,VetSelect Dx
+zoetis_vet_internal,DIA-VETSELECT--L,DIA-VETSELECT--L,VetSelect Dx

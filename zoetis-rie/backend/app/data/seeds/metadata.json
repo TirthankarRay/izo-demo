@@ -1,0 +1,298 @@
+{
+  "generated_at": "2026-06-02",
+  "seed": 42,
+  "randomized": false,
+  "n_months": 24,
+  "window": {
+    "start": "2024-04",
+    "end": "2026-03"
+  },
+  "channels": [
+    "Veterinary",
+    "Retail",
+    "E-commerce"
+  ],
+  "categories": [
+    "Parasiticides",
+    "Vaccines",
+    "Dermatology",
+    "Pain/Osteoarthritis",
+    "Petcare Diagnostics"
+  ],
+  "months": [
+    {
+      "month": "2024-04",
+      "year": 2024,
+      "month_num": 4,
+      "quarter": "2024-Q2"
+    },
+    {
+      "month": "2024-05",
+      "year": 2024,
+      "month_num": 5,
+      "quarter": "2024-Q2"
+    },
+    {
+      "month": "2024-06",
+      "year": 2024,
+      "month_num": 6,
+      "quarter": "2024-Q2"
+    },
+    {
+      "month": "2024-07",
+      "year": 2024,
+      "month_num": 7,
+      "quarter": "2024-Q3"
+    },
+    {
+      "month": "2024-08",
+      "year": 2024,
+      "month_num": 8,
+      "quarter": "2024-Q3"
+    },
+    {
+      "month": "2024-09",
+      "year": 2024,
+      "month_num": 9,
+      "quarter": "2024-Q3"
+    },
+    {
+      "month": "2024-10",
+      "year": 2024,
+      "month_num": 10,
+      "quarter": "2024-Q4"
+    },
+    {
+      "month": "2024-11",
+      "year": 2024,
+      "month_num": 11,
+      "quarter": "2024-Q4"
+    },
+    {
+      "month": "2024-12",
+      "year": 2024,
+      "month_num": 12,
+      "quarter": "2024-Q4"
+    },
+    {
+      "month": "2025-01",
+      "year": 2025,
+      "month_num": 1,
+      "quarter": "2025-Q1"
+    },
+    {
+      "month": "2025-02",
+      "year": 2025,
+      "month_num": 2,
+      "quarter": "2025-Q1"
+    },
+    {
+      "month": "2025-03",
+      "year": 2025,
+      "month_num": 3,
+      "quarter": "2025-Q1"
+    },
+    {
+      "month": "2025-04",
+      "year": 2025,
+      "month_num": 4,
+      "quarter": "2025-Q2"
+    },
+    {
+      "month": "2025-05",
+      "year": 2025,
+      "month_num": 5,
+      "quarter": "2025-Q2"
+    },
+    {
+      "month": "2025-06",
+      "year": 2025,
+      "month_num": 6,
+      "quarter": "2025-Q2"
+    },
+    {
+      "month": "2025-07",
+      "year": 2025,
+      "month_num": 7,
+      "quarter": "2025-Q3"
+    },
+    {
+      "month": "2025-08",
+      "year": 2025,
+      "month_num": 8,
+      "quarter": "2025-Q3"
+    },
+    {
+      "month": "2025-09",
+      "year": 2025,
+      "month_num": 9,
+      "quarter": "2025-Q3"
+    },
+    {
+      "month": "2025-10",
+      "year": 2025,
+      "month_num": 10,
+      "quarter": "2025-Q4"
+    },
+    {
+      "month": "2025-11",
+      "year": 2025,
+      "month_num": 11,
+      "quarter": "2025-Q4"
+    },
+    {
+      "month": "2025-12",
+      "year": 2025,
+      "month_num": 12,
+      "quarter": "2025-Q4"
+    },
+    {
+      "month": "2026-01",
+      "year": 2026,
+      "month_num": 1,
+      "quarter": "2026-Q1"
+    },
+    {
+      "month": "2026-02",
+      "year": 2026,
+      "month_num": 2,
+      "quarter": "2026-Q1"
+    },
+    {
+      "month": "2026-03",
+      "year": 2026,
+      "month_num": 3,
+      "quarter": "2026-Q1"
+    }
+  ],
+  "quarters": [
+    "2024-Q2",
+    "2024-Q3",
+    "2024-Q4",
+    "2025-Q1",
+    "2025-Q2",
+    "2025-Q3",
+    "2025-Q4",
+    "2026-Q1"
+  ],
+  "geography": [
+    {
+      "geo": "National",
+      "geo_level": "National",
+      "parent": "",
+      "share_of_parent": 1.0
+    },
+    {
+      "geo": "Northeast",
+      "geo_level": "Region",
+      "parent": "National",
+      "share_of_parent": 0.22
+    },
+    {
+      "geo": "South",
+      "geo_level": "Region",
+      "parent": "National",
+      "share_of_parent": 0.34
+    },
+    {
+      "geo": "Midwest",
+      "geo_level": "Region",
+      "parent": "National",
+      "share_of_parent": 0.21
+    },
+    {
+      "geo": "West",
+      "geo_level": "Region",
+      "parent": "National",
+      "share_of_parent": 0.23
+    },
+    {
+      "geo": "New York",
+      "geo_level": "Metro",
+      "parent": "Northeast",
+      "share_of_parent": 0.46
+    },
+    {
+      "geo": "Chicago",
+      "geo_level": "Metro",
+      "parent": "Midwest",
+      "share_of_parent": 0.43
+    },
+    {
+      "geo": "Los Angeles",
+      "geo_level": "Metro",
+      "parent": "West",
+      "share_of_parent": 0.5
+    },
+    {
+      "geo": "Dallas-Fort Worth",
+      "geo_level": "Metro",
+      "parent": "South",
+      "share_of_parent": 0.28
+    },
+    {
+      "geo": "Atlanta",
+      "geo_level": "Metro",
+      "parent": "South",
+      "share_of_parent": 0.22
+    }
+  ],
+  "sources": {
+    "ciq_ecommerce": {
+      "channel": "E-commerce",
+      "coverage": 0.82,
+      "history": 24,
+      "label": "CIQ (e-commerce panel)",
+      "note": "E-commerce only, history-rich, ~82% coverage."
+    },
+    "stackline_ecommerce": {
+      "channel": "E-commerce",
+      "coverage": 0.88,
+      "history": 18,
+      "label": "Stackline (e-commerce)",
+      "note": "E-commerce only, SKU-granular, recent (18 mo), ~88% coverage."
+    },
+    "nielsen_scanner": {
+      "channel": "Retail",
+      "coverage": 0.91,
+      "history": 24,
+      "label": "Nielsen (retail scanner)",
+      "note": "Retail scanner (mass/grocery/drug/club), ~91% coverage."
+    },
+    "zoetis_vet_internal": {
+      "channel": "Veterinary",
+      "coverage": 0.96,
+      "history": 24,
+      "label": "Zoetis internal (vet)",
+      "note": "Veterinary internal feed, ~96% coverage."
+    }
+  },
+  "channel_sources": {
+    "Veterinary": [
+      "zoetis_vet_internal"
+    ],
+    "Retail": [
+      "nielsen_scanner"
+    ],
+    "E-commerce": [
+      "ciq_ecommerce",
+      "stackline_ecommerce"
+    ]
+  },
+  "n_brands": 25,
+  "n_skus": 50,
+  "source_row_counts": {
+    "ciq_ecommerce": 6000,
+    "stackline_ecommerce": 4500,
+    "nielsen_scanner": 6000,
+    "zoetis_vet_internal": 5998
+  },
+  "ground_truth_rows": 9000,
+  "issues_injected": {
+    "outlier": 30,
+    "unmapped_sku": 4,
+    "hierarchy_mismatch": 2,
+    "missing_row": 6,
+    "control_total_off": 2
+  }
+}

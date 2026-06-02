@@ -1,0 +1,11 @@
+geo,geo_level,parent,share_of_parent
+National,National,,1.0
+Northeast,Region,National,0.22
+South,Region,National,0.34
+Midwest,Region,National,0.21
+West,Region,National,0.23
+New York,Metro,Northeast,0.46
+Chicago,Metro,Midwest,0.43
+Los Angeles,Metro,West,0.5
+Dallas-Fort Worth,Metro,South,0.28
+Atlanta,Metro,South,0.22
