@@ -65,6 +65,33 @@ npm run dev        # http://localhost:5173
 
 ---
 
+## Deploy to Vercel
+
+The repo is Vercel-ready as a **single project**: the React app is served as a
+static site from the CDN, and the FastAPI backend runs as a Python serverless
+function at `/api/*` — same origin, so it behaves exactly like local (no CORS,
+no separate backend URL). Config lives in `vercel.json` + `api/index.py`.
+
+**Dashboard (recommended):**
+1. In Vercel, **Add New → Project** and import the GitHub repo.
+2. Set **Root Directory** to `zoetis-rie`.
+3. Deploy. `vercel.json` handles the build (`frontend` → static) and the Python
+   function (`api/index.py` → the FastAPI app, with the seed data bundled).
+   No environment variables are required.
+
+**CLI:**
+```bash
+cd zoetis-rie
+vercel          # preview deploy
+vercel --prod   # production deploy
+```
+
+Notes: the committed `--seed 42` dataset ships inside the function bundle
+(`includeFiles: backend/**`), so the API is fully self-contained and the
+read-only serverless filesystem is never written to.
+
+---
+
 ## Architecture
 
 ```
