@@ -1,0 +1,25 @@
+# One-command spin-up:  docker compose up --build
+# Then open http://localhost:5173  (API at http://localhost:8000, docs at /docs).
+#
+# Everything runs offline on synthetic data -- no external services, no secrets.
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health').status==200 else 1)"]
+      interval: 10s
+      timeout: 4s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # URL the *browser* uses to reach the backend (CORS is open for the demo)
+        VITE_API_BASE: "http://localhost:8000"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
