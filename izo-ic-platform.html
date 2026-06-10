@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Improzo iZO — IC &amp; SFE Intelligence Platform</title>
+<meta name="description" content="AI-native Incentive Compensation &amp; Sales Force Effectiveness platform demo — always-on IC health checks, pay-for-performance diagnostics, goal fairness, plan design simulation, dispute triage, and a conversational IC copilot. By Improzo.">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -1008,19 +1009,6 @@ const ScreenHeader=({title,sub,right})=>(
     <div><h2 style={{fontSize:21,fontWeight:800,color:C.heading,margin:0}}>{title}</h2>
     {sub&&<p style={{fontSize:12.5,color:C.muted,marginTop:4,maxWidth:760}}>{sub}</p>}</div>
     {right}
-  </div>
-);
-const StubScreen=({title,icon,desc,persona,data})=>(
-  <div style={{padding:28}}>
-    <ScreenHeader title={`${icon} ${title}`} sub={desc}/>
-    <SectionCard title="Screen under construction" sub="Skeleton checkpoint — live persona data is already wired">
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
-        <StatCard label="Persona" value={persona.name} sub={persona.type}/>
-        <StatCard label="Field size" value={persona.reps} sub={persona.roleLabel}/>
-        <StatCard label="Territories modeled" value={data.rows.length} sub="seeded, deterministic"/>
-        <StatCard label="P4P ρ" value={data.rho.toFixed(2)} sub={`health ${data.overall}/100`} color={data.rho>=.8?C.success:C.warn}/>
-      </div>
-    </SectionCard>
   </div>
 );
 /* ▓▓ END:UI ▓▓ */

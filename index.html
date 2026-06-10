@@ -3,16 +3,17 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Improzo iZO â Agentic Data Intelligence Platform</title>
+<title>Improzo iZO — Agentic Intelligence Platform</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0A5081 0%,#1E82BD 50%,#28426D 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px}
-.container{max-width:720px;width:100%;text-align:center}
+.container{max-width:1080px;width:100%;text-align:center}
 .logo{font-size:42px;font-weight:800;color:#fff;margin-bottom:6px;letter-spacing:-1px}
 .logo span{background:linear-gradient(135deg,#FF6B2B,#FF9F43);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .subtitle{font-size:15px;color:rgba(255,255,255,.7);margin-bottom:40px;line-height:1.6}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:32px}
+@media (max-width:900px){.cards{grid-template-columns:1fr}}
 .card{background:rgba(255,255,255,.95);border-radius:16px;padding:32px 28px;text-align:left;text-decoration:none;transition:all .25s;border:2px solid transparent;cursor:pointer;display:block}
 .card:hover{transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,.25);border-color:#1E82BD}
 .card-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:16px}
@@ -26,18 +27,24 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0A5081 0%
 <body>
 <div class="container">
   <div class="logo">improzo <span>iZO</span></div>
-  <div class="subtitle">Agentic Data Intelligence Platform â Novartis Demo<br/>Autonomous agents for pharma data quality, governance, MDM, analytics & observability</div>
+  <div class="subtitle">Agentic AI Platform for Pharma — Demo Suite<br/>Autonomous agents for data intelligence, incentive compensation &amp; sales force effectiveness</div>
   <div class="cards">
     <a class="card" href="izo-agents-demo.html">
-      <div class="card-icon" style="background:linear-gradient(135deg,#E8F4FD,#DBEAFE)">ð¤</div>
+      <div class="card-icon" style="background:linear-gradient(135deg,#E8F4FD,#DBEAFE)">🤖</div>
       <h3>iZO Platform Demo</h3>
       <p>Full interactive platform with Agent Registry, Orchestration View, HITL Operations, and the Agent Creator with AI-assisted setup. 5 pre-built Novartis agents.</p>
       <span class="badge" style="background:#E8F4FD;color:#1E82BD">INTERACTIVE DEMO</span>
     </a>
+    <a class="card" href="izo-ic-platform.html">
+      <div class="card-icon" style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5)">🎯</div>
+      <h3>IC &amp; SFE Intelligence</h3>
+      <p>AI-native Incentive Compensation platform: always-on IC health checks, pay-for-performance lab, goal fairness, plan design studio, dispute triage, and the Ask iZO copilot — across 5 pharma company personas.</p>
+      <span class="badge" style="background:#ECFDF5;color:#10B981">INTERACTIVE DEMO</span>
+    </a>
     <a class="card" href="dq-agent-deep-dive.html">
-      <div class="card-icon" style="background:linear-gradient(135deg,#FFF7ED,#FEF3C7)">ð</div>
+      <div class="card-icon" style="background:linear-gradient(135deg,#FFF7ED,#FEF3C7)">🔍</div>
       <h3>DQ Agent Deep Dive</h3>
-      <p>Technical deep dive into the Data Quality Agent internals â state machine, PLAN/TOOL USE/REFLECT/ACT code, API calls to Snowflake, Monte Carlo, Enkrypt AI, Collibra.</p>
+      <p>Technical deep dive into the Data Quality Agent internals — state machine, PLAN/TOOL USE/REFLECT/ACT code, API calls to Snowflake, Monte Carlo, Enkrypt AI, Collibra.</p>
       <span class="badge" style="background:#FFF7ED;color:#EA580C">TECHNICAL REFERENCE</span>
     </a>
   </div>
