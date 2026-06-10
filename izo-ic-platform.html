@@ -1025,6 +1025,9 @@ const NAV=[
   {group:"DESIGN",items:[{id:"studio",icon:"🧪",label:"Plan Design Studio"}]},
   {group:"EXECUTE",items:[{id:"pulse",icon:"💬",label:"Field Pulse & Disputes"}]},
   {group:"ASK iZO",items:[{id:"copilot",icon:"✨",label:"Ask iZO Copilot"}]},
+  {group:"PLATFORM",items:[
+    {id:"tokens",icon:"💠",label:"Token Usage"},
+    {id:"connectors",icon:"🔌",label:"Data Connectors"}]},
   {group:"GOVERN",items:[
     {id:"registry",icon:"🤖",label:"Agent Registry"},
     {id:"govern",icon:"🛡️",label:"Governance & Compliance"}]},
@@ -2472,6 +2475,362 @@ const Governance=({persona,data,onNav})=>{
 };
 /* ▓▓ END:SCREEN-GOVERN ▓▓ */
 
+/* ▓▓ SECTION:SCREEN-TOKENS ▓▓ */
+const fmtTok=(v)=>v>=1e9?(v/1e9).toFixed(2)+"B":v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?Math.round(v/1e3)+"K":""+Math.round(v);
+const MODEL_TIERS=[
+  {id:"light",label:"iZO Light",desc:"routing · classification · extraction",inRate:.25,outRate:1.25,color:"#5BA4CF"},
+  {id:"core",label:"iZO Core",desc:"analysis · triage · drafting",inRate:3,outRate:15,color:"#1E82BD"},
+  {id:"reasoner",label:"iZO Reasoner",desc:"deep diagnosis · plan simulation",inRate:15,outRate:75,color:"#28426D"},
+];
+/* per agent id: [tokens-per-flow (K), reasoner-tier share, HITL-gated flow share] — light/core split the rest 40/60 */
+const TOKEN_PROFILE={health:[52,.40,.18],p4p:[34,.25,.12],goal:[38,.35,.22],simulator:[61,.50,.30],auditor:[18,.10,.08],fairness:[29,.25,.40],inquiry:[11,.10,.16],territory:[26,.20,.25],sfecall:[9,.05,.05],launch:[31,.30,.20],comms:[7.5,.05,.50]};
+const FLOW_TRIGGERS={health:"Dimension rescore — goal fairness",p4p:"Post-calc ρ + outlier refresh",goal:"Quota restatement request",simulator:"Cap 250% scenario package",auditor:"Shadow recalc — full field",fairness:"Quarterly 80%-rule screen",inquiry:"Dispute triage (windfall appeal)",territory:"Workload rebalance proposal",sfecall:"Weekly effort digest",launch:"Week-9 ramp check",comms:"Plan-change FAQ draft"};
+const BLENDED_RATE=8; /* $ per 1M tokens, blended — used for per-flow ledger */
+const buildTokenData=(persona)=>{
+  const rng=mulberry32(hashStr("tokens-"+persona.id));
+  const scale=.55+persona.reps/900;                                  /* field size drives flow volume */
+  const rows=AGENTS.map(a=>{
+    const [tptK,reasonShare,hitlShare]=TOKEN_PROFILE[a.id];
+    const flows=Math.round(a.tasks*scale*(6.5+rng()*2));             /* month-to-date */
+    const hitlFlows=Math.round(flows*hitlShare);
+    const autoFlows=flows-hitlFlows;
+    const tpt=tptK*1000*(.92+rng()*.16);
+    const autoTok=autoFlows*tpt;
+    const hitlTok=hitlFlows*tpt*1.55;                                /* evidence packaging + revision loops */
+    const totalTok=autoTok+hitlTok;
+    const inTok=totalTok/1.26,outTok=totalTok-inTok;                 /* ~26% of traffic is model output */
+    const mix=[(1-reasonShare)*.4,(1-reasonShare)*.6,reasonShare];
+    const cost=mix.reduce((s,m,i)=>s+(inTok*m*MODEL_TIERS[i].inRate+outTok*m*MODEL_TIERS[i].outRate)/1e6,0);
+    const spark=Array.from({length:8},()=>Math.round(totalTok/8*(0.6+rng()*0.8)/1000));
+    return {a,flows,autoFlows,hitlFlows,autoTok,hitlTok,totalTok,inTok,outTok,mix,cost,hitlShare,spark};
+  });
+  const totalTok=rows.reduce((s,r)=>s+r.totalTok,0),totalCost=rows.reduce((s,r)=>s+r.cost,0);
+  const totalFlows=rows.reduce((s,r)=>s+r.flows,0),totalHitl=rows.reduce((s,r)=>s+r.hitlFlows,0);
+  const hitlTok=rows.reduce((s,r)=>s+r.hitlTok,0);
+  const phases=[["PLAN",.14],["TOOL USE",.38],["REFLECT",.31],["ACT",.17]].map(([p,w])=>({label:p,value:Math.round(totalTok*w*(0.92+rng()*.16)/1e6),color:PHASE_COLORS[p]}));
+  const tiers=MODEL_TIERS.map((t,i)=>({...t,tok:rows.reduce((s,r)=>s+r.totalTok*r.mix[i],0),cost:rows.reduce((s,r)=>s+(r.inTok*r.mix[i]*t.inRate+r.outTok*r.mix[i]*t.outRate)/1e6,0)}));
+  const daily=Array.from({length:14},(_,i)=>({x:i+1,y:Math.round(totalTok/14*(i===9?2.4:0.55+rng()*0.55)/1e6)}));
+  const cacheHit=.58+rng()*.18;
+  const cacheSaved=totalCost*cacheHit*.75;
+  const budget=Math.ceil(totalCost*1.38/100)*100;
+  const recent=Array.from({length:10},(_,i)=>{
+    const a=AGENTS[Math.floor(rng()*AGENTS.length)];const prof=TOKEN_PROFILE[a.id];
+    const hit=rng()<prof[2]+.18;const tok=prof[0]*1000*(hit?1.55:1)*(.8+rng()*.5);
+    return {id:"FLW-"+(8472-i*7-Math.floor(rng()*5)),a,trigger:FLOW_TRIGGERS[a.id],hitl:hit,tok,cost:tok/1e6*BLENDED_RATE,
+      dur:Math.round(1+rng()*8)+"m "+String(Math.round(rng()*59)).padStart(2,"0")+"s",
+      outcome:hit?(rng()>.4?"Approved by human":"Awaiting review"):"Completed autonomously"};
+  });
+  return {rows,totalTok,totalCost,totalFlows,totalHitl,hitlTok,phases,tiers,daily,cacheHit,cacheSaved,budget,recent};
+};
+const TokenUsage=({persona,data,onNav})=>{
+  const td=useMemo(()=>buildTokenData(persona),[persona]);
+  const [sort,setSort]=useState("tok");
+  const sorted=[...td.rows].sort((x,y)=>sort==="tok"?y.totalTok-x.totalTok:sort==="cost"?y.cost-x.cost:y.hitlShare-x.hitlShare);
+  const util=td.totalCost/td.budget*100;
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="💠 Token Usage & AI Spend" sub={"What every agentic flow at "+persona.name+" actually consumes — metered per agent, per phase, per model tier, with autonomous vs human-gated flows separated."}
+        right={<Badge variant={util<85?"success":"warning"}>{fmtPct(util,0)} of monthly AI budget</Badge>}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:14,marginBottom:18}}>
+        <StatCard icon="💠" label="Total Tokens MTD" value={fmtTok(td.totalTok)} sub={td.totalFlows.toLocaleString()+" agent flows"} delay={0}/>
+        <StatCard icon="💳" label="Est. AI Spend MTD" value={"$"+Math.round(td.totalCost).toLocaleString()} sub={"budget $"+td.budget.toLocaleString()} good={util<85} color={util<85?C.heading:C.warn} delay={.05}/>
+        <StatCard icon="⚖️" label="Avg Tokens / Flow" value={fmtTok(td.totalTok/td.totalFlows)} sub="across all 11 agents" delay={.1}/>
+        <StatCard icon="♻️" label="Prompt-Cache Savings" value={"$"+Math.round(td.cacheSaved).toLocaleString()} sub={fmtPct(td.cacheHit*100,0)+" cache hit rate"} color={C.success} delay={.15}/>
+        <StatCard icon="👤" label="HITL-Gated Flow Share" value={fmtPct(td.totalHitl/td.totalFlows*100,0)} sub={fmtTok(td.hitlTok)+" tokens ("+fmtPct(td.hitlTok/td.totalTok*100,0)+")"} color="#EA580C" delay={.2}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1.5fr 1fr",gap:18,marginBottom:18}}>
+        <SectionCard title="Tokens by Agentic Flow" sub="Month-to-date consumption per agent — sort to find the expensive reasoning"
+          right={<div style={{display:"flex",gap:6}}>{[["tok","tokens"],["cost","$ cost"],["hitl","% HITL"]].map(([k,l])=>(
+            <div key={k} onClick={()=>setSort(k)} style={{padding:"5px 12px",borderRadius:13,fontSize:10,fontWeight:700,cursor:"pointer",border:`1px solid ${sort===k?C.primary:C.border}`,background:sort===k?C.primaryBg:"#FAFBFC",color:sort===k?C.primary:C.muted}}>{l}</div>))}</div>} pad={14}>
+          <BarChart horizontal data={sorted.map(r=>({label:r.a.icon+" "+r.a.name.replace(" Agent",""),value:Math.round(r.totalTok/1e6),color:r.a.color,sub:"$"+Math.round(r.cost).toLocaleString()+" · "+r.flows.toLocaleString()+" flows · "+fmtPct(r.hitlShare*100,0)+" HITL"}))}
+            w={600} h={330} vFmt={v=>v+"M"}/>
+        </SectionCard>
+        <div style={{display:"grid",gap:14,alignContent:"start"}}>
+          <SectionCard title="Where Tokens Go — by Loop Phase" pad={14}>
+            <DonutChart segs={td.phases.map(p=>({label:p.label,value:p.value,color:p.color}))} size={138} centerLabel={fmtTok(td.totalTok)} centerSub="MTD"/>
+            <div style={{fontSize:10.5,color:C.muted,marginTop:8,lineHeight:1.5}}>TOOL USE and REFLECT dominate — querying Snowflake/Varicent and reasoning over evidence is where the model earns its keep.</div>
+          </SectionCard>
+          <SectionCard title="Model-Tier Mix" sub="Right-sized routing keeps the bill honest" pad={14}>
+            <div style={{display:"grid",gap:9}}>
+              {td.tiers.map(t=>(
+                <div key={t.id} style={{display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{width:9,height:9,borderRadius:3,background:t.color,flexShrink:0}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
+                      <span style={{fontWeight:700,color:C.heading}}>{t.label}</span>
+                      <span style={{color:C.muted}} className="mono">{fmtTok(t.tok)} · ${Math.round(t.cost).toLocaleString()}</span>
+                    </div>
+                    <div style={{height:5,background:"#EDF2F7",borderRadius:3,marginTop:3,overflow:"hidden"}}><div style={{width:(t.tok/td.totalTok*100)+"%",height:"100%",background:t.color,borderRadius:3}}/></div>
+                    <div style={{fontSize:9,color:C.light,marginTop:2}}>{t.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1.5fr 1fr",gap:18,marginBottom:18}}>
+        <SectionCard title="Daily Token Consumption — last 14 days" sub="The spike is the calc run: shadow audit + P4P + health rescore all fire on the same data drop" pad={14}>
+          <LineChart series={[{name:"Tokens (M)",color:C.primary,pts:td.daily}]} w={600} h={210} xDom={[1,14]} xFmt={v=>"d"+v} yFmt={v=>v+"M"}
+            markers={[{x:10,label:"CALC RUN",color:C.warn}]}/>
+        </SectionCard>
+        <SectionCard title="Autonomous vs Manual-HITL Flows" sub="HITL-gated flows burn ~1.55× tokens (evidence packs + revisions) — and carry the highest-stakes decisions" pad={14}>
+          <div style={{display:"grid",gap:7,maxHeight:212,overflowY:"auto"}}>
+            {sorted.map(r=>{
+              const pctH=r.hitlTok/r.totalTok*100;
+              return (
+                <div key={r.a.id} style={{display:"flex",alignItems:"center",gap:9}}>
+                  <span style={{width:118,fontSize:10.5,fontWeight:600,color:C.heading,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.a.icon} {r.a.name.replace(" Agent","")}</span>
+                  <div style={{flex:1,height:13,borderRadius:7,overflow:"hidden",display:"flex",background:"#EDF2F7"}}>
+                    <div style={{width:(100-pctH)+"%",background:C.primary,opacity:.75}} title="autonomous"/>
+                    <div style={{width:pctH+"%",background:"#EA580C",opacity:.85}} title="HITL-gated"/>
+                  </div>
+                  <span style={{width:62,fontSize:10,fontWeight:700,color:"#EA580C",textAlign:"right"}} className="mono">{pctH.toFixed(0)}% HITL</span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{display:"flex",gap:14,marginTop:10,fontSize:10,color:C.muted}}>
+            <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:9,height:9,borderRadius:3,background:C.primary,opacity:.75}}/>Autonomous</span>
+            <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:9,height:9,borderRadius:3,background:"#EA580C"}}/>HITL-gated (human reviewed)</span>
+          </div>
+        </SectionCard>
+      </div>
+      <SectionCard title="Recent Flows — token ledger" sub="Every agent flow is metered and attributed; HITL rows include the human-review evidence package" pad={0}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+          <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>
+            {["Flow ID","Agent","Trigger","Type","Tokens","Est. Cost","Duration","Outcome"].map(h=><th key={h} style={{padding:"9px 13px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.6,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {td.recent.map((f,i)=>(
+              <tr key={f.id} style={{borderBottom:`1px solid ${C.border}66`,animation:`fadeUp .25s ease-out ${i*.03}s both`}}>
+                <td style={{padding:"8px 13px",fontWeight:700,color:C.primary}} className="mono">{f.id}</td>
+                <td style={{padding:"8px 13px",fontWeight:600,color:C.heading}}>{f.a.icon} {f.a.name.replace(" Agent","")}</td>
+                <td style={{padding:"8px 13px",color:C.text,fontSize:11}}>{f.trigger}</td>
+                <td style={{padding:"8px 13px"}}><Badge variant={f.hitl?"hitl":"primary"} small>{f.hitl?"👤 HITL":"AUTO"}</Badge></td>
+                <td style={{padding:"8px 13px",fontWeight:700,color:C.heading}} className="mono">{fmtTok(f.tok)}</td>
+                <td style={{padding:"8px 13px",color:C.muted}} className="mono">${f.cost.toFixed(2)}</td>
+                <td style={{padding:"8px 13px",color:C.muted}} className="mono">{f.dur}</td>
+                <td style={{padding:"8px 13px",fontSize:11,color:f.outcome==="Awaiting review"?C.warn:f.outcome==="Approved by human"?"#EA580C":C.success,fontWeight:600}}>{f.outcome}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </SectionCard>
+    </div>
+  );
+};
+/* ▓▓ END:SCREEN-TOKENS ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-CONNECTORS ▓▓ */
+const CONNECTOR_CATALOG=[
+  {id:"snowflake",name:"Snowflake",icon:"❄️",cat:"Data Warehouse",origin:"internal",type:"Native SQL · Dynamic Tables",dir:"bi",freq:"Continuous",sla:"15 min",datasets:["ic_payouts","quota_master","territory_roster","sfe_activity"],feeds:11},
+  {id:"iqvia",name:"IQVIA Xponent",icon:"💊",cat:"Rx / Claims Data",origin:"external",type:"SFTP + REST",dir:"in",freq:"Weekly · Fri 02:00",sla:"7 days",datasets:["rx_panel","hcp_universe","market_opportunity"],feeds:6},
+  {id:"veeva",name:"Veeva CRM",icon:"📋",cat:"CRM",origin:"external",type:"REST API",dir:"in",freq:"Hourly",sla:"60 min",datasets:["calls","accounts","hcp_interactions"],feeds:5},
+  {id:"align",name:"Veeva Align",icon:"🗺️",cat:"Territory Management",origin:"external",type:"REST API",dir:"bi",freq:"Daily · 03:00",sla:"24 h",datasets:["alignments","rosters"],feeds:3},
+  {id:"varicent",name:"Varicent ICM",icon:"🧮",cat:"Incentive Compensation",origin:"external",type:"API + calc-run webhooks",dir:"bi",freq:"Per calc run",sla:"24 h",datasets:["calc_traces","statements","rate_tables"],feeds:7},
+  {id:"workday",name:"Workday",icon:"👥",cat:"HR / HCM",origin:"internal",type:"REST (de-identified)",dir:"in",freq:"Daily · 04:00",sla:"24 h",datasets:["roster","tenure","cohorts"],feeds:4},
+  {id:"sap",name:"SAP S/4HANA",icon:"🏦",cat:"ERP / Finance",origin:"internal",type:"OData services",dir:"in",freq:"Daily · 05:00",sla:"24 h",datasets:["ic_budget","gl_actuals"],feeds:3},
+  {id:"excel",name:"Standalone Excel / CSV",icon:"📊",cat:"Manual Files",origin:"manual",type:"Drag-and-drop upload",dir:"in",freq:"Ad hoc",sla:"on upload",datasets:["quota_adjustments","exception_lists","club_wildcards"],feeds:4},
+  {id:"powerbi",name:"Power BI",icon:"📈",cat:"BI / Reporting",origin:"internal",type:"Dataset push",dir:"out",freq:"On refresh",sla:"4 h",datasets:["health_scores","exec_dashboards"],feeds:0},
+  {id:"slack",name:"Slack",icon:"💬",cat:"Notifications",origin:"internal",type:"Webhooks",dir:"out",freq:"Real-time",sla:"1 min",datasets:["alerts","hitl_queue"],feeds:0},
+];
+const ORIGIN_STYLE={external:{label:"EXTERNAL",bg:"#F3F0FF",c:"#7C3AED"},internal:{label:"INTERNAL",bg:"#E8F4FD",c:"#1E82BD"},manual:{label:"MANUAL FILE",bg:"#FFF7ED",c:"#EA580C"}};
+const buildConnectorData=(persona)=>{
+  const rng=mulberry32(hashStr("conn-"+persona.id));
+  const degraded=["iqvia","veeva","sap"][hashStr(persona.id)%3];
+  const rows=CONNECTOR_CATALOG.map(c=>{
+    const recScale=c.id==="snowflake"?2400:c.id==="iqvia"?900:c.id==="veeva"?420:c.id==="excel"?2:c.dir==="out"?40:150;
+    const records=Math.round(recScale*persona.reps*(0.7+rng()*0.6));
+    const lastSyncMin=c.id===degraded?Math.round(900+rng()*900):c.freq==="Continuous"||c.freq==="Real-time"?Math.round(rng()*5)+1:Math.round(rng()*180)+10;
+    const history=Array.from({length:10},()=>Math.round(records/10*(0.5+rng())));
+    const latency=Math.round(40+rng()*400);
+    return {...c,records,lastSyncMin,history,latency,status:c.id===degraded?"degraded":"healthy",
+      error:c.id===degraded?(c.id==="iqvia"?"Panel restatement delayed upstream — weekly drop is 14h late; downstream demand validation paused":c.id==="veeva"?"OAuth token rotation failed twice — re-auth scheduled, deltas queued":"OData endpoint throttling (429) during close window — retry with backoff active"):null};
+  });
+  const uploads=[
+    {file:persona.id+"-"+(persona.plan.freq==="Quarterly"?"Q2":"May")+"-quota-adjustments.xlsx",rows:persona.reps,status:"validated",target:"quota_master",by:"S. Okafor",when:"2d ago"},
+    {file:"legacy-guarantee-list.xlsx",rows:14,status:"pending HITL",target:"ic_exceptions",by:"M. Torres",when:"6h ago"},
+    {file:"club-wildcards.csv",rows:6,status:"validated",target:"club_qualifiers",by:"J. Lindqvist",when:"1d ago"},
+  ];
+  return {rows,uploads,degraded};
+};
+const fmtSync=(m)=>m<2?"just now":m<60?m+"m ago":m<1440?Math.round(m/60)+"h ago":Math.round(m/1440)+"d ago";
+const DataConnectors=({persona,data,onNav})=>{
+  const base=useMemo(()=>buildConnectorData(persona),[persona]);
+  const [filter,setFilter]=useState("all");
+  const [sel,setSel]=useState(null);
+  const [syncing,setSyncing]=useState(null);
+  const [fixed,setFixed]=useState({});
+  const [modal,setModal]=useState(false);
+  const [requested,setRequested]=useState({});
+  const timer=useRef(null);
+  useEffect(()=>()=>clearTimeout(timer.current),[]);
+  const rows=base.rows.map(r=>fixed[r.id]?{...r,status:"healthy",lastSyncMin:0,error:null}:r);
+  const shown=rows.filter(r=>filter==="all"?true:filter==="out"?r.dir==="out":r.origin===filter);
+  const cur=rows.find(r=>r.id===sel);
+  const healthy=rows.filter(r=>r.status==="healthy").length;
+  const syncNow=(id)=>{setSyncing(id);timer.current=setTimeout(()=>{setSyncing(null);setFixed(p=>({...p,[id]:true}))},1800)};
+  const totalRec=rows.filter(r=>r.dir!=="out").reduce((s,r)=>s+r.records,0);
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="🔌 Data Connectors" sub={"Every source feeding "+persona.name+"'s IC brain — external SaaS, internal systems, and the manual Excel files that always exist anyway. All of it lands behind the same trust checks."}
+        right={<Badge variant={healthy===rows.length?"success":"warning"}>{healthy}/{rows.length} healthy</Badge>}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:14,marginBottom:18}}>
+        <StatCard icon="🔌" label="Connected Sources" value={rows.length} sub="4 external · 5 internal · 1 manual" delay={0}/>
+        <StatCard icon="✅" label="Healthy" value={healthy+"/"+rows.length} sub={rows.length-healthy>0?"1 degraded — see below":"all SLAs met"} good={healthy===rows.length} color={healthy===rows.length?C.heading:C.warn} delay={.05}/>
+        <StatCard icon="📥" label="Records Synced (24h)" value={fmtTok(totalRec)} sub="across inbound feeds" delay={.1}/>
+        <StatCard icon="⏱️" label="Freshness SLA Met" value={fmtPct((healthy/rows.length)*100,0)} sub="trailing 7 days" color={C.success} delay={.15}/>
+        <StatCard icon="📊" label="Excel Uploads Pending" value={base.uploads.filter(u=>u.status!=="validated").length} sub={base.uploads.length+" files this period"} color="#EA580C" delay={.2}/>
+      </div>
+      <div style={{background:`linear-gradient(135deg,${C.sidebar},${C.sidebarDark})`,borderRadius:14,padding:"18px 28px",marginBottom:18,display:"flex",alignItems:"center",gap:0,justifyContent:"space-between"}}>
+        {[["EXTERNAL SOURCES","IQVIA · Veeva · Varicent","4 feeds","#7C3AED"],["INTERNAL SYSTEMS","Snowflake · Workday · SAP","5 systems","#3A9BD5"],["MANUAL FILES","Excel / CSV drag-and-drop","ad hoc","#FB923C"]].map(([t,s,n,c],i)=>(
+          <Fragment key={t}>
+            <div style={{textAlign:"center",minWidth:150}}>
+              <div style={{fontSize:10,fontWeight:800,color:c,letterSpacing:1.2}}>{t}</div>
+              <div style={{fontSize:11,color:"#A0B4CC",marginTop:3}}>{s}</div>
+              <div style={{fontSize:9.5,color:"#7BA3C9"}}>{n}</div>
+            </div>
+            <div style={{flex:1,height:2,background:`linear-gradient(90deg,${c},#1E82BD)`,margin:"0 14px",position:"relative",overflow:"hidden",maxWidth:90}}>
+              <div style={{position:"absolute",inset:0,background:"rgba(255,255,255,.5)",animation:`flowPulse 2s ease-in-out ${i*.4}s infinite`}}/>
+            </div>
+          </Fragment>
+        ))}
+        <div style={{textAlign:"center",padding:"10px 20px",borderRadius:12,border:"2px solid #1E82BD",background:"rgba(30,130,189,.12)"}}>
+          <div style={{fontSize:10,fontWeight:800,color:"#7DD3FC",letterSpacing:1.2}}>iZO TRUST LAYER</div>
+          <div style={{fontSize:9.5,color:"#A0B4CC",marginTop:2}}>source verify · quality · lineage<br/>format · PHI/PII scan</div>
+        </div>
+        <div style={{flex:1,height:2,background:"linear-gradient(90deg,#1E82BD,#10B981)",margin:"0 14px",position:"relative",overflow:"hidden",maxWidth:90}}>
+          <div style={{position:"absolute",inset:0,background:"rgba(255,255,255,.5)",animation:"flowPulse 2s ease-in-out 1.2s infinite"}}/>
+        </div>
+        <div style={{textAlign:"center",minWidth:110}}>
+          <div style={{fontSize:10,fontWeight:800,color:"#4ADE80",letterSpacing:1.2}}>11 IC AGENTS</div>
+          <div style={{fontSize:9.5,color:"#7BA3C9",marginTop:3}}>+ Ask iZO copilot</div>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:7,marginBottom:14}}>
+        {[["all","All"],["external","External"],["internal","Internal"],["manual","Manual files"],["out","Outbound"]].map(([k,l])=>(
+          <div key={k} onClick={()=>setFilter(k)} style={{padding:"6px 15px",borderRadius:15,fontSize:11,fontWeight:700,cursor:"pointer",border:`1.5px solid ${filter===k?C.primary:C.border}`,background:filter===k?C.primaryBg:C.card,color:filter===k?C.primary:C.muted}}>{l}</div>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,marginBottom:18}}>
+        {shown.map((c,i)=>{
+          const os=ORIGIN_STYLE[c.origin];
+          const st=syncing===c.id?{c:C.primary,label:"SYNCING…"}:c.status==="healthy"?{c:C.success,label:"HEALTHY"}:{c:C.warn,label:"DEGRADED"};
+          return (
+            <div key={c.id} onClick={()=>setSel(sel===c.id?null:c.id)} style={{background:C.card,borderRadius:13,border:`1.5px solid ${sel===c.id?C.primary:c.status==="degraded"?C.warn+"88":C.border}`,padding:"15px 17px",cursor:"pointer",transition:"all .2s",animation:`fadeUp .35s ease-out ${i*.04}s both`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                  <div style={{width:38,height:38,borderRadius:10,background:"#F4F8FB",border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{c.icon}</div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,color:C.heading}}>{c.name}</div>
+                    <div style={{fontSize:10,color:C.muted}}>{c.cat} · {c.type}</div>
+                  </div>
+                </div>
+                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:9,fontWeight:800,color:st.c}}><span style={{width:7,height:7,borderRadius:"50%",background:st.c,animation:syncing===c.id?"breathe .8s infinite":c.status==="degraded"?"breathe 1.6s infinite":"none"}}/>{st.label}</span>
+              </div>
+              <div style={{display:"flex",gap:6,margin:"10px 0 8px",flexWrap:"wrap"}}>
+                <span style={{padding:"2px 9px",borderRadius:11,fontSize:8.5,fontWeight:800,background:os.bg,color:os.c,letterSpacing:.5}}>{os.label}</span>
+                <Badge variant="neutral" small>{c.dir==="in"?"→ inbound":c.dir==="out"?"← outbound":"⇄ bidirectional"}</Badge>
+                <Badge variant="neutral" small>{c.freq}</Badge>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:10.5,color:C.muted}}>
+                <span>Last sync: <strong style={{color:c.status==="degraded"?C.warn:C.text}}>{syncing===c.id?"running…":fmtSync(c.lastSyncMin)}</strong></span>
+                <span>{c.dir==="out"?"pushes":"records (24h)"}: <strong style={{color:C.heading}} className="mono">{fmtTok(c.records)}</strong></span>
+              </div>
+              <div style={{fontSize:9.5,color:C.light,marginTop:6}}>feeds {c.feeds>0?c.feeds+" agents":"reporting & alerts"} · SLA {c.sla}</div>
+            </div>
+          );
+        })}
+        <div onClick={()=>setModal(true)} style={{borderRadius:13,border:`2px dashed ${C.border}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,cursor:"pointer",background:"#F5F8FC",minHeight:150,transition:"all .2s"}}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor=C.primary;e.currentTarget.style.background=C.primaryBg}} onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background="#F5F8FC"}}>
+          <div style={{width:42,height:42,borderRadius:"50%",background:C.primaryBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:C.primary,marginBottom:8,border:`2px dashed ${C.primary}44`}}>+</div>
+          <div style={{fontWeight:700,fontSize:12.5,color:C.heading}}>Add Connector</div>
+          <div style={{fontSize:10,color:C.muted,marginTop:3,textAlign:"center"}}>API, database, SFTP,<br/>or file upload</div>
+        </div>
+      </div>
+      {cur&&(
+        <SectionCard title={cur.icon+" "+cur.name+" — connector detail"} sub={cur.cat+" · "+ORIGIN_STYLE[cur.origin].label.toLowerCase()+" · "+cur.type}
+          right={cur.dir!=="out"&&cur.id!=="excel"&&<button onClick={()=>syncNow(cur.id)} disabled={syncing===cur.id} style={{padding:"8px 18px",borderRadius:8,background:syncing===cur.id?C.primaryLight+"77":`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:700,fontSize:11.5}}>{syncing===cur.id?"⟳ Syncing…":"⟳ Sync now"}</button>} pad={18} style={{marginBottom:18,animation:"fadeUp .3s ease-out"}}>
+          {cur.error&&!fixed[cur.id]&&(
+            <div style={{padding:"11px 15px",borderRadius:10,background:C.warnBg,border:`1px solid ${C.warn}55`,fontSize:11.5,color:"#92400E",lineHeight:1.55,marginBottom:14}}>
+              <strong>⚠ Degraded:</strong> {cur.error}
+            </div>
+          )}
+          <div style={{display:"grid",gridTemplateColumns:cur.id==="excel"?"1fr":"1fr 1fr 1fr",gap:16}}>
+            {cur.id!=="excel"&&(
+              <Fragment>
+                <div>
+                  <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1,marginBottom:7}}>Sync volume — 10 days</div>
+                  <Sparkline data={cur.history} w={200} h={48} color={cur.status==="degraded"?C.warn:C.success}/>
+                  <div style={{fontSize:10,color:C.muted,marginTop:5}}>avg latency {cur.latency}ms · {cur.freq}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1,marginBottom:7}}>Datasets</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5}}>{cur.datasets.map(d=><span key={d} className="mono" style={{padding:"3px 9px",borderRadius:6,fontSize:10,background:"#F4F8FB",border:`1px solid ${C.border}`,color:C.heading}}>{d}</span>)}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1,marginBottom:7}}>Downstream consumers</div>
+                  <div style={{fontSize:11.5,color:C.text,lineHeight:1.6}}>{cur.feeds>0?cur.feeds+" agents consume this feed — every read is lineage-tracked and PHI/PII-screened at the trust layer.":"Outbound only — receives certified outputs (scores, alerts, dashboards)."}</div>
+                </div>
+              </Fragment>
+            )}
+            {cur.id==="excel"&&(
+              <div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 320px",gap:16}}>
+                  <div>
+                    <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1,marginBottom:7}}>Uploaded files this period</div>
+                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                      <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>{["File","Rows","Maps to","Uploaded by","Status"].map(h=><th key={h} style={{padding:"7px 11px",fontSize:9,fontWeight:700,color:C.muted,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
+                      <tbody>{base.uploads.map(u=>(
+                        <tr key={u.file} style={{borderBottom:`1px solid ${C.border}66`}}>
+                          <td style={{padding:"7px 11px",fontWeight:600,color:C.heading}} className="mono">{u.file}</td>
+                          <td style={{padding:"7px 11px",color:C.text}}>{u.rows}</td>
+                          <td style={{padding:"7px 11px",color:C.muted}} className="mono">{u.target}</td>
+                          <td style={{padding:"7px 11px",color:C.muted}}>{u.by} · {u.when}</td>
+                          <td style={{padding:"7px 11px"}}><Badge variant={u.status==="validated"?"success":"hitl"} small>{u.status.toUpperCase()}</Badge></td>
+                        </tr>))}
+                      </tbody>
+                    </table>
+                    <div style={{fontSize:10.5,color:C.muted,marginTop:8,lineHeight:1.5}}>Every upload runs the same trust checks as an API feed: schema inference, column mapping to the IC model, dup/null screens — and anything touching payouts routes through HITL before it lands.</div>
+                  </div>
+                  <div style={{border:`2px dashed ${C.primary}55`,borderRadius:12,background:C.primaryBg+"66",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:22,textAlign:"center"}}>
+                    <div style={{fontSize:26,marginBottom:6}}>📥</div>
+                    <div style={{fontWeight:700,fontSize:12.5,color:C.heading}}>Drop .xlsx / .csv here</div>
+                    <div style={{fontSize:10.5,color:C.muted,marginTop:4,lineHeight:1.5}}>iZO maps columns to the IC schema automatically and shows you the mapping before anything commits</div>
+                    <button style={{marginTop:10,padding:"7px 16px",borderRadius:7,background:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:600,fontSize:11}}>Browse files</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </SectionCard>
+      )}
+      {modal&&(
+        <div onClick={()=>setModal(false)} style={{position:"fixed",inset:0,background:"rgba(8,40,70,.45)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .2s ease-out"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.card,borderRadius:16,width:600,maxWidth:"92vw",boxShadow:"0 30px 80px rgba(8,40,70,.4)",animation:"fadeUp .25s ease-out",overflow:"hidden"}}>
+            <div style={{padding:"16px 24px",borderBottom:`1px solid ${C.border}`,background:"linear-gradient(135deg,#E8F4FD,#F0F7FF)"}}>
+              <div style={{fontWeight:800,fontSize:15,color:C.heading}}>Add a Data Connector</div>
+              <div style={{fontSize:11.5,color:C.muted,marginTop:2}}>Connectors inherit the trust layer automatically — no pipeline code</div>
+            </div>
+            <div style={{padding:22,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[["☁️","Salesforce Health Cloud","CRM · REST"],["🧱","Databricks","Lakehouse · JDBC"],["🧑‍💼","Oracle HCM","HR · REST"],["🗂️","SharePoint / Box","Files · Graph API"],["✉️","Email inbox parser","Attachments → datasets"],["🔧","Custom REST / SFTP","Bring your own source"]].map(([ic,n,d])=>(
+                <div key={n} style={{display:"flex",alignItems:"center",gap:11,padding:"12px 14px",borderRadius:11,border:`1px solid ${C.border}`,background:"#FAFBFC"}}>
+                  <span style={{fontSize:19}}>{ic}</span>
+                  <div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:C.heading}}>{n}</div><div style={{fontSize:9.5,color:C.muted}}>{d}</div></div>
+                  <button onClick={()=>setRequested(p=>({...p,[n]:true}))} style={{padding:"5px 13px",borderRadius:7,background:requested[n]?C.successBg:"#EDF2F7",color:requested[n]?C.success:C.heading,fontWeight:700,fontSize:10.5,border:requested[n]?`1px solid ${C.success}44`:"none"}}>{requested[n]?"✓ Requested":"Request"}</button>
+                </div>
+              ))}
+            </div>
+            <div style={{padding:"0 22px 20px",textAlign:"right"}}><button onClick={()=>setModal(false)} style={{padding:"9px 20px",borderRadius:8,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:12}}>Close</button></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+/* ▓▓ END:SCREEN-CONNECTORS ▓▓ */
+
 /* ▓▓ SECTION:EXPORT ▓▓ */
 /* Complete-analysis Excel export (SheetJS) — raw data sheet + one sheet per analysis, all from the live persona dataset */
 const xlsSheet=(aoa,widths)=>{const ws=XLSX.utils.aoa_to_sheet(aoa);if(widths)ws["!cols"]=widths.map(w=>({wch:w}));return ws};
@@ -2507,6 +2866,8 @@ const buildWorkbook=(persona,data)=>{
     ["5 Territory & SFE","Effort KPIs, region heatmap, targeting, white space, workload"],
     ["6 Disputes","Inquiry queue with root causes & resolutions"],
     ["7 Governance","Shadow-audit parity, fairness cohorts, audit trail"],
+    ["8 Token Usage","AI token consumption & cost per agentic flow, autonomous vs HITL"],
+    ["9 Data Connectors","External / internal / manual file sources with sync health"],
     [],
     ["Note","Synthetic demo data — seeded and deterministic per company persona. Generated by Improzo iZO."],
   ],[28,52,18]),"Read Me");
@@ -2667,6 +3028,56 @@ const buildWorkbook=(persona,data)=>{
     ["When","Agent","Action","Human reviewer","HITL gated"],
     ...gov.trail.map(t=>[t.when,t.agent,t.what,t.who,t.hitl?"YES":"auto"]),
   ],[24,24,22,24,40]),"7 Governance");
+  /* ── 8 Token Usage ── */
+  const tk=buildTokenData(persona);
+  XLSX.utils.book_append_sheet(wb,xlsSheet([
+    ["TOKEN USAGE & AI SPEND — month to date"],
+    [],
+    ["Total tokens",Math.round(tk.totalTok)],
+    ["Estimated spend ($)",Math.round(tk.totalCost*100)/100],
+    ["Monthly budget ($)",tk.budget],
+    ["Prompt-cache hit rate",fmtPct(tk.cacheHit*100,0)],
+    ["Prompt-cache savings ($)",Math.round(tk.cacheSaved)],
+    ["Total flows",tk.totalFlows],
+    ["HITL-gated flows",tk.totalHitl],
+    ["HITL token share",fmtPct(tk.hitlTok/tk.totalTok*100,1)],
+    [],
+    ["BY AGENTIC FLOW"],
+    ["Agent","Flows MTD","Autonomous flows","HITL-gated flows","Input tokens","Output tokens","Total tokens","Est. cost ($)","HITL token share %"],
+    ...tk.rows.map(r=>[r.a.name,r.flows,r.autoFlows,r.hitlFlows,Math.round(r.inTok),Math.round(r.outTok),Math.round(r.totalTok),Math.round(r.cost*100)/100,Math.round(r.hitlTok/r.totalTok*1000)/10]),
+    [],
+    ["BY LOOP PHASE (tokens, millions)"],
+    ...tk.phases.map(p=>[p.label,p.value]),
+    [],
+    ["BY MODEL TIER"],
+    ["Tier","Purpose","Tokens","Est. cost ($)"],
+    ...tk.tiers.map(t=>[t.label,t.desc,Math.round(t.tok),Math.round(t.cost*100)/100]),
+    [],
+    ["DAILY CONSUMPTION (tokens, millions) — day 10 = calc run"],
+    ["Day","Tokens (M)"],
+    ...tk.daily.map(d=>[d.x,d.y]),
+    [],
+    ["RECENT FLOW LEDGER"],
+    ["Flow ID","Agent","Trigger","Type","Tokens","Est. cost ($)","Duration","Outcome"],
+    ...tk.recent.map(f=>[f.id,f.a.name,f.trigger,f.hitl?"HITL-gated":"Autonomous",Math.round(f.tok),Math.round(f.cost*100)/100,f.dur,f.outcome]),
+  ],[30,16,17,16,14,14,14,13,18]),"8 Token Usage");
+  /* ── 9 Data Connectors ── */
+  const cn=buildConnectorData(persona);
+  XLSX.utils.book_append_sheet(wb,xlsSheet([
+    ["DATA CONNECTORS — sources feeding the IC platform"],
+    [],
+    ["Connector","Category","Origin","Type","Direction","Frequency","Freshness SLA","Status","Last sync","Records (24h)","Datasets","Feeds # agents"],
+    ...cn.rows.map(c=>[c.name,c.cat,c.origin.toUpperCase(),c.type,c.dir==="in"?"inbound":c.dir==="out"?"outbound":"bidirectional",c.freq,c.sla,c.status.toUpperCase(),fmtSync(c.lastSyncMin),c.records,c.datasets.join("; "),c.feeds]),
+    [],
+    ["DEGRADED CONNECTOR DETAIL"],
+    ...cn.rows.filter(c=>c.error).map(c=>[c.name,c.error]),
+    [],
+    ["MANUAL EXCEL / CSV UPLOADS THIS PERIOD"],
+    ["File","Rows","Maps to","Uploaded by","When","Status"],
+    ...cn.uploads.map(u=>[u.file,u.rows,u.target,u.by,u.when,u.status.toUpperCase()]),
+    [],
+    ["Note","All sources — API or manual file — pass the same trust checks: source verification, quality, lineage, format, PHI/PII scan."],
+  ],[26,20,11,26,13,17,13,11,11,13,42,13]),"9 Data Connectors");
   return wb;
 };
 const downloadExcel=(persona,data)=>{
@@ -2677,7 +3088,7 @@ window.__izoBuildWorkbook=(pid)=>buildWorkbook(PERSONAS.find(x=>x.id===pid),getD
 /* ▓▓ END:EXPORT ▓▓ */
 
 /* ▓▓ SECTION:APP ▓▓ */
-const SCREENS={command:CommandCenter,health:HealthCheck,p4p:P4PLab,goals:GoalsFairness,studio:PlanStudio,sfe:TerritorySFE,pulse:FieldPulse,copilot:Copilot,registry:Registry,govern:Governance};
+const SCREENS={command:CommandCenter,health:HealthCheck,p4p:P4PLab,goals:GoalsFairness,studio:PlanStudio,sfe:TerritorySFE,pulse:FieldPulse,copilot:Copilot,registry:Registry,govern:Governance,tokens:TokenUsage,connectors:DataConnectors};
 function App(){
   const [personaId,setPersonaId]=useState("vertanis");
   const [view,setView]=useState("command");
