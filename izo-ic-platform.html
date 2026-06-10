@@ -542,16 +542,81 @@ const AGENTS=[
 /* ▓▓ SECTION:COPILOT-SCRIPTS ▓▓ */
 /* Keyword-matched copilot scripts: streaming phase trace → typed answer → inline chart from live persona data */
 const COPILOT_SCRIPTS=[
-  {id:"spike",match:["spike","payout spike","root cause","why did payout"],
+  {id:"spike",match:["spike","spend","why did payout","budget"],
    prompt:"Why did incentive spend spike this period?",
    trace:[
      {phase:"PLAN",lines:["Decompose spend Δ into rate, mix, and volume effects","Target tables: ic_payouts, quota_master, territory_roster"]},
      {phase:"TOOL USE",lines:["Snowflake ▸ SELECT region, SUM(payout) FROM ic_payouts GROUP BY 1 ORDER BY 2 DESC","Varicent ▸ GET /calc-runs/current/exceptions?threshold=25bps","IQVIA ▸ validate demand actuals vs panel restatement"]},
-     {phase:"REFLECT",lines:["Spend Δ concentrated in 2 regions; accelerator zone census +9pts","8 distorted territories contribute 31% of the Δ","Confidence 0.92 — evidence chain complete"]}],
-   answer:(d)=>["Incentive spend is tracking "+fmtPct(d.util*100,0)+" of target budget. The increase is concentrated where attainment crossed into the accelerator zone (above 100%), plus "+d.distorted.length+" flagged territories — legacy guarantees and windfall accounts — that contribute disproportionately to the delta.",
-     "The largest single driver is the "+d.rows[d.distorted[0]].region+" region. Recommend reviewing the flagged rows in the P4P Lab before approving the payroll feed."],
-   chart:{type:"bar",title:"Payout $ by region (this period)"},
-   followups:["Show the flagged territories","What would a 250% cap cost?","Draft comms explaining the accelerator"]},
+     {phase:"REFLECT",lines:["Spend Δ concentrated in 2 regions; accelerator-zone census +9pts","Flagged territories contribute 31% of the Δ","Confidence 0.92 — evidence chain complete"]}],
+   answer:(d,p)=>["Incentive spend is tracking "+fmtPct(d.util*100,0)+" of target budget ("+fmt$(d.spendQTD)+" QTD). The increase concentrates where attainment crossed into the accelerator zone above 100%, plus "+d.distorted.length+" flagged territories — legacy guarantees and windfall accounts — that contribute disproportionately.",
+     "The largest single driver is the "+d.rows[d.distorted[0]].region+" region. Recommend reviewing the flagged rows in the P4P Lab before the payroll feed is approved."],
+   chart:"regionBar",
+   followups:["Which reps look overpaid?","What would raising the cap to 250% cost?","Draft field comms explaining the accelerator"]},
+  {id:"overpaid",match:["overpaid","outlier","misaligned","pay above"],
+   prompt:"Which reps look overpaid relative to performance?",
+   trace:[
+     {phase:"PLAN",lines:["Define overpay: payout rank ≥18 positions above performance rank","Population: all 100 modeled territories, current period"]},
+     {phase:"TOOL USE",lines:["Snowflake ▸ WITH ranks AS (SELECT terr, RANK() OVER (ORDER BY attain DESC) pr, RANK() OVER (ORDER BY payout DESC) yr …)","Varicent ▸ pull payout traces for top rank-gap rows","Veeva CRM ▸ effort check: calls vs payout for flagged rows"]},
+     {phase:"REFLECT",lines:["Clusters: legacy guarantees, windfall accounts, quota errors","Misallocation estimate computed per cluster","Confidence 0.94"]}],
+   answer:(d,p)=>{const ov=d.rows.filter(r=>r.quadrant==="overpaid");return [ov.length+" territories pay meaningfully above earned rank. The pattern isn't random: legacy guarantees and windfall volume explain the biggest gaps — for example "+(ov[0]?ov[0].rep+" ("+ov[0].id+", "+ov[0].payoutPct+"% payout at "+ov[0].attainment+"% attainment)":"the flagged rows in the table")+".",
+     "Estimated misallocation this period: "+fmt$(ov.reduce((a,r)=>a+r.payout*.25,0))+". Each dot below the band has a full evidence trace in the P4P Lab."]},
+   chart:"quadrant",
+   followups:["Why did incentive spend spike?","Is there bias in our goal setting?","Draft field comms explaining the accelerator"]},
+  {id:"bias",match:["bias","fair","goal setting","unfair"],
+   prompt:"Is there bias in our goal setting?",
+   trace:[
+     {phase:"PLAN",lines:["Bias battery: attainment vs baseline / territory size / tenure","Method: Pearson r with cohort breakouts"]},
+     {phase:"TOOL USE",lines:["Snowflake ▸ SELECT corr(attainment, baseline_vol), corr(attainment, quota), corr(attainment, tenure) FROM territory_period",
+       "IQVIA ▸ join market opportunity index per territory","Workday ▸ tenure + cohort attributes (de-identified)"]},
+     {phase:"REFLECT",lines:["Largest signal isolated and cross-checked vs opportunity","Cohort gap quantified in attainment points","Confidence 0.91"]}],
+   answer:(d,p)=>[p.bias==="lowBaseline"?"Yes — there's a measurable bias signal. Territories with baseline volume under 3,900 attain ~6.5 points lower (r="+d.goals.fairCorr.toFixed(2)+"). Goals were allocated as growth-on-baseline, which structurally over-asks small books of business.":
+     p.bias==="opportunity"?"Yes — launch goals ignore market access reality. Low-opportunity territories attain ~9 points lower (r="+d.goals.fairCorr.toFixed(2)+"). The ask: re-weight launch goals by opportunity index.":
+     "No systematic bias detected. Attainment is statistically independent of baseline (r="+d.goals.fairCorr.toFixed(2)+"), territory size (r="+d.goals.sizeCorr.toFixed(2)+") and tenure (r="+d.goals.tenCorr.toFixed(2)+").",
+     p.bias!=="none"?"Each red dot below carries a high growth ask without the market opportunity to support it. The Goal Setting Agent has a re-weighted allocation ready for review in Goal Setting & Fairness.":"The quarterly bias screen stays armed — any |r| above 0.30 triggers an automatic finding."],
+   chart:"biasScatter",
+   followups:["Which reps look overpaid?","Run the launch readiness check","Why did incentive spend spike?"]},
+  {id:"cap",match:["cap","250","raise the cap","uncap"],
+   prompt:"What would raising the cap to 250% cost?",
+   trace:[
+     {phase:"PLAN",lines:["Scenario: cap "+"→ 250% TI, all else constant","Method: re-run field through proposed curve + Monte Carlo demand draws"]},
+     {phase:"TOOL USE",lines:["Plan Simulator ▸ POST /scenarios {cap: 250}","Snowflake ▸ apply curve to attainment panel; aggregate cost","SAP ▸ budget headroom check for current FY"]},
+     {phase:"REFLECT",lines:["Cost Δ isolated to the >cap population (top earners)","P4P ρ improves — caps truncate the top of the pay-perf line","Confidence 0.95"]}],
+   answer:(d,p)=>{const c250={...p.plan,cap:250};const cN=payoutCurve(c250),cC=payoutCurve(p.plan);
+     const atts=d.rows.map(r=>r.attainment);const costN=mean(atts.map(a=>Math.max(0,cN(a))))/100*p.plan.ti/d.perQ*p.reps,costC=mean(atts.map(a=>Math.max(0,cC(a))))/100*p.plan.ti/d.perQ*p.reps;
+     return ["Raising the cap from "+p.plan.cap+"% to 250% costs "+fmt$(costN-costC)+" per "+(p.plan.freq==="Quarterly"?"quarter":p.plan.freq==="Monthly"?"month":"half")+" (+"+((costN-costC)/Math.max(1,costC)*100).toFixed(1)+"%), paid entirely to your top performers — "+d.rows.filter(r=>r.payoutPct>=p.plan.cap-.5).length+"% of the field is currently capped.",
+     "In exchange you remove the motivation cliff at "+p.plan.cap+"% and P4P correlation improves at the top end. The full trade-off is loaded in the Plan Design Studio — drag the cap slider to feel it."]},
+   chart:"capCurve",
+   followups:["Why did incentive spend spike?","Which reps look overpaid?","Is there bias in our goal setting?"]},
+  {id:"comms",match:["comms","draft","communication","email","announce","explain"],
+   prompt:"Draft field comms explaining the accelerator",
+   trace:[
+     {phase:"PLAN",lines:["Audience: field reps · register: plain-English, no comp jargon","Source of truth: plan doc v2.4 + certified statements"]},
+     {phase:"TOOL USE",lines:["Varicent ▸ pull plan parameters + worked example","IC Communications ▸ compose with reading-level target grade 8","Compliance scan ▸ no promissory language, numbers vs certified calc"]},
+     {phase:"REFLECT",lines:["Worked example uses median rep, not best case — keeps it honest","Tone check passed · ready for HITL review"]}],
+   answer:(d,p)=>["Draft below. It uses a worked example at the field median so it reads honest, not promotional. Nothing ships until the comms lead approves — every field-facing word is HITL-gated."],
+   chart:"commsArtifact",
+   followups:["What would raising the cap to 250% cost?","Which reps look overpaid?","Run the launch readiness check"]},
+  {id:"launch",match:["launch","nbrx","readiness","ramp"],
+   prompt:"Run the launch readiness check",
+   trace:[
+     {phase:"PLAN",lines:["Scope: launch KPIs — velocity, activation, ramp, IC sensitivity","Benchmark: analog CNS launches, weeks 8–10"]},
+     {phase:"TOOL USE",lines:["IQVIA ▸ weekly NBRx by territory, trailing 9 weeks","Veeva CRM ▸ call activity in zero-NBRx territories","Plan Simulator ▸ launch IC plan elasticity test"]},
+     {phase:"REFLECT",lines:["Laggards cluster on access, not effort","IC plan is paying for the right behavior — no plan change needed","Confidence 0.89"]}],
+   answer:(d,p)=>[p.launch?"Launch is tracking ahead: NBRx velocity "+d.launchStrip.nbrxVelocity+", "+d.launchStrip.activated+"% of territories activated, ramp "+d.launchStrip.rampVsPlan+" vs plan at week "+d.launchStrip.weeks+".":
+     p.name+" has no active launch — but here's what the Launch Readiness Agent would watch on day one: NBRx velocity, territory activation, ramp vs analog, and whether the IC plan actually pays for early-adoption behavior.",
+     p.launch?"The watch-item: "+d.launchStrip.zeroTerr+" territories still have zero NBRx. Call activity there is normal — this is an access problem, not an effort problem. Recommend field-medical routing, not an IC spiff.":"For launch-phase IC, rank-based decile plans (like Neurelis Bio runs) maximize early differentiation when baselines don't exist yet."],
+   chart:"launchTiles",
+   followups:["Is there bias in our goal setting?","Why did incentive spend spike?","Draft field comms explaining the accelerator"]},
+  {id:"fallback",match:[],
+   prompt:"",
+   trace:[
+     {phase:"PLAN",lines:["Parse intent against IC + SFE semantic model","No exact playbook match — composing from capability map"]},
+     {phase:"TOOL USE",lines:["Snowflake ▸ scan ic_payouts, quota_master, sfe_activity schemas","Health ledger ▸ pull current dimension scores"]},
+     {phase:"REFLECT",lines:["Best response: orient the user to what's answerable right now"]}],
+   answer:(d,p)=>["I can answer that with a deeper pass — but here's where "+p.name+" stands right now: IC health "+d.overall+"/100, P4P ρ "+d.rho.toFixed(2)+", spend at "+fmtPct(d.util*100,0)+" of budget, "+d.disputes.filter(x=>x.status==="needs-hitl").length+" disputes awaiting human review.",
+     "Try one of the suggested prompts below — each one runs a real analysis against the live "+d.cycle.period+" data."],
+   chart:null,
+   followups:["Why did incentive spend spike?","Which reps look overpaid?","Is there bias in our goal setting?"]},
 ];
 /* ▓▓ END:COPILOT-SCRIPTS ▓▓ */
 
@@ -1661,33 +1726,755 @@ const PlanStudio=({persona,data,onNav})=>{
 /* ▓▓ END:SCREEN-STUDIO ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-SFE ▓▓ */
-const TerritorySFE=({persona,data,onNav})=>(
-  <StubScreen title="Territory & SFE" icon="🗺️" desc="Call-plan adherence heatmap, targeting effectiveness, white space, workload balance." persona={persona} data={data}/>
-);
+const TerritorySFE=({persona,data,onNav})=>{
+  const s=data.sfe;
+  const targetGrouped=s.targeting.map(t=>({label:"D"+t.decile,series:[{name:"Called HCPs",value:t.called,color:C.primary},{name:"Uncalled HCPs",value:t.uncalled,color:"#CBD5E1"}]}));
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="🗺️ Territory & SFE" sub={"Is "+persona.name+"'s selling effort landing where the value is? The SFE and Territory Alignment agents watch effort, coverage and workload continuously."}
+        right={<Badge variant="warning">Weak signal: {s.weakRegion}</Badge>}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:18}}>
+        <StatCard icon="📋" label="Call Plan Adherence" value={s.kpi.adherence+"%"} sub="target ≥ 85%" good={s.kpi.adherence>=85} color={s.kpi.adherence>=85?C.heading:C.warn} delay={0}/>
+        <StatCard icon="🤝" label="Reach (target HCPs seen)" value={s.kpi.reach+"%"} sub="target ≥ 80%" good={s.kpi.reach>=80} color={s.kpi.reach>=80?C.heading:C.warn} delay={.06}/>
+        <StatCard icon="🔁" label="Frequency (calls / HCP / qtr)" value={s.kpi.freq} sub="plan: 3.0+" good={s.kpi.freq>=3} color={s.kpi.freq>=3?C.heading:C.warn} delay={.12}/>
+        <StatCard icon="⭐" label="% Effort on Tier-A" value={s.kpi.tierA+"%"} sub="Tier-A holds 64% of opportunity" good={s.kpi.tierA>=50} color={s.kpi.tierA>=50?C.heading:C.warn} delay={.18}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:18,marginBottom:18}}>
+        <SectionCard title="Region × Metric Heatmap" sub="Red-ringed cells = weakest quintile — one region is consistently soft" pad={14}>
+          <Heatmap rows={s.heat} cols={s.metrics.map(m=>m.split(" ")[0])} w={540} h={224}/>
+          <div style={{fontSize:10.5,color:C.muted,marginTop:8}}>⚠ <strong>{s.weakRegion}</strong> trails on every metric. SFE Agent root-cause: 2 open territories + workload imbalance — not a coaching problem.</div>
+        </SectionCard>
+        <SectionCard title="Targeting Effectiveness by HCP Value Decile" sub="Share of HCPs receiving calls — called vs uncalled, D1 = highest value" pad={14}>
+          <BarChart grouped={targetGrouped} w={540} h={236} vFmt={v=>v+"%"}/>
+          <div style={{fontSize:10.5,color:C.muted,marginTop:6}}>{s.targeting[0].uncalled>20?"⚠ "+s.targeting[0].uncalled+"% of decile-1 HCPs are getting no calls — the single biggest free lift available.":"✓ Top-decile coverage is strong; effort decays correctly with value."}</div>
+        </SectionCard>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1.35fr 1fr",gap:18}}>
+        <SectionCard title="White-Space Opportunities" sub="High-value account clusters with low share of voice — candidates for re-targeting" pad={0}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+            <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>
+              {["Account Cluster","Region","HCPs","Opportunity ($M)","Current Share","Coverage"].map(h=><th key={h} style={{padding:"10px 14px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.6,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {s.whitespace.map((ws,i)=>(
+                <tr key={i} style={{borderBottom:`1px solid ${C.border}66`,animation:`fadeUp .3s ease-out ${i*.05}s both`}}>
+                  <td style={{padding:"10px 14px",fontWeight:700,color:C.heading}}>{ws.cluster}</td>
+                  <td style={{padding:"10px 14px",color:C.muted}}>{ws.region}</td>
+                  <td style={{padding:"10px 14px",color:C.text}}>{ws.hcps}</td>
+                  <td style={{padding:"10px 14px",fontWeight:700,color:C.heading}}>${ws.opportunity}M</td>
+                  <td style={{padding:"10px 14px"}}><div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:54}}><ProgressBar value={ws.share} color={ws.share<12?C.error:C.primary} height={5}/></div><span style={{fontSize:10.5,fontWeight:600,color:ws.share<12?C.error:C.text}}>{ws.share}%</span></div></td>
+                  <td style={{padding:"10px 14px"}}><Badge variant={ws.covered?"success":"error"} small>{ws.covered?"COVERED":"WHITE SPACE"}</Badge></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </SectionCard>
+        <SectionCard title="Workload Balance" sub="Distribution of workload index across territories (1.0 = balanced)" pad={14}>
+          <Histogram bins={s.wlHist} w={460} h={172} color="#B45309" xFmt={v=>v.toFixed(1)}
+            markers={[{x:.78,label:"UNDER",color:C.primary},{x:1.3,label:"OVER",color:C.error}]}
+            highlight={(b)=>b.x0>=1.3||b.x1<=.78}/>
+          <div style={{display:"flex",gap:10,margin:"10px 0"}}>
+            <div style={{flex:1,padding:"9px 12px",borderRadius:9,background:C.errorBg,textAlign:"center"}}><div style={{fontSize:19,fontWeight:800,color:C.error}}>{s.overloaded}</div><div style={{fontSize:9.5,color:C.muted}}>overloaded (&gt;1.3)</div></div>
+            <div style={{flex:1,padding:"9px 12px",borderRadius:9,background:C.infoBg,textAlign:"center"}}><div style={{fontSize:19,fontWeight:800,color:C.primary}}>{s.underloaded}</div><div style={{fontSize:9.5,color:C.muted}}>underloaded (&lt;0.78)</div></div>
+          </div>
+          <div style={{padding:"10px 13px",borderRadius:9,background:"#FFF7ED",border:"1px solid #FB923C44",fontSize:11,color:"#9A3412",lineHeight:1.55}}>
+            <strong>🗺️ Territory Alignment Agent:</strong> rebalancing {Math.min(s.overloaded,6)} overloaded territories into adjacent underloaded ones lifts projected coverage +6pts with zero headcount — proposal queued for Territory Ops review.
+          </div>
+        </SectionCard>
+      </div>
+    </div>
+  );
+};
 /* ▓▓ END:SCREEN-SFE ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-PULSE ▓▓ */
-const FieldPulse=({persona,data,onNav})=>(
-  <StubScreen title="Field Pulse & Disputes" icon="💬" desc="Inquiry queue with AI triage traces, HITL adjudication, sentiment + themes." persona={persona} data={data}/>
+const SENT_STYLE={negative:{c:C.error,icon:"😠"},neutral:{c:C.muted,icon:"😐"},positive:{c:C.success,icon:"🙂"}};
+const TriageTrace=({dispute})=>{
+  const flat=dispute.triage.flatMap(t=>t.lines.map(ln=>({phase:t.phase,ln})));
+  const [n,setN]=useState(0);
+  useEffect(()=>{
+    setN(0);
+    const iv=setInterval(()=>setN(p=>{if(p>=flat.length){clearInterval(iv);return p}return p+1}),260);
+    return()=>clearInterval(iv);
+  },[dispute.id]);
+  let lastPhase=null;
+  return (
+    <div className="mono" style={{background:C.codeBg,borderRadius:10,padding:"14px 16px",fontSize:10.5,lineHeight:1.7,maxHeight:240,overflowY:"auto"}}>
+      {flat.slice(0,n).map((f,i)=>{
+        const showPhase=f.phase!==lastPhase;lastPhase=f.phase;
+        return (
+          <div key={i} style={{animation:"fadeIn .25s ease-out"}}>
+            {showPhase&&<div style={{color:PHASE_COLORS[f.phase],fontWeight:700,marginTop:i>0?8:0,letterSpacing:1}}>{PHASE_ICONS[f.phase]} {f.phase}</div>}
+            <div style={{color:C.codeText,paddingLeft:14}}><span style={{color:C.codeComment}}>▸</span> {f.ln}</div>
+          </div>
+        );
+      })}
+      {n<flat.length&&<span style={{display:"inline-block",width:7,height:12,background:"#7DD3FC",marginLeft:14,animation:"blink .8s infinite"}}/>}
+      {n>=flat.length&&<div style={{color:"#4ADE80",fontWeight:700,marginTop:8}}>✓ triage complete · confidence {Math.round(dispute.confidence*100)}%</div>}
+    </div>
+  );
+};
+const Scorecard=({dispute,persona,row,onClose})=>(
+  <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(8,40,70,.45)",zIndex:120,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .2s ease-out"}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:C.codeBg,borderRadius:14,width:560,maxWidth:"92vw",boxShadow:"0 30px 80px rgba(0,0,0,.5)",overflow:"hidden",animation:"fadeUp .25s ease-out"}}>
+      <div style={{padding:"12px 20px",background:"#1E293B",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span className="mono" style={{fontSize:11,color:"#94A3B8"}}>📣 ic-communications-agent · scorecard.md · generated for {dispute.rep}</span>
+        <button onClick={onClose} style={{background:"#334155",color:"#94A3B8",borderRadius:5,padding:"3px 10px",fontSize:10}} className="mono">✕ close</button>
+      </div>
+      <pre className="mono" style={{padding:"18px 22px",margin:0,fontSize:11.5,lineHeight:1.75,color:C.codeText,whiteSpace:"pre-wrap"}}>
+{`# ${persona.plan.freq} IC Scorecard — ${dispute.rep}
+${"─".repeat(46)}
+Territory      ${dispute.terr} (${dispute.region})
+Attainment     ${row.attainment}%  (field median 100%)
+Payout         ${fmt$(row.payout)}  ·  ${row.payoutPct}% of target incentive
+Perf rank      #${row.perfRank} of 100   ·   Payout rank #${row.payoutRank}
+
+`}<span style={{color:C.codeKeyword}}>{"## How your payout was built"}</span>{`
+`}<span style={{color:C.codeComment}}>{persona.plan.archetype==="rankBased"?"decile tier lookup — your NBRx rank sets your tier":"threshold "+persona.plan.threshold+"% → linear to 100% → "+persona.plan.accelerator+"× accelerator → cap "+persona.plan.cap+"%"}</span>{`
+base           ${fmt$(persona.plan.ti/data_perQ_stub(persona))} target / period
+attainment     ${row.attainment}% → curve → ${row.payoutPct}% of TI
+
+`}<span style={{color:C.codeKeyword}}>{"## This dispute"}</span>{`
+status         ${dispute.status.replace("-"," ")}
+root cause     `}<span style={{color:C.codeString}}>{dispute.rootCause}</span>{`
+resolution     ${dispute.resolution}
+
+`}<span style={{color:C.codeComment}}>{"Drafted by IC Communications Agent · HITL-approved before send"}</span>
+      </pre>
+    </div>
+  </div>
 );
+const data_perQ_stub=(persona)=>persona.plan.freq==="Quarterly"?4:persona.plan.freq==="Monthly"?12:2;
+const FieldPulse=({persona,data,onNav})=>{
+  const [sel,setSel]=useState(null);
+  const [decisions,setDecisions]=useState({});
+  const [scorecard,setScorecard]=useState(false);
+  const disputes=data.disputes;
+  const cur=disputes.find(d=>d.id===sel);
+  const curRow=cur?data.rows.find(r=>r.id===cur.terr):null;
+  const open=disputes.filter(d=>d.status!=="auto-resolved"&&!decisions[d.id]).length;
+  const resolved=disputes.filter(d=>d.status==="auto-resolved"||decisions[d.id]).length;
+  const themes={};disputes.forEach(d=>{themes[d.type]=(themes[d.type]||0)+1});
+  const themeColors=["#1E82BD","#7C3AED","#F59E0B","#0D9488","#BE185D"];
+  const sentSeries=Array.from({length:10},(_,i)=>66+((hashStr(persona.id+"sent")>>(i*2))&15)-4);
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="💬 Field Pulse & Disputes" sub={"Every payout question from "+persona.name+"'s field, triaged by the Field Inquiry Agent — recalculated from source, root-caused, and resolved or escalated to a human."}
+        right={<Badge variant={open>0?"hitl":"success"}>{open>0?open+" awaiting human decision":"queue clear"}</Badge>}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:18}}>
+        <StatCard icon="📥" label="Open Inquiries" value={open} sub={disputes.length+" this period"} delay={0}/>
+        <StatCard icon="🤖" label="Auto-Resolved" value={Math.round(resolved/disputes.length*100)+"%"} sub="no human time spent" color={C.success} delay={.06}/>
+        <StatCard icon="⏱️" label="Median Resolution" value="4.2h" sub="was 9 days pre-iZO" color={C.heading} delay={.12}/>
+        <StatCard icon="💵" label="$ in Dispute" value={fmt$(disputes.filter(d=>!decisions[d.id]&&d.status==="needs-hitl").reduce((a,d)=>a+d.amount,0))} sub="pending adjudication" color={C.warn} delay={.18}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:cur?"1fr 1.15fr":"1fr",gap:18,marginBottom:18}}>
+        <SectionCard title="Inquiry Queue" sub="Click a row — the agent's full triage trace replays" pad={0}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+            <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>
+              {["ID","Rep","Type","Sentiment","Age","Amount","Status"].map(h=><th key={h} style={{padding:"9px 13px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.6,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {disputes.map((d,i)=>{
+                const st=decisions[d.id]?{l:decisions[d.id],v:decisions[d.id]==="Approved"?"success":decisions[d.id]==="Denied"?"error":"warning"}:
+                  d.status==="auto-resolved"?{l:"AUTO-RESOLVED",v:"success"}:d.status==="needs-hitl"?{l:"NEEDS HUMAN",v:"hitl"}:{l:"IN REVIEW",v:"info"};
+                return (
+                  <tr key={d.id} onClick={()=>setSel(d.id===sel?null:d.id)} style={{borderBottom:`1px solid ${C.border}66`,cursor:"pointer",background:sel===d.id?C.primaryBg:"transparent",transition:"background .2s",animation:`fadeUp .3s ease-out ${i*.04}s both`}}>
+                    <td style={{padding:"9px 13px",fontWeight:700,color:C.primary}} className="mono">{d.id}</td>
+                    <td style={{padding:"9px 13px",fontWeight:600,color:C.heading}}>{d.rep}</td>
+                    <td style={{padding:"9px 13px",color:C.text,fontSize:11}}>{d.type}</td>
+                    <td style={{padding:"9px 13px"}}><span style={{fontSize:13}}>{SENT_STYLE[d.sentiment].icon}</span></td>
+                    <td style={{padding:"9px 13px",color:d.age>5?C.error:C.muted,fontWeight:d.age>5?700:400}}>{d.age}d</td>
+                    <td style={{padding:"9px 13px",fontWeight:700,color:d.amount>0?C.heading:C.light}}>{d.amount>0?fmt$(d.amount):"—"}</td>
+                    <td style={{padding:"9px 13px"}}><Badge variant={st.v} small>{st.l}</Badge></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </SectionCard>
+        {cur&&(
+          <SectionCard title={cur.id+" — "+cur.type} sub={cur.rep+" · "+cur.terr+" · "+cur.region}
+            right={<button onClick={()=>setScorecard(true)} style={{padding:"7px 14px",borderRadius:7,background:"#EDF2F7",color:C.heading,fontWeight:600,fontSize:11}}>📣 Rep scorecard</button>} pad={16}>
+            <div style={{padding:"11px 15px",borderRadius:10,background:"#F8FAFC",border:`1px solid ${C.border}`,marginBottom:12,fontSize:12,color:C.text,lineHeight:1.6,fontStyle:"italic"}}>
+              <span style={{fontSize:14,marginRight:6}}>{SENT_STYLE[cur.sentiment].icon}</span>"{cur.message}"
+            </div>
+            <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1,marginBottom:7}}>Agent triage trace</div>
+            <TriageTrace dispute={cur}/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,margin:"12px 0"}}>
+              <div style={{padding:"10px 13px",borderRadius:9,background:C.warnBg,border:`1px solid ${C.warn}44`}}>
+                <div style={{fontSize:9.5,fontWeight:700,color:"#92400E",textTransform:"uppercase"}}>Root cause</div>
+                <div style={{fontSize:11.5,color:C.text,marginTop:3,lineHeight:1.5}}>{cur.rootCause}</div>
+              </div>
+              <div style={{padding:"10px 13px",borderRadius:9,background:C.successBg,border:`1px solid ${C.success}44`}}>
+                <div style={{fontSize:9.5,fontWeight:700,color:"#065F46",textTransform:"uppercase"}}>Proposed resolution · {Math.round(cur.confidence*100)}% conf</div>
+                <div style={{fontSize:11.5,color:C.text,marginTop:3,lineHeight:1.5}}>{cur.resolution}</div>
+              </div>
+            </div>
+            {cur.status==="needs-hitl"&&!decisions[cur.id]&&(
+              <HITLDecisionRow action={"Adjustment of "+fmt$(cur.amount)+" exceeds the $1,000 auto-resolve band"} detail="Field Inquiry Agent requests human adjudication — full evidence chain attached"
+                onDecide={(d)=>setDecisions(p=>({...p,[cur.id]:d}))}/>
+            )}
+            {decisions[cur.id]&&<div style={{textAlign:"center",padding:"8px 0"}}><Badge variant={decisions[cur.id]==="Approved"?"success":decisions[cur.id]==="Denied"?"error":"warning"}>👤 {decisions[cur.id]} — logged to audit trail</Badge></div>}
+          </SectionCard>
+        )}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:18}}>
+        <SectionCard title="Field Sentiment Trend" sub="Weekly sentiment index from inquiry tone analysis (100 = fully positive)" pad={16}>
+          <div style={{display:"flex",alignItems:"center",gap:18}}>
+            <div style={{fontSize:34,fontWeight:800,color:sentSeries[9]>=70?C.success:C.warn}}>{sentSeries[9]}</div>
+            <div style={{flex:1}}><Sparkline data={sentSeries} w={380} h={54} color={sentSeries[9]>=70?C.success:C.warn}/></div>
+          </div>
+          <div style={{fontSize:10.5,color:C.muted,marginTop:8}}>Sentiment {sentSeries[9]>sentSeries[0]?"improving":"softening"} since the {data.cycle.stages[Math.max(0,data.cycle.current-1)].toLowerCase()} stage — statement-clarity questions dominate the negative tail.</div>
+        </SectionCard>
+        <SectionCard title="Inquiry Themes" sub="What the field is actually asking about" pad={16}>
+          <DonutChart segs={Object.entries(themes).map(([label,value],i)=>({label,value,color:themeColors[i%themeColors.length]}))} size={150} centerLabel={disputes.length} centerSub="inquiries"/>
+        </SectionCard>
+      </div>
+      {scorecard&&cur&&curRow&&<Scorecard dispute={cur} persona={persona} row={curRow} onClose={()=>setScorecard(false)}/>}
+    </div>
+  );
+};
 /* ▓▓ END:SCREEN-PULSE ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-COPILOT ▓▓ */
-const Copilot=({persona,data,onNav})=>(
-  <StubScreen title="Ask iZO Copilot" icon="✨" desc="Conversational IC analyst — streaming reasoning traces, typed answers, live charts." persona={persona} data={data}/>
-);
+const CopilotChart=({script,data,persona})=>{
+  if(script.chart==="regionBar"){
+    const byRegion=REGIONS.map(rg=>({label:rg.r,value:Math.round(data.rows.filter(r=>r.region===rg.r).reduce((a,r)=>a+r.payout,0)/1000)}));
+    return <BarChart data={byRegion.map(b=>({...b,color:C.primary}))} w={540} h={190} vFmt={v=>"$"+v+"K"}/>;
+  }
+  if(script.chart==="quadrant"){
+    const pts=data.rows.map(r=>({x:101-r.perfRank,y:101-r.payoutRank,c:QUAD_COLORS[r.quadrant],big:r.quadrant==="overpaid",label:r.rep,sub:r.attainment+"% → "+r.payoutPct+"%"}));
+    return <ScatterPlot pts={pts} w={540} h={250} diagonal quadrants xDom={[0,100]} yDom={[0,100]} xLabel="Performance percentile" yLabel="Payout percentile"/>;
+  }
+  if(script.chart==="biasScatter")
+    return <ScatterPlot pts={data.goals.growthScatter.map(p=>({x:p.x,y:p.y,c:p.flag?C.error:persona.color,big:p.flag,label:p.flag?"Flagged":"Territory",sub:"opp "+p.x+" · growth "+p.y+"%"}))} w={540} h={230} xLabel="Market opportunity →" yLabel="Goal growth % →"/>;
+  if(script.chart==="capCurve")
+    return <CurveBuilder plan={{...persona.plan,cap:250}} base={persona.plan} hist={data.goals.hist} w={560} h={240}/>;
+  if(script.chart==="commsArtifact")
+    return (
+      <div style={{background:C.codeBg,borderRadius:10,overflow:"hidden"}}>
+        <div style={{padding:"9px 16px",background:"#1E293B",display:"flex",justifyContent:"space-between"}}>
+          <span className="mono" style={{fontSize:10,color:"#94A3B8"}}>📣 draft — field-announcement.md</span>
+          <Badge variant="hitl" small>awaiting HITL approval</Badge>
+        </div>
+        <pre className="mono" style={{padding:"14px 18px",margin:0,fontSize:11,lineHeight:1.75,color:C.codeText,whiteSpace:"pre-wrap"}}>
+{`Subject: How the accelerator works on your ${persona.plan.freq.toLowerCase()} payout
+
+Team —
+
+Quick, honest math on the accelerator. Up to 100% of goal you
+earn linearly. Past 100%, every point pays ${persona.plan.accelerator||2}× — so finishing
+at 105% doesn't pay 5% more, it pays ${Math.round((persona.plan.accelerator||2)*5)}% more incentive.
+
+Worked example (field median):
+  · Goal: 100%  →  100% of target incentive
+  · Finish 106% →  ${Math.round(100+(persona.plan.accelerator||2)*6)}% of target incentive
+  · Cap: ${persona.plan.cap}% — past that, additional volume doesn't pay
+
+Your personal curve is in the statement portal. Questions →
+ask iZO first; it answers with YOUR numbers in seconds.
+
+— IC Team`}</pre>
+      </div>
+    );
+  if(script.chart==="launchTiles"){
+    const ls=data.launchStrip;
+    const tiles=ls?[["NBRx Velocity",ls.nbrxVelocity,C.success],["Activated",ls.activated+"%",C.primary],["Ramp vs Plan",ls.rampVsPlan,C.success],["Zero-NBRx",ls.zeroTerr,C.error]]:
+      [["Active Launch","None","#94A3B8"],["Velocity Watch","armed",C.primary],["Analog Models","6 loaded",C.primary],["IC Elasticity","ready",C.primary]];
+    return <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>{tiles.map(([l,v,c])=>(
+      <div key={l} style={{padding:"12px 10px",borderRadius:10,background:c+"0E",border:`1px solid ${c}33`,textAlign:"center"}}>
+        <div style={{fontSize:17,fontWeight:800,color:c}}>{v}</div><div style={{fontSize:9,color:C.muted,fontWeight:600,marginTop:2}}>{l}</div>
+      </div>))}</div>;
+  }
+  return null;
+};
+const AiMessage=({script,data,persona,onFollowup,live})=>{
+  const flat=script.trace.flatMap(t=>t.lines.map(ln=>({phase:t.phase,ln})));
+  const answers=script.answer(data,persona);
+  const [n,setN]=useState(live?0:999);
+  const [stage,setStage]=useState(live?"trace":"done");   /* trace → answer → done */
+  const [ansN,setAnsN]=useState(live?0:answers.length);
+  useEffect(()=>{
+    if(!live)return;
+    const iv=setInterval(()=>setN(p=>{
+      if(p>=flat.length){clearInterval(iv);setStage("answer");return p}
+      return p+1;
+    }),240);
+    return()=>clearInterval(iv);
+  },[]);
+  useEffect(()=>{
+    if(stage!=="answer")return;
+    const iv=setInterval(()=>setAnsN(p=>{
+      if(p>=answers.length){clearInterval(iv);setStage("done");return p}
+      return p+1;
+    }),650);
+    return()=>clearInterval(iv);
+  },[stage]);
+  let lastPhase=null;
+  return (
+    <div style={{display:"flex",gap:11,animation:"fadeUp .3s ease-out"}}>
+      <div style={{width:32,height:32,borderRadius:9,background:`linear-gradient(135deg,${C.primary},${C.primaryLight})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#fff",flexShrink:0}}>iZ</div>
+      <div style={{flex:1,minWidth:0,maxWidth:680}}>
+        <div className="mono" style={{background:C.codeBg,borderRadius:10,padding:"11px 14px",fontSize:10,lineHeight:1.65,marginBottom:10}}>
+          {flat.slice(0,n).map((f,i)=>{
+            const sp=f.phase!==lastPhase;lastPhase=f.phase;
+            return <div key={i} style={{animation:"fadeIn .2s ease-out"}}>
+              {sp&&<div style={{color:PHASE_COLORS[f.phase],fontWeight:700,marginTop:i>0?6:0,letterSpacing:1}}>{PHASE_ICONS[f.phase]} {f.phase}</div>}
+              <div style={{color:"#CBD5E1",paddingLeft:13}}><span style={{color:C.codeComment}}>▸</span> {f.ln}</div>
+            </div>;
+          })}
+          {n<flat.length&&<span style={{display:"inline-block",width:6,height:11,background:"#7DD3FC",marginLeft:13,animation:"blink .8s infinite"}}/>}
+          {n>=flat.length&&<div style={{color:"#4ADE80",fontWeight:700,marginTop:6}}>✓ analysis complete</div>}
+        </div>
+        {answers.slice(0,ansN).map((a,i)=>(
+          <p key={i} style={{fontSize:13,color:C.text,lineHeight:1.65,margin:"0 0 10px",animation:"fadeUp .4s ease-out"}}>{a}</p>
+        ))}
+        {stage==="done"&&script.chart&&(
+          <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:10,animation:"fadeUp .4s ease-out"}}>
+            <CopilotChart script={script} data={data} persona={persona}/>
+          </div>
+        )}
+        {stage==="done"&&(
+          <div style={{display:"flex",flexWrap:"wrap",gap:7,animation:"fadeIn .4s ease-out"}}>
+            {script.followups.map(f=>(
+              <div key={f} onClick={()=>onFollowup(f)} style={{padding:"6px 13px",borderRadius:15,fontSize:11,fontWeight:600,cursor:"pointer",border:`1px solid ${C.primary}44`,background:C.primaryBg,color:C.primary}}>{f}</div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+const Copilot=({persona,data,onNav})=>{
+  const [thread,setThread]=useState([]);
+  const [input,setInput]=useState("");
+  const scrollRef=useRef(null);
+  const ask=(q)=>{
+    if(!q.trim())return;
+    const lower=q.toLowerCase();
+    const script=COPILOT_SCRIPTS.find(s=>s.match.some(m=>lower.includes(m)))||COPILOT_SCRIPTS.find(s=>s.id==="fallback");
+    setThread(t=>[...t,{role:"user",text:q},{role:"ai",script,key:Date.now()+Math.random()}]);
+    setInput("");
+  };
+  useEffect(()=>{if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight});
+  const suggested=COPILOT_SCRIPTS.filter(s=>s.id!=="fallback").map(s=>s.prompt);
+  return (
+    <div style={{padding:26,display:"flex",flexDirection:"column",height:"calc(100vh - 57px)"}}>
+      <ScreenHeader title="✨ Ask iZO Copilot" sub={"A conversational IC analyst over "+persona.name+"'s live data — every answer shows its reasoning and queries before it shows conclusions."}
+        right={<Badge variant="primary">grounded in {data.cycle.period} data</Badge>}/>
+      <div ref={scrollRef} style={{flex:1,overflowY:"auto",background:C.card,borderRadius:14,border:`1px solid ${C.border}`,padding:22,marginBottom:14}}>
+        {thread.length===0&&(
+          <div style={{textAlign:"center",padding:"44px 20px"}}>
+            <div style={{width:56,height:56,borderRadius:16,background:`linear-gradient(135deg,${C.primary},${C.primaryLight})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:800,color:"#fff",margin:"0 auto 14px"}}>iZ</div>
+            <div style={{fontSize:16,fontWeight:800,color:C.heading}}>Ask anything about {persona.name}'s incentives</div>
+            <div style={{fontSize:12,color:C.muted,marginTop:6,marginBottom:22}}>Connected to Snowflake · IQVIA Xponent · Varicent ICM · Veeva CRM</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:9,justifyContent:"center",maxWidth:660,margin:"0 auto"}}>
+              {suggested.map(s=>(
+                <div key={s} onClick={()=>ask(s)} style={{padding:"9px 16px",borderRadius:18,fontSize:12,fontWeight:600,cursor:"pointer",border:`1px solid ${C.border}`,background:"#F8FAFC",color:C.heading,transition:"all .2s"}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=C.primary;e.currentTarget.style.background=C.primaryBg}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background="#F8FAFC"}}>{s}</div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div style={{display:"grid",gap:18}}>
+          {thread.map((m,i)=>m.role==="user"?(
+            <div key={i} style={{display:"flex",justifyContent:"flex-end",animation:"fadeUp .3s ease-out"}}>
+              <div style={{background:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",padding:"10px 16px",borderRadius:"14px 14px 3px 14px",fontSize:13,maxWidth:480,lineHeight:1.5}}>{m.text}</div>
+            </div>
+          ):(
+            <AiMessage key={m.key} script={m.script} data={data} persona={persona} onFollowup={ask} live={i===thread.length-1}/>
+          ))}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:10}}>
+        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")ask(input)}}
+          placeholder={"Ask about "+persona.name+"'s payouts, goals, plan design, SFE…"}
+          style={{flex:1,padding:"13px 18px",borderRadius:11,border:`1.5px solid ${C.border}`,fontSize:13,outline:"none",fontFamily:"inherit",background:C.card}}
+          onFocus={e=>e.target.style.borderColor=C.primary} onBlur={e=>e.target.style.borderColor=C.border}/>
+        <button onClick={()=>ask(input)} style={{padding:"13px 26px",borderRadius:11,background:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:700,fontSize:13,boxShadow:`0 4px 14px ${C.primary}44`}}>Send ↑</button>
+      </div>
+    </div>
+  );
+};
 /* ▓▓ END:SCREEN-COPILOT ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-REGISTRY ▓▓ */
-const Registry=({persona,data,onNav})=>(
-  <StubScreen title="Agent Registry" icon="🤖" desc="11 IC agents — 4-phase loop, simulate runs, HITL gates." persona={persona} data={data}/>
-);
+const ICAgentDetail=({agent,onBack})=>{
+  const a=agent;
+  const [activePhase,setActivePhase]=useState(0);
+  const [running,setRunning]=useState(false);
+  const [completed,setCompleted]=useState([]);
+  const [hitlTriggered,setHitlTriggered]=useState(false);
+  const [reviews,setReviews]=useState(a.hitlConfig.recentReviews.map(r=>r.decision));
+  const ivRef=useRef(null);
+  const simulateRun=()=>{
+    setRunning(true);setActivePhase(0);setCompleted([]);setHitlTriggered(false);
+    let phase=0;
+    ivRef.current=setInterval(()=>{
+      setCompleted(prev=>[...prev,phase]);
+      phase++;
+      if(phase<4){
+        setActivePhase(phase);
+        if(a.steps[phase].phase===a.hitlConfig.approvalGate)setHitlTriggered(true);
+      } else {clearInterval(ivRef.current);setTimeout(()=>setRunning(false),1400)}
+    },1700);
+  };
+  useEffect(()=>()=>clearInterval(ivRef.current),[]);
+  return (
+    <div style={{animation:"fadeUp .3s ease-out"}}>
+      <div onClick={onBack} style={{display:"inline-flex",alignItems:"center",gap:7,fontSize:12,fontWeight:600,color:C.primary,cursor:"pointer",marginBottom:14}}>← All agents</div>
+      <div style={{background:`linear-gradient(135deg,${C.sidebar},${C.sidebarDark})`,borderRadius:14,padding:"24px 28px",marginBottom:18,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-20,right:-20,width:190,height:190,borderRadius:"50%",background:`${a.color}10`}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:15,alignItems:"center"}}>
+            <div style={{width:56,height:56,borderRadius:15,background:`${a.color}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:27,border:`2px solid ${a.color}66`}}>{a.icon}</div>
+            <div>
+              <div style={{fontSize:20,fontWeight:800,color:"#fff"}}>{a.name}</div>
+              <div style={{fontSize:12.5,color:a.color,fontWeight:600,marginTop:2}}>Persona: {a.persona}</div>
+              <div style={{fontSize:11.5,color:"#A0B4CC",marginTop:4,maxWidth:520,lineHeight:1.5}}>{a.desc}</div>
+            </div>
+          </div>
+          <button onClick={simulateRun} disabled={running} style={{padding:"10px 22px",borderRadius:8,background:running?`${a.color}88`:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:600,fontSize:12.5,boxShadow:`0 4px 14px ${C.primary}44`,opacity:running?.75:1}}>
+            {running?"⟳ Running…":"▶ Simulate Agent Run"}
+          </button>
+        </div>
+        <div style={{display:"flex",gap:26,marginTop:18}}>
+          {[["Tasks Today",a.tasks,C.primaryLight],["Success Rate",a.success+"%","#4ADE80"],["Connected Tools",a.tools.length,"#fff"],["HITL Gate",a.hitlConfig.approvalGate,"#FB923C"]].map(([l,v,c])=>(
+            <div key={l} style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:c}}>{v}</div><div style={{fontSize:9.5,color:"#7BA3C9"}}>{l}</div></div>
+          ))}
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:18}}>
+        <SectionCard title="🎯 Capabilities" pad={16}>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {a.capabilities.map(c=><div key={c} style={{padding:"6px 13px",borderRadius:8,background:`${a.color}10`,border:`1px solid ${a.color}28`,fontSize:11.5,fontWeight:500,color:a.color}}>{c}</div>)}
+          </div>
+        </SectionCard>
+        <SectionCard title="🔧 Connected Tools" pad={16}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            {a.tools.map(t=>(
+              <div key={t} style={{padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:8,background:"#F8FAFC"}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:C.success,animation:"pulseGlow 2s infinite"}}/>
+                <span style={{fontSize:11.5,fontWeight:600,color:C.heading}}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      </div>
+      <div style={{background:C.card,borderRadius:14,border:`2px solid ${C.hitlBorder}`,overflow:"hidden",marginBottom:18}}>
+        <div style={{padding:"14px 22px",borderBottom:`1px solid ${C.border}`,background:"linear-gradient(135deg,#E8F4FD,#F0F7FF)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:11}}>
+            <div style={{width:34,height:34,borderRadius:9,background:"#1E82BD18",border:"2px solid #1E82BD44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,animation:"hitlPulse 2s infinite"}}>👤</div>
+            <div>
+              <div style={{fontWeight:700,fontSize:13.5,color:C.heading}}>Human-in-the-Loop Gate</div>
+              <div style={{fontSize:10.5,color:C.muted}}>Active at <strong>{a.hitlConfig.approvalGate}</strong> phase · escalation threshold <strong>{a.hitlConfig.escalationThreshold}</strong></div>
+            </div>
+          </div>
+          {hitlTriggered?<Badge variant="hitl">👤 Gate triggered this run</Badge>:<Badge variant="primary">HITL Active</Badge>}
+        </div>
+        <div style={{padding:18}}>
+          <div style={{fontSize:10.5,fontWeight:700,color:C.primary,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Requires human approval</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16}}>
+            {a.hitlConfig.requiresHumanFor.map(r=><div key={r} style={{padding:"6px 13px",borderRadius:8,background:"#FFF7ED",border:"1px solid #FB923C44",fontSize:11,fontWeight:500,color:"#EA580C"}}>{r}</div>)}
+          </div>
+          <div style={{fontSize:10.5,fontWeight:700,color:C.primary,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Recent reviews</div>
+          <div style={{display:"grid",gap:8}}>
+            {a.hitlConfig.recentReviews.map((r,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"9px 14px",borderRadius:9,border:`1px solid ${C.border}`,background:reviews[i]==="Pending"?"#FFFBEB":"#FAFBFC"}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:11.5,fontWeight:600,color:C.heading}}>{r.action}</div>
+                  <div style={{fontSize:10,color:C.muted}}>{r.reviewer} · {r.time}</div>
+                </div>
+                {reviews[i]==="Pending"?(
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>setReviews(p=>p.map((v,j)=>j===i?"Approved":v))} style={{padding:"5px 13px",borderRadius:6,background:C.success,color:"#fff",fontWeight:600,fontSize:10.5}}>✓ Approve</button>
+                    <button onClick={()=>setReviews(p=>p.map((v,j)=>j===i?"Denied":v))} style={{padding:"5px 13px",borderRadius:6,background:C.error,color:"#fff",fontWeight:600,fontSize:10.5}}>✕ Deny</button>
+                  </div>
+                ):<Badge variant={reviews[i]==="Approved"?"success":"error"} small>{reviews[i]}</Badge>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <SectionCard title="Agentic Execution Flow" sub="How this agent plans, executes, reflects and acts — with the HITL gate live"
+        right={<div style={{display:"flex",gap:8}}>{running&&<Badge variant="info">⟳ simulating</Badge>}{hitlTriggered&&<Badge variant="hitl">👤 HITL gate hit</Badge>}</div>} pad={0}>
+        <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,background:"#F8FAFC"}}>
+          {a.steps.map((s,i)=>(
+            <div key={s.phase} onClick={()=>!running&&setActivePhase(i)} style={{flex:1,padding:"13px 10px",textAlign:"center",cursor:"pointer",borderBottom:activePhase===i?`3px solid ${PHASE_COLORS[s.phase]}`:"3px solid transparent",background:activePhase===i?C.card:"transparent",opacity:running&&!completed.includes(i)&&activePhase!==i?.45:1,transition:"all .3s"}}>
+              <div style={{fontSize:17}}>{completed.includes(i)?"✅":PHASE_ICONS[s.phase]}</div>
+              <div style={{fontSize:10.5,fontWeight:700,color:PHASE_COLORS[s.phase],letterSpacing:.5,marginTop:2}}>{s.phase}</div>
+              <div style={{fontSize:9,color:C.muted}}>{s.title}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{padding:20}}>
+          {(()=>{const s=a.steps[activePhase];return (
+            <div key={activePhase} style={{animation:"fadeUp .3s ease-out"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                <span style={{padding:"3px 11px",borderRadius:7,background:`${PHASE_COLORS[s.phase]}18`,fontSize:10.5,fontWeight:800,color:PHASE_COLORS[s.phase],letterSpacing:.8}}>{s.phase}</span>
+                <span style={{fontWeight:700,fontSize:14,color:C.heading}}>{s.title}</span>
+                {running&&activePhase===Math.max(...completed.map(x=>x+1),0)&&<span style={{width:14,height:14,border:`2.5px solid ${PHASE_COLORS[s.phase]}33`,borderTopColor:PHASE_COLORS[s.phase],borderRadius:"50%",display:"inline-block",animation:"spin .8s linear infinite"}}/>}
+              </div>
+              <div style={{fontSize:12,color:C.muted,marginBottom:13}}>{s.desc}</div>
+              <div style={{display:"grid",gap:7}}>
+                {s.actions.map((act,i)=>(
+                  <div key={i} style={{display:"flex",gap:9,padding:"9px 13px",borderRadius:8,background:act.startsWith("⚠️")?"#FFF7ED":"#F8FAFC",border:`1px solid ${act.startsWith("⚠️")?"#FB923C44":C.border}`,fontSize:11.5,color:act.startsWith("⚠️")?"#9A3412":C.text,lineHeight:1.5,animation:`fadeUp .3s ease-out ${i*.06}s both`}}>
+                    <span style={{color:PHASE_COLORS[s.phase],fontWeight:800}}>{act.startsWith("⚠️")?"":"▸"}</span>{act}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )})()}
+        </div>
+      </SectionCard>
+    </div>
+  );
+};
+const Registry=({persona,data,onNav})=>{
+  const [sel,setSel]=useState(null);
+  const [hovered,setHovered]=useState(null);
+  const agent=AGENTS.find(a=>a.id===sel);
+  return (
+    <div style={{padding:26}}>
+      {agent?<ICAgentDetail agent={agent} onBack={()=>setSel(null)}/>:(
+        <Fragment>
+          <ScreenHeader title="🤖 IC Agent Registry" sub={"11 purpose-built agents run "+persona.name+"'s incentive operation end-to-end — each on an autonomous Plan → Tool Use → Reflect → Act loop with configurable human gates."}/>
+          <div style={{background:`linear-gradient(135deg,${C.sidebar},${C.sidebarDark})`,borderRadius:14,padding:"20px 28px",marginBottom:18,position:"relative",overflow:"hidden"}}>
+            <div style={{fontSize:10.5,fontWeight:600,color:C.primaryLight,textTransform:"uppercase",letterSpacing:2,marginBottom:6}}>iZO Orchestration Layer</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"8px 0"}}>
+              {["PLAN","TOOL USE","REFLECT","ACT"].map((phase,i)=>(
+                <Fragment key={phase}>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+                    <div style={{width:48,height:48,borderRadius:13,background:`${PHASE_COLORS[phase]}22`,border:`2px solid ${PHASE_COLORS[phase]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,animation:`pulseGlow 3s ease-in-out ${i*.75}s infinite`}}>{PHASE_ICONS[phase]}</div>
+                    <div style={{fontSize:10,fontWeight:700,color:PHASE_COLORS[phase],letterSpacing:.5}}>{phase}</div>
+                  </div>
+                  {i<3&&<div style={{width:52,height:2,background:`linear-gradient(90deg,${PHASE_COLORS[phase]},${PHASE_COLORS[["PLAN","TOOL USE","REFLECT","ACT"][i+1]]})`,margin:"0 4px 18px",position:"relative",overflow:"hidden"}}>
+                    <div style={{position:"absolute",top:0,left:0,width:"30%",height:"100%",background:"rgba(255,255,255,.6)",animation:`flowPulse 2s ease-in-out ${i*.5}s infinite`}}/>
+                  </div>}
+                </Fragment>
+              ))}
+              <div style={{marginLeft:14,marginBottom:18,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                <div style={{width:48,height:48,borderRadius:13,background:"rgba(234,88,12,.15)",border:"2px solid #EA580C",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,animation:"hitlPulse 2s infinite"}}>👤</div>
+                <div style={{fontSize:9,fontWeight:700,color:"#EA580C",letterSpacing:.5}}>HITL GATE</div>
+              </div>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:14,marginBottom:18}}>
+            {[["Active Agents","11","🤖",C.primary],["Tasks Today",AGENTS.reduce((s,a)=>s+a.tasks,0).toLocaleString(),"⚡",C.heading],["Success Rate","98.4%","✅",C.success],["Connected Tools",IC_TOOLS.length,"🔌",C.primaryLight],["Pending HITL","5","👤","#EA580C"]].map(([l,v,ic,c],i)=>(
+              <div key={l} style={{background:C.card,borderRadius:12,padding:"15px 19px",border:`1px solid ${C.border}`,animation:`fadeUp .4s ease-out ${i*.07}s both`}}>
+                <div style={{fontSize:19,marginBottom:4}}>{ic}</div>
+                <div style={{fontSize:23,fontWeight:800,color:c}}>{v}</div>
+                <div style={{fontSize:11,color:C.muted}}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:15}}>
+            {AGENTS.map((a,i)=>(
+              <div key={a.id} onClick={()=>setSel(a.id)} onMouseEnter={()=>setHovered(a.id)} onMouseLeave={()=>setHovered(null)}
+                style={{background:C.card,borderRadius:13,border:`1px solid ${hovered===a.id?a.color:C.border}`,cursor:"pointer",transition:"all .25s",overflow:"hidden",animation:`fadeUp .4s ease-out ${i*.05}s both`,boxShadow:hovered===a.id?`0 8px 28px ${a.color}1A`:"0 1px 3px rgba(0,0,0,.04)",transform:hovered===a.id?"translateY(-2px)":"none"}}>
+                <div style={{padding:"15px 19px 12px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:hovered===a.id?`${a.color}06`:"transparent"}}>
+                  <div style={{display:"flex",gap:11,alignItems:"center"}}>
+                    <div style={{width:40,height:40,borderRadius:11,background:`${a.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,border:`1px solid ${a.color}33`}}>{a.icon}</div>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:12.5,color:C.heading}}>{a.name}</div>
+                      <div style={{fontSize:10,color:a.color,fontWeight:600}}>{a.persona}</div>
+                    </div>
+                  </div>
+                  <Badge variant="success" small>Active</Badge>
+                </div>
+                <div style={{padding:"11px 19px 15px"}}>
+                  <p style={{fontSize:11,color:C.muted,lineHeight:1.5,marginBottom:11,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{a.desc}</p>
+                  <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:11,flexWrap:"wrap"}}>
+                    {["PLAN","TOOL USE","REFLECT","ACT"].map((p,pi)=>(
+                      <Fragment key={p}><PhasePill phase={p}/>{pi<3&&<span style={{color:C.light,fontSize:9}}>→</span>}</Fragment>
+                    ))}
+                    <span style={{marginLeft:3,fontSize:11,color:"#EA580C"}} title={`HITL gate at ${a.hitlConfig.approvalGate}`}>👤</span>
+                  </div>
+                  <div style={{display:"flex",gap:9}}>
+                    <div style={{flex:1,background:"#F0F4FA",borderRadius:7,padding:"6px 9px",textAlign:"center"}}><div style={{fontSize:14,fontWeight:800,color:C.heading}}>{a.tasks}</div><div style={{fontSize:8.5,color:C.muted}}>Tasks Today</div></div>
+                    <div style={{flex:1,background:"#F0F4FA",borderRadius:7,padding:"6px 9px",textAlign:"center"}}><div style={{fontSize:14,fontWeight:800,color:a.success>=99?C.success:C.warn}}>{a.success}%</div><div style={{fontSize:8.5,color:C.muted}}>Success</div></div>
+                    <div style={{flex:1,background:"#F0F4FA",borderRadius:7,padding:"6px 9px",textAlign:"center"}}><div style={{fontSize:14,fontWeight:800,color:C.heading}}>{a.tools.length}</div><div style={{fontSize:8.5,color:C.muted}}>Tools</div></div>
+                  </div>
+                  <div style={{marginTop:10,display:"flex",flexWrap:"wrap",gap:4}}>
+                    {a.tools.slice(0,4).map(t=><Badge key={t} variant="neutral" small>{t}</Badge>)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Fragment>
+      )}
+    </div>
+  );
+};
 /* ▓▓ END:SCREEN-REGISTRY ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-GOVERN ▓▓ */
-const Governance=({persona,data,onNav})=>(
-  <StubScreen title="Governance & Compliance" icon="🛡️" desc="Fairness audit, shadow-payout parity, audit trail, model cards & HITL policy." persona={persona} data={data}/>
-);
+const Governance=({persona,data,onNav})=>{
+  const [tab,setTab]=useState("fairness");
+  const [trailFilter,setTrailFilter]=useState("all");
+  const [policies,setPolicies]=useState({autoLow:true,timeEsc:true,crossAgent:true,weekend:false});
+  const g=mulberry32(hashStr("gov-"+persona.id));
+  const cohorts=[
+    {label:"Gender",groups:[{name:"Female",value:Math.round(94+g()*5)},{name:"Male",value:100}]},
+    {label:"Tenure <2y",groups:[{name:"<2 years",value:Math.round(84+g()*9)},{name:"2+ years",value:100}]},
+    {label:"Tenure 5y+",groups:[{name:"5+ years",value:Math.round(95+g()*6)},{name:"<5 years",value:100}]},
+  ];
+  const parity=REGIONS.map((rg,i)=>{
+    const flagged=i===1||i===3;
+    return {region:rg.r,stmts:Math.round(persona.reps/5),delta:flagged?Math.round(26+g()*22):Math.round(g()*8),flagged,
+      cause:flagged?(i===1?"Stale rate table (v2.3 vs v2.4)":"Split-credit rule gap on co-sold orders"):"—"};
+  });
+  const trailAgents=["Payout Auditor","Goal Setting","Field Inquiry","P4P Analyst","Fairness & Compliance","IC Communications"];
+  const trail=Array.from({length:14},(_,i)=>{
+    const ag=trailAgents[Math.floor(g()*trailAgents.length)];
+    const acts={"Payout Auditor":["Shadow recalc certified","Statement hold released","Rate-table drift fix applied"],
+      "Goal Setting":["Quota restated (alignment change)","Bias screen executed","Goal lineage exported"],
+      "Field Inquiry":["Dispute auto-resolved","Adjustment routed to HITL","Clawback reversal drafted"],
+      "P4P Analyst":["ρ recomputed post-calc","Outlier tags refreshed","Club cutline verified"],
+      "Fairness & Compliance":["80%-rule screen passed","Cohort audit exported","Exception logged"],
+      "IC Communications":["Statement explainer sent","Plan FAQ approved","Scorecard batch generated"]};
+    return {when:"Jun "+(9-Math.floor(i/3))+", "+String(8+Math.floor(g()*10)).padStart(2,"0")+":"+String(Math.floor(g()*60)).padStart(2,"0"),
+      agent:ag,what:acts[ag][Math.floor(g()*3)],who:g()>.6?["S. Okafor","J. Lindqvist","M. Torres","IC Council"][Math.floor(g()*4)]:"—",
+      hitl:g()>.6};
+  });
+  const filteredTrail=trailFilter==="all"?trail:trail.filter(t=>trailFilter==="hitl"?t.hitl:t.agent===trailFilter);
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="🛡️ Governance & Compliance" sub={"Every payout, goal and agent decision at "+persona.name+" is evidenced, audited and regulator-ready — by construction, not by quarterly scramble."}
+        right={<Badge variant="success">99.97% shadow parity</Badge>}/>
+      <TabBar tabs={[{id:"fairness",icon:"⚖️",label:"Fairness Audit"},{id:"audit",icon:"🧮",label:"Payout Audit"},{id:"trail",icon:"📜",label:"Audit Trail"},{id:"models",icon:"🧠",label:"Model Cards & HITL Policy"}]} active={tab} onChange={setTab}/>
+      {tab==="fairness"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:18,animation:"fadeUp .3s ease-out"}}>
+          <SectionCard title="Disparate-Impact Screen — Payout Rate by Cohort" sub="Indexed to reference group = 100. Any cohort below the 80% line fails the four-fifths rule." pad={14}>
+            <BarChart grouped={cohorts.map(c=>({label:c.label,series:c.groups.map((gr,i)=>({name:gr.name,value:gr.value,color:i===0?"#BE185D":"#94A3B8"}))}))}
+              w={560} h={250} vFmt={v=>v} refLine={{value:80,label:"80% RULE"}}/>
+          </SectionCard>
+          <div style={{display:"grid",gap:14,alignContent:"start"}}>
+            <SectionCard title="Verdict" pad={16}>
+              <div style={{display:"flex",alignItems:"center",gap:13}}>
+                <div style={{width:46,height:46,borderRadius:12,background:C.successBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>✅</div>
+                <div><div style={{fontWeight:800,fontSize:14,color:C.heading}}>All cohorts pass the 80% rule</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:3,lineHeight:1.5}}>Screened every cycle by the Fairness & Compliance Agent. Watch-item: the under-2-years tenure cohort sits lowest — driven by ramp goals, not plan mechanics.</div></div>
+              </div>
+            </SectionCard>
+            <SectionCard title="Methodology" pad={16}>
+              <div style={{display:"grid",gap:8}}>
+                {[["Population",persona.reps+" "+persona.roleLabel.toLowerCase()+" · "+data.cycle.period],["Metric","Payout rate (% of TI), perf-adjusted"],["Test","Four-fifths rule + regression control"],["Demographics","Workday, de-identified cohorts"],["Routing","Findings → Legal + HR, never auto-acted"]].map(([l,v])=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:11.5,padding:"7px 11px",borderRadius:7,background:"#F8FAFC"}}><span style={{fontWeight:700,color:C.heading}}>{l}</span><span style={{color:C.muted,textAlign:"right"}}>{v}</span></div>
+                ))}
+              </div>
+            </SectionCard>
+          </div>
+        </div>
+      )}
+      {tab==="audit"&&(
+        <div style={{animation:"fadeUp .3s ease-out"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:18}}>
+            <StatCard icon="🧮" label="Statements Shadow-Recalced" value={persona.reps} sub="100% of field, every run" color={C.heading}/>
+            <StatCard icon="✅" label="Parity" value="99.97%" sub="line-item exact match" color={C.success}/>
+            <StatCard icon="⚠️" label="Open Discrepancies" value="2" sub="both >25bps, root-caused" color={C.warn}/>
+            <StatCard icon="🔒" label="Payroll Feed" value={data.cycle.current>=6?"Released":"Held"} sub="gated on controller sign-off" color={data.cycle.current>=6?C.success:C.warn}/>
+          </div>
+          <SectionCard title="Shadow Recalculation — Parity by Region" sub="The Payout Auditor recomputes every statement on independent rails and diffs against Varicent to the basis point" pad={0}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+              <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>
+                {["Region","Statements","Max Δ (bps)","Status","Root Cause"].map(h=><th key={h} style={{padding:"10px 14px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.6,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {parity.map((p,i)=>(
+                  <tr key={p.region} style={{borderBottom:`1px solid ${C.border}66`,background:p.flagged?"#FFFBEB":"transparent",animation:`fadeUp .3s ease-out ${i*.05}s both`}}>
+                    <td style={{padding:"10px 14px",fontWeight:700,color:C.heading}}>{p.region}</td>
+                    <td style={{padding:"10px 14px",color:C.text}}>{p.stmts}</td>
+                    <td style={{padding:"10px 14px",fontWeight:800,color:p.flagged?C.warn:C.success}} className="mono">{p.delta} bps</td>
+                    <td style={{padding:"10px 14px"}}><Badge variant={p.flagged?"warning":"success"} small>{p.flagged?"DISCREPANCY":"PARITY"}</Badge></td>
+                    <td style={{padding:"10px 14px",fontSize:11,color:p.flagged?"#92400E":C.light}}>{p.cause}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{padding:"12px 18px",borderTop:`1px solid ${C.border}`,fontSize:11,color:C.muted,background:"#FAFBFC"}}>
+              🧮 <strong>Payout Auditor:</strong> both discrepancies are reproduced, root-caused, and held from the payroll feed. Fix + recalc queued behind controller approval — nothing ships unbalanced.
+            </div>
+          </SectionCard>
+        </div>
+      )}
+      {tab==="trail"&&(
+        <SectionCard title="Immutable Audit Trail" sub="Who (or which agent) did what, when — with HITL fingerprints on every gated action"
+          right={<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {["all","hitl",...trailAgents.slice(0,3)].map(f=>(
+              <div key={f} onClick={()=>setTrailFilter(f)} style={{padding:"5px 12px",borderRadius:13,fontSize:10,fontWeight:700,cursor:"pointer",border:`1px solid ${trailFilter===f?C.primary:C.border}`,background:trailFilter===f?C.primaryBg:"#FAFBFC",color:trailFilter===f?C.primary:C.muted}}>{f==="all"?"All":f==="hitl"?"👤 HITL only":f}</div>
+            ))}
+          </div>} pad={0} style={{animation:"fadeUp .3s ease-out"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+            <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>
+              {["When","Agent","Action","Human Reviewer","HITL"].map(h=><th key={h} style={{padding:"10px 14px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.6,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {filteredTrail.map((t,i)=>(
+                <tr key={i} style={{borderBottom:`1px solid ${C.border}66`,animation:`fadeUp .25s ease-out ${i*.03}s both`}}>
+                  <td style={{padding:"9px 14px",color:C.muted,whiteSpace:"nowrap"}} className="mono">{t.when}</td>
+                  <td style={{padding:"9px 14px",fontWeight:700,color:C.heading}}>{t.agent}</td>
+                  <td style={{padding:"9px 14px",color:C.text}}>{t.what}</td>
+                  <td style={{padding:"9px 14px",color:t.who==="—"?C.light:C.text}}>{t.who}</td>
+                  <td style={{padding:"9px 14px"}}>{t.hitl?<Badge variant="hitl" small>👤 GATED</Badge>:<Badge variant="neutral" small>AUTO</Badge>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </SectionCard>
+      )}
+      {tab==="models"&&(
+        <div style={{animation:"fadeUp .3s ease-out"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
+            {AGENTS.map((a,i)=>(
+              <div key={a.id} style={{background:C.card,borderRadius:11,border:`1px solid ${C.border}`,padding:"13px 15px",animation:`fadeUp .3s ease-out ${i*.04}s both`}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                  <span style={{fontSize:16}}>{a.icon}</span>
+                  <span style={{fontSize:11,fontWeight:700,color:C.heading,lineHeight:1.2}}>{a.name.replace(" Agent","")}</span>
+                </div>
+                {[["Model","iZO-IC v3.2"],["Last eval","Jun 2 · passed"],["Gate",a.hitlConfig.approvalGate],["Threshold",a.hitlConfig.escalationThreshold]].map(([l,v])=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:9.5,padding:"3px 0",color:C.muted}}><span>{l}</span><span style={{fontWeight:700,color:l==="Gate"?"#EA580C":C.heading}} className="mono">{v}</span></div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            <SectionCard title="⚡ HITL Escalation Policy" pad={18}>
+              <div style={{display:"grid",gap:11}}>
+                {[["autoLow","Auto-approve routine tasks","Actions below escalation threshold approved automatically with full logging"],
+                  ["timeEsc","Time-based escalation","Pending items auto-escalate to VP Sales Ops after 30 minutes"],
+                  ["crossAgent","Cross-agent escalation","2+ agents flagging the same territory escalates to IC Council"],
+                  ["weekend","Weekend hold","All approvals held until Monday 9 AM ET"]].map(([k,l,d])=>(
+                  <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 15px",borderRadius:10,border:`1px solid ${C.border}`,background:"#FAFBFC"}}>
+                    <div style={{flex:1,paddingRight:10}}>
+                      <div style={{fontSize:12,fontWeight:600,color:C.text}}>{l}</div>
+                      <div style={{fontSize:10,color:C.muted,marginTop:2}}>{d}</div>
+                    </div>
+                    <div onClick={()=>setPolicies(p=>({...p,[k]:!p[k]}))} style={{width:42,height:23,borderRadius:12,background:policies[k]?C.primary:"#D9E2EC",position:"relative",cursor:"pointer",transition:"all .2s",flexShrink:0}}>
+                      <div style={{width:19,height:19,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:policies[k]?21:2,boxShadow:"0 1px 4px rgba(0,0,0,.15)",transition:"all .2s"}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+            <SectionCard title="💵 Auto-Approve Thresholds" sub="Dollar bands the agents may act on without a human" pad={18}>
+              <div style={{display:"grid",gap:10}}>
+                {[["Dispute adjustments","$1,000","Field Inquiry"],["Quota restatements","$0 — always HITL","Goal Setting"],["Statement corrections","$500","Payout Auditor"],["Clawback reversals","$0 — always HITL","Field Inquiry"],["Plan parameter changes","$0 — always HITL","Plan Simulator"]].map(([l,v,ag])=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 15px",borderRadius:10,border:`1px solid ${C.border}`,background:"#FAFBFC"}}>
+                    <div><div style={{fontSize:12,fontWeight:600,color:C.text}}>{l}</div><div style={{fontSize:9.5,color:C.muted}}>{ag} Agent</div></div>
+                    <Badge variant={v.startsWith("$0")?"hitl":"primary"} small>{v}</Badge>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 /* ▓▓ END:SCREEN-GOVERN ▓▓ */
 
 /* ▓▓ SECTION:APP ▓▓ */
