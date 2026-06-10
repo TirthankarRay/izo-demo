@@ -386,6 +386,156 @@ const AGENTS=[
      {phase:"TOOL USE",title:"Compute Dimension Scores",desc:"Run the scoring battery against live IC and sales data.",actions:["Snowflake: attainment, payout & quota distributions by territory","Varicent: plan parameters, payout traces, exception log","IQVIA: prescriber-level demand for windfall detection","Power BI: refresh health-score dataset"],color:"#1E82BD"},
      {phase:"REFLECT",title:"Diagnose & Prioritize",desc:"Convert scores into findings with root-cause hypotheses and route to specialist agents.",actions:["Compare each score vs guardrail and prior period","Attach evidence micro-charts to each finding","Route: fairness → Goal Agent, curve → Plan Simulator","Draft exec narrative with 3 headline findings"],color:"#F59E0B"},
      {phase:"ACT",title:"Publish & Monitor",desc:"Publish the health report and arm watchlists. HITL gate for exec publication.",actions:["⚠️ HITL GATE: exec report publication requires VP sign-off","Update Command Center gauge + dimension cards","Arm watchlist alerts on any dimension <60","Notify #ic-ops with summary and deep links"],color:"#10B981"}]},
+  {id:"p4p",name:"P4P Analyst Agent",persona:"Compensation Analytics Lead",icon:"🎯",color:"#7C3AED",status:"Active",tasks:214,success:98.4,
+   desc:"Continuously tests whether pay actually follows performance: Spearman rank correlation, quadrant outliers, decile curve kinks, and President's Club fairness — refreshed on every calc run.",
+   tools:["Snowflake","Varicent ICM","IQVIA Xponent","Power BI"],
+   capabilities:["Rank Correlation Monitoring","Quadrant Outlier Detection","Decile Curve Analysis","Club Cutline Diagnostics","Windfall Detection"],
+   hitlConfig:{approvalGate:"ACT",escalationThreshold:"Medium",
+     requiresHumanFor:["Tagging a rep as structurally overpaid","Club qualifier list changes","Retroactive credit reassignment"],
+     recentReviews:[
+       {action:"Flag 8 territories as P4P outliers",reviewer:"IC Ops Lead",decision:"Approved",time:"3h ago"},
+       {action:"Add growth-axis wildcard to Club criteria",reviewer:"VP Sales",decision:"Pending",time:"40m ago"},
+       {action:"Windfall tag on hospital-system spike",reviewer:"Auto-approved",decision:"Approved",time:"1d ago"}]},
+   steps:[
+     {phase:"PLAN",title:"Scope the P4P Test",desc:"Pick the population, period, and metrics for the alignment battery.",actions:["Lock roster snapshot from Veeva Align","Choose attainment + payout pairing for the period","Set guardrails: ρ ≥ 0.80, ≤5% outside quadrant band"],color:"#8B5CF6"},
+     {phase:"TOOL USE",title:"Run Alignment Battery",desc:"Compute correlations and rank gaps across the full field.",actions:["Snowflake: perf rank vs payout rank for all territories","Varicent: pull payout traces for gap outliers","IQVIA: separate demand-driven vs windfall volume"],color:"#1E82BD"},
+     {phase:"REFLECT",title:"Classify Outliers",desc:"Attach a root-cause hypothesis to every rank-gap outlier.",actions:["Cluster outliers: legacy guarantee / windfall / quota error","Estimate $ misallocation per cluster","Stack-rank fixes by payout impact"],color:"#F59E0B"},
+     {phase:"ACT",title:"Publish & Route",desc:"Push findings to the P4P Lab and route fixes. HITL on rep-level tags.",actions:["⚠️ HITL GATE: rep-level overpay tags need IC Ops approval","Refresh quadrant scatter + flagged table","Route quota errors to Goal Setting Agent","Post ρ trend to #ic-ops"],color:"#10B981"}]},
+  {id:"goal",name:"Goal Setting Agent",persona:"Quota & Goal Strategist",icon:"📐",color:"#0D9488",status:"Active",tasks:158,success:97.2,
+   desc:"Builds and audits territory goals: market-opportunity weighting, fairness screens against baseline/size/tenure, and Monte Carlo attainability testing before goals ever reach the field.",
+   tools:["Snowflake","IQVIA Xponent","Veeva Align","Workday"],
+   capabilities:["Opportunity-Weighted Goals","Bias Detection","Monte Carlo Attainability","Quota Restatement","Goal-Spread Calibration"],
+   hitlConfig:{approvalGate:"ACT",escalationThreshold:"Low",
+     requiresHumanFor:["Publishing goals to the field","Mid-period quota restatements","Methodology changes (weights, floors)"],
+     recentReviews:[
+       {action:"Restate 4 quotas hit by alignment change",reviewer:"Sales Ops Dir",decision:"Approved",time:"2h ago"},
+       {action:"Publish Q3 goals (96 territories)",reviewer:"VP Sales",decision:"Pending",time:"15m ago"},
+       {action:"Lower launch floor for low-opportunity terrs",reviewer:"IC Council",decision:"Approved",time:"2d ago"}]},
+   steps:[
+     {phase:"PLAN",title:"Frame Goal Build",desc:"Assemble baselines, opportunity indices and constraints per territory.",actions:["Pull trailing baselines from Snowflake","Load IQVIA opportunity index per geography","Apply national number + growth ask as constraint"],color:"#8B5CF6"},
+     {phase:"TOOL USE",title:"Generate & Stress-Test",desc:"Build candidate goals and simulate attainability.",actions:["Allocate national goal by opportunity weights","Monte Carlo 500 scenarios per territory","Correlate candidate goals vs size/baseline/tenure"],color:"#1E82BD"},
+     {phase:"REFLECT",title:"Fairness Review",desc:"Detect systematic bias before goals ship.",actions:["Flag cohorts with attainability gap >8pts","Quantify bias: baseline corr, tenure corr","Draft adjustments for flagged territories"],color:"#F59E0B"},
+     {phase:"ACT",title:"Publish Goals",desc:"Release goals with full lineage. HITL for field publication.",actions:["⚠️ HITL GATE: field publication requires VP approval","Write goal lineage to audit trail","Notify managers with territory-level rationale"],color:"#10B981"}]},
+  {id:"simulator",name:"Plan Simulator Agent",persona:"Plan Design Modeler",icon:"🧪",color:"#F59E0B",status:"Active",tasks:73,success:99.0,
+   desc:"Models any plan change before it costs real money: payout curves, cost-of-plan, P4P impact, % capped, and what-if shocks — the engine behind the Plan Design Studio.",
+   tools:["Snowflake","Varicent ICM","SAP","Power BI"],
+   capabilities:["Curve Modeling","Cost-of-Plan Forecasting","What-If Shocks","Cap/Threshold Optimization","Archetype Benchmarking"],
+   hitlConfig:{approvalGate:"REFLECT",escalationThreshold:"Medium",
+     requiresHumanFor:["Submitting a plan change for approval","Budget-exceeding scenarios","Mid-cycle plan amendments"],
+     recentReviews:[
+       {action:"Submit cap 200→250% scenario to IC Council",reviewer:"CFO Office",decision:"Pending",time:"1h ago"},
+       {action:"Demand-shock −10% contingency model",reviewer:"Auto-approved",decision:"Approved",time:"6h ago"},
+       {action:"Accelerator 2.0→1.8 cost trade-off",reviewer:"IC Ops Lead",decision:"Approved",time:"1d ago"}]},
+   steps:[
+     {phase:"PLAN",title:"Define Scenario",desc:"Translate a design question into curve parameters.",actions:["Parse requested change vs current plan","Select attainment distribution to test against","Set success criteria: cost, ρ, % capped"],color:"#8B5CF6"},
+     {phase:"TOOL USE",title:"Simulate",desc:"Run the field through the candidate curve.",actions:["Apply curve to 100-territory sample","Monte Carlo cost distribution vs budget","Recompute P4P ρ under new curve"],color:"#1E82BD"},
+     {phase:"REFLECT",title:"Trade-Off Analysis",desc:"Compare scenario vs current on every dial. HITL before submission.",actions:["⚠️ HITL GATE: submission to IC Council needs design-lead sign-off","Build side-by-side impact tiles","Document who wins / who loses by decile"],color:"#F59E0B"},
+     {phase:"ACT",title:"Package & Submit",desc:"Produce the decision-ready packet.",actions:["Export curve + cost + fairness evidence","Queue for IC Council review","Archive scenario for reuse"],color:"#10B981"}]},
+  {id:"auditor",name:"Payout Auditor Agent",persona:"Shadow-Calc Engineer",icon:"🧮",color:"#28426D",status:"Active",tasks:402,success:99.7,
+   desc:"Independently recalculates every payout statement in parallel with the vendor system and reconciles to the basis point. No statement ships until shadow parity is proven.",
+   tools:["Varicent ICM","Snowflake","SAP","Workday"],
+   capabilities:["Shadow Recalculation","BPS-Level Reconciliation","Rate-Table Drift Detection","Statement Certification","Payroll Feed Validation"],
+   hitlConfig:{approvalGate:"ACT",escalationThreshold:"Low",
+     requiresHumanFor:["Releasing statements with known deltas","Manual adjustment >$2,500","Payroll feed sign-off"],
+     recentReviews:[
+       {action:"Certify payroll feed (99.97% parity)",reviewer:"Controller",decision:"Approved",time:"30m ago"},
+       {action:"Hold 2 statements w/ >25bps delta",reviewer:"IC Ops Lead",decision:"Approved",time:"2h ago"},
+       {action:"Stale rate-table fix + recalc",reviewer:"Pending",decision:"Pending",time:"18m ago"}]},
+   steps:[
+     {phase:"PLAN",title:"Stage the Shadow Run",desc:"Mirror the production calc inputs exactly.",actions:["Snapshot roster, quota, credit & rate tables","Hash inputs for tamper evidence","Schedule run inside the calc window"],color:"#8B5CF6"},
+     {phase:"TOOL USE",title:"Recalculate Everything",desc:"Run the independent engine on all statements.",actions:["Execute shadow calc on Snowflake","Diff vs Varicent at line-item level","Trace any delta to its rule + input"],color:"#1E82BD"},
+     {phase:"REFLECT",title:"Reconcile Deltas",desc:"Classify every discrepancy by root cause.",actions:["Bucket deltas: rate drift / credit split / rounding","Compute parity % and bps distribution","Decide: auto-fix vs hold statement"],color:"#F59E0B"},
+     {phase:"ACT",title:"Certify & Release",desc:"Certify parity and gate the payroll feed. HITL on releases with deltas.",actions:["⚠️ HITL GATE: payroll feed needs controller sign-off","Publish parity table to Governance tab","Release certified statements to reps"],color:"#10B981"}]},
+  {id:"fairness",name:"Fairness & Compliance Agent",persona:"IC Governance Officer",icon:"⚖️",color:"#BE185D",status:"Active",tasks:88,success:99.5,
+   desc:"Screens every payout cycle for disparate impact across gender and tenure cohorts (80% rule), enforces plan-document compliance, and keeps the full audit trail regulator-ready.",
+   tools:["Workday","Snowflake","Varicent ICM","Power BI"],
+   capabilities:["Disparate-Impact Screens","80%-Rule Testing","Plan-Doc Compliance","Audit Trail Custody","Exception Tracking"],
+   hitlConfig:{approvalGate:"ACT",escalationThreshold:"Critical",
+     requiresHumanFor:["Any disparate-impact finding","Compliance exception grants","External audit responses"],
+     recentReviews:[
+       {action:"Q2 disparate-impact screen (all clear)",reviewer:"Legal",decision:"Approved",time:"4h ago"},
+       {action:"Exception: off-cycle spiff in 2 regions",reviewer:"Compliance Board",decision:"Denied",time:"1d ago"},
+       {action:"Audit-trail export for internal audit",reviewer:"Auto-approved",decision:"Approved",time:"2d ago"}]},
+   steps:[
+     {phase:"PLAN",title:"Build Cohorts",desc:"Define protected and tenure cohorts for screening.",actions:["Join Workday demographics to payout data","Define cohort minimums for statistical validity","Select metrics: payout rate, attainment, club rate"],color:"#8B5CF6"},
+     {phase:"TOOL USE",title:"Run Screens",desc:"Execute the statistical battery.",actions:["80%-rule ratio per cohort pair","Regression: payout vs cohort controlling for perf","Plan-doc rule conformance scan in Varicent"],color:"#1E82BD"},
+     {phase:"REFLECT",title:"Adjudicate Findings",desc:"Separate statistical noise from real signal.",actions:["Test robustness across periods","Quantify affected population + $ impact","Prepare remediation options"],color:"#F59E0B"},
+     {phase:"ACT",title:"Report & Remediate",desc:"Every finding goes to humans — no auto-actions here.",actions:["⚠️ HITL GATE: all findings route to Legal + HR","Log evidence chain to audit trail","Track remediation to closure"],color:"#10B981"}]},
+  {id:"inquiry",name:"Field Inquiry Agent",persona:"IC Help-Desk Analyst",icon:"💬",color:"#3A9BD5",status:"Active",tasks:516,success:96.8,
+   desc:"Triages every rep payout question and dispute: recalculates the statement, isolates root cause, drafts the resolution, and auto-resolves what's safe — escalating dollars to humans.",
+   tools:["Varicent ICM","Snowflake","Veeva CRM","Slack"],
+   capabilities:["Dispute Triage","Statement Recalc","Root-Cause Isolation","Sentiment Tracking","Auto-Resolution"],
+   hitlConfig:{approvalGate:"ACT",escalationThreshold:"Medium",
+     requiresHumanFor:["Adjustments above $1,000","Clawback reversals","Precedent-setting resolutions"],
+     recentReviews:[
+       {action:"Windfall clawback partial reversal",reviewer:"Pending",decision:"Pending",time:"25m ago"},
+       {action:"Quota restatement for stale baseline",reviewer:"IC Ops Lead",decision:"Pending",time:"1h ago"},
+       {action:"Split-credit fix on co-sold IDN order",reviewer:"Sales Ops Dir",decision:"Approved",time:"5h ago"}]},
+   steps:[
+     {phase:"PLAN",title:"Parse the Inquiry",desc:"Classify intent, urgency and dollar exposure.",actions:["NLP-classify: clarification vs dispute vs error claim","Pull rep statement + plan context","Score sentiment and SLA clock"],color:"#8B5CF6"},
+     {phase:"TOOL USE",title:"Investigate",desc:"Recompute the contested number from source.",actions:["Varicent: fetch calc trace for the territory","Snowflake: recompute payout from raw credits","Veeva: pull CRM evidence (calls, account history)"],color:"#1E82BD"},
+     {phase:"REFLECT",title:"Resolve or Escalate",desc:"Match root cause to resolution policy.",actions:["Compare recalc vs statement","Map to policy: auto-resolve band vs HITL band","Draft resolution + confidence score"],color:"#F59E0B"},
+     {phase:"ACT",title:"Close the Loop",desc:"Send resolution and update the ledger. HITL above $ threshold.",actions:["⚠️ HITL GATE: adjustments >$1,000 need approval","Send plain-English explanation to rep","Update dispute KPIs + theme clustering"],color:"#10B981"}]},
+  {id:"territory",name:"Territory Alignment Agent",persona:"Field Design Architect",icon:"🗺️",color:"#B45309",status:"Active",tasks:64,success:97.9,
+   desc:"Keeps territories balanced as the market moves: workload indexing, white-space detection, and alignment-change impact on quotas and IC — before imbalance becomes attrition.",
+   tools:["Veeva Align","IQVIA Xponent","Snowflake","Power BI"],
+   capabilities:["Workload Indexing","White-Space Mapping","Alignment Simulation","Quota Impact Tracing","Roster Sync"],
+   hitlConfig:{approvalGate:"REFLECT",escalationThreshold:"Medium",
+     requiresHumanFor:["Territory boundary changes","Account moves between reps","Headcount add/remove proposals"],
+     recentReviews:[
+       {action:"Rebalance 6 overloaded Midwest territories",reviewer:"Pending",decision:"Pending",time:"50m ago"},
+       {action:"Move 12 accounts after IDN merger",reviewer:"Territory Ops",decision:"Approved",time:"1d ago"},
+       {action:"Flag quota impact of SoCal split",reviewer:"Auto-approved",decision:"Approved",time:"2d ago"}]},
+   steps:[
+     {phase:"PLAN",title:"Index the Field",desc:"Score every territory on workload and opportunity.",actions:["Compute workload index: accounts × effort norms","Overlay IQVIA opportunity per geography","Detect drift vs last alignment"],color:"#8B5CF6"},
+     {phase:"TOOL USE",title:"Model Rebalance",desc:"Simulate moves that restore balance.",actions:["Veeva Align: candidate account moves","Trace quota + IC impact per move","Score scenarios on disruption vs balance"],color:"#1E82BD"},
+     {phase:"REFLECT",title:"Validate Proposal",desc:"Human review before any boundary changes.",actions:["⚠️ HITL GATE: boundary changes need Territory Ops approval","Check rep tenure / relationship continuity","Verify no quota fairness regression"],color:"#F59E0B"},
+     {phase:"ACT",title:"Execute & Sync",desc:"Push approved alignment everywhere at once.",actions:["Publish to Veeva Align + CRM rosters","Trigger quota restatement workflow","Notify affected managers w/ rationale"],color:"#10B981"}]},
+  {id:"sfecall",name:"SFE / Call Plan Agent",persona:"Field Effectiveness Analyst",icon:"📞",color:"#5BA4CF",status:"Active",tasks:339,success:98.1,
+   desc:"Watches how selling effort lands: call-plan adherence, reach × frequency vs targets, Tier-A effort share, and targeting effectiveness against high-value uncalled HCPs.",
+   tools:["Veeva CRM","IQVIA Xponent","Snowflake","Slack"],
+   capabilities:["Adherence Monitoring","Reach × Frequency Tracking","Targeting Effectiveness","Next-Best-Action Hints","Effort-Outcome Linking"],
+   hitlConfig:{approvalGate:"ACT",escalationThreshold:"High",
+     requiresHumanFor:["Call-plan re-targeting pushes","Manager coaching escalations","Field communication blasts"],
+     recentReviews:[
+       {action:"Re-target 40 uncalled decile-1 HCPs",reviewer:"SFE Lead",decision:"Approved",time:"3h ago"},
+       {action:"Coaching flag: adherence <60% cohort",reviewer:"Pending",decision:"Pending",time:"1h ago"},
+       {action:"Weekly effort digest to managers",reviewer:"Auto-approved",decision:"Approved",time:"1d ago"}]},
+   steps:[
+     {phase:"PLAN",title:"Sync Activity Data",desc:"Assemble the effort picture for the period.",actions:["Pull call records from Veeva CRM","Join HCP value deciles from IQVIA","Compute adherence / reach / freq per territory"],color:"#8B5CF6"},
+     {phase:"TOOL USE",title:"Find Effort Gaps",desc:"Locate where effort and value diverge.",actions:["Heatmap region × metric vs benchmarks","Rank uncalled high-decile HCPs","Correlate effort vs attainment by territory"],color:"#1E82BD"},
+     {phase:"REFLECT",title:"Prioritize Interventions",desc:"Turn gaps into specific field actions.",actions:["Score interventions by expected Rx lift","Bundle by manager for coaching","Draft re-targeting proposals"],color:"#F59E0B"},
+     {phase:"ACT",title:"Push to Field",desc:"Deliver actions through field channels. HITL on blasts.",actions:["⚠️ HITL GATE: field-wide pushes need SFE-lead approval","Send next-best-action lists to reps","Track adoption + outcome lift"],color:"#10B981"}]},
+  {id:"launch",name:"Launch Readiness Agent",persona:"Launch Excellence Lead",icon:"🚀",color:"#059669",status:"Active",tasks:51,success:96.3,
+   desc:"For launch assets: tracks NBRx velocity, territory activation, ramp vs plan, and whether the launch IC plan is actually motivating early adoption behavior.",
+   tools:["IQVIA Xponent","Snowflake","Veeva CRM","Power BI"],
+   capabilities:["NBRx Velocity Tracking","Territory Activation","Ramp-vs-Plan Monitoring","Launch IC Diagnostics","Early-Signal Alerts"],
+   hitlConfig:{approvalGate:"ACT",escalationThreshold:"High",
+     requiresHumanFor:["Launch plan parameter changes","Activation incentive spiffs","Exec launch-report publication"],
+     recentReviews:[
+       {action:"Week-9 launch report (87% activated)",reviewer:"Launch Lead",decision:"Approved",time:"2h ago"},
+       {action:"Spiff proposal for 9 zero-NBRx terrs",reviewer:"Pending",decision:"Pending",time:"35m ago"},
+       {action:"Ramp model refresh w/ week-8 actuals",reviewer:"Auto-approved",decision:"Approved",time:"1d ago"}]},
+   steps:[
+     {phase:"PLAN",title:"Track the Ramp",desc:"Compare launch trajectory vs plan weekly.",actions:["Pull weekly NBRx from IQVIA","Compute activation: territories w/ ≥1 NBRx","Refresh ramp curve vs analog launches"],color:"#8B5CF6"},
+     {phase:"TOOL USE",title:"Diagnose Laggards",desc:"Find where the launch isn't landing.",actions:["Cluster zero-NBRx territories by cause","Cross-check call activity in laggard geos","Test IC plan sensitivity for launch behavior"],color:"#1E82BD"},
+     {phase:"REFLECT",title:"Design Interventions",desc:"Match laggard causes to levers.",actions:["Access issue → field medical routing","Effort issue → call-plan re-targeting","Motivation issue → spiff / plan tweak proposal"],color:"#F59E0B"},
+     {phase:"ACT",title:"Brief & Adjust",desc:"Publish launch room updates. HITL on plan changes.",actions:["⚠️ HITL GATE: spiffs + plan tweaks need launch-lead approval","Update launch strip on Command Center","Alert on velocity inflections within 24h"],color:"#10B981"}]},
+  {id:"comms",name:"IC Communications Agent",persona:"Field Comms Writer",icon:"📣",color:"#EA580C",status:"Active",tasks:127,success:99.3,
+   desc:"Turns plan mechanics and changes into language reps actually understand: statements explained, plan-change FAQs, personalized scorecards — every word HITL-gated before it hits the field.",
+   tools:["Slack","Varicent ICM","Veeva CRM","Workday"],
+   capabilities:["Statement Explainers","Plan-Change FAQs","Personalized Scorecards","Manager Talking Points","Tone & Compliance Check"],
+   hitlConfig:{approvalGate:"ACT",escalationThreshold:"Low",
+     requiresHumanFor:["Any field-facing communication","Plan-change announcements","Sensitive dispute responses"],
+     recentReviews:[
+       {action:"Q2 plan-change FAQ (cap increase)",reviewer:"IC Comms Lead",decision:"Approved",time:"1h ago"},
+       {action:"Scorecard batch for 812 reps",reviewer:"Pending",decision:"Pending",time:"20m ago"},
+       {action:"Dispute resolution letter (windfall case)",reviewer:"Legal",decision:"Approved",time:"4h ago"}]},
+   steps:[
+     {phase:"PLAN",title:"Identify the Audience",desc:"Decide who needs to know what, in what depth.",actions:["Segment: reps / managers / leadership","Pull plan context + change history","Check sensitivity: disputes, comp data"],color:"#8B5CF6"},
+     {phase:"TOOL USE",title:"Draft Content",desc:"Generate the communication from live data.",actions:["Compose explainer w/ rep-specific numbers","Build FAQ from dispute theme clusters","Localize tone per audience segment"],color:"#1E82BD"},
+     {phase:"REFLECT",title:"Compliance Pass",desc:"Check every claim against plan documents.",actions:["Verify numbers vs certified statements","Scan for promissory language","Score reading level + clarity"],color:"#F59E0B"},
+     {phase:"ACT",title:"Route for Approval",desc:"Nothing ships without human eyes.",actions:["⚠️ HITL GATE: all field comms need comms-lead approval","Schedule send via Slack / email","Track open + question rates"],color:"#10B981"}]},
 ];
 /* ▓▓ END:AGENTS ▓▓ */
 
@@ -409,24 +559,326 @@ const COPILOT_SCRIPTS=[
 /* Shared scale helpers */
 const scaleLinear=(d0,d1,r0,r1)=>{const m=(r1-r0)/((d1-d0)||1);return v=>r0+(v-d0)*m};
 const niceTicks=(min,max,count=5)=>{const span=max-min||1;const step0=span/count;const mag=Math.pow(10,Math.floor(Math.log10(step0)));const norm=step0/mag;const step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;const lo=Math.ceil(min/step)*step;const out=[];for(let v=lo;v<=max+1e-9;v+=step)out.push(Math.round(v*100)/100);return out};
-/* Chart stubs — replaced by full library in CHARTS build step */
-const ChartStub=({label,h=160})=>(
-  <div style={{height:h,borderRadius:10,border:`2px dashed ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",color:C.light,fontSize:12,fontWeight:600,background:"#FAFBFC"}}>◌ {label}</div>
+/* Shared tooltip wrapper — every chart gets exactly one */
+const ChartBox=({w,h,tip,children,style})=>(
+  <div style={{position:"relative",width:"100%",...style}}>
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{display:"block",overflow:"visible"}}>{children}</svg>
+    {tip&&<div style={{position:"absolute",left:(tip.x*100/w)+"%",top:(tip.y*100/h)+"%",transform:"translate(-50%,-118%)",background:C.codeBg,color:"#F1F5F9",padding:"6px 10px",borderRadius:6,fontSize:11,pointerEvents:"none",whiteSpace:"nowrap",zIndex:5,boxShadow:"0 4px 14px rgba(0,0,0,.35)",lineHeight:1.5}}>{tip.c}</div>}
+  </div>
 );
-const Gauge=({value,size=180,label})=>(<ChartStub label={`Gauge ${Math.round(value)} ${label||""}`} h={size}/>);
+const Axis=({ticks,pos,axis,at,grid=0,fmt=v=>v})=>(
+  <g>{ticks.map(t=>axis==="x"?(
+    <g key={t}>{grid>0&&<line x1={pos(t)} y1={at-grid} x2={pos(t)} y2={at} stroke="#EDF2F7" strokeWidth="1"/>}
+      <text x={pos(t)} y={at+13} fontSize="9" fill="#94A3B8" textAnchor="middle">{fmt(t)}</text></g>
+  ):(
+    <g key={t}>{grid>0&&<line x1={at} y1={pos(t)} x2={at+grid} y2={pos(t)} stroke="#EDF2F7" strokeWidth="1"/>}
+      <text x={at-6} y={pos(t)+3} fontSize="9" fill="#94A3B8" textAnchor="end">{fmt(t)}</text></g>
+  ))}</g>
+);
+const lerpHex=(h1,h2,t)=>{const a=parseInt(h1.slice(1),16),b=parseInt(h2.slice(1),16);const c=[16,8,0].map(s=>Math.round(((a>>s&255)*(1-t))+((b>>s&255)*t)));return "#"+c.map(v=>v.toString(16).padStart(2,"0")).join("")};
+const arcPath=(cx,cy,r,a0,a1)=>{const rad=a=>(a-90)*Math.PI/180;const x0=cx+r*Math.cos(rad(a0)),y0=cy+r*Math.sin(rad(a0)),x1=cx+r*Math.cos(rad(a1)),y1=cy+r*Math.sin(rad(a1));return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${a1-a0>180?1:0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`};
+/* 240° score gauge w/ dashoffset animation; mini variant at size ≤ 80 */
+const Gauge=({value,size=180,label,sub,color})=>{
+  const [v,setV]=useState(0);
+  useEffect(()=>{const t=setTimeout(()=>setV(value),80);return()=>clearTimeout(t)},[value]);
+  const mini=size<=80;
+  const col=color||(value>=80?C.success:value>=60?C.warn:C.error);
+  const cx=size/2,cy=size/2,r=size*.4,sw=mini?size*.1:size*.07;
+  const len=2*Math.PI*r*(240/360);
+  return (
+    <div style={{position:"relative",width:size,height:size*.88,flexShrink:0}}>
+      <svg width={size} height={size*.88} viewBox={`0 0 ${size} ${size*.88}`}>
+        <path d={arcPath(cx,cy,r,-120,120)} fill="none" stroke="#E2EBF3" strokeWidth={sw} strokeLinecap="round"/>
+        <path d={arcPath(cx,cy,r,-120,120)} fill="none" stroke={col} strokeWidth={sw} strokeLinecap="round"
+          strokeDasharray={len} strokeDashoffset={len*(1-Math.max(0,Math.min(100,v))/100)} style={{transition:"stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)"}}/>
+        <text x={cx} y={cy+(mini?4:2)} textAnchor="middle" fontSize={mini?size*.28:size*.21} fontWeight="800" fill={col} fontFamily="Inter">{Math.round(v)}</text>
+        {!mini&&label&&<text x={cx} y={cy+size*.14} textAnchor="middle" fontSize={size*.062} fontWeight="600" fill={C.muted} fontFamily="Inter">{label}</text>}
+        {!mini&&sub&&<text x={cx} y={cy+size*.225} textAnchor="middle" fontSize={size*.05} fill={C.light} fontFamily="Inter">{sub}</text>}
+      </svg>
+    </div>
+  );
+};
 const Sparkline=({data,w=90,h=28,color=C.primary})=>{
   const min=Math.min(...data),max=Math.max(...data);
   const x=scaleLinear(0,data.length-1,2,w-2),y=scaleLinear(min,max===min?min+1:max,h-3,3);
   const pts=data.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
-  return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}><polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round"/></svg>;
+  return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}><polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round"/><circle cx={x(data.length-1)} cy={y(data[data.length-1])} r="2.2" fill={color}/></svg>;
 };
-const ScatterPlot=(p)=>(<ChartStub label="ScatterPlot" h={p.h||260}/>);
-const Histogram=(p)=>(<ChartStub label="Histogram" h={p.h||200}/>);
-const LineChart=(p)=>(<ChartStub label="LineChart" h={p.h||200}/>);
-const BarChart=(p)=>(<ChartStub label="BarChart" h={p.h||200}/>);
-const Heatmap=(p)=>(<ChartStub label="Heatmap" h={p.h||200}/>);
-const DonutChart=(p)=>(<ChartStub label="Donut" h={p.h||160}/>);
-const CurveBuilder=(p)=>(<ChartStub label="CurveBuilder" h={p.h||260}/>);
+const QUAD_COLORS={aligned:"#10B981",overpaid:"#F59E0B",underpaid:"#8B5CF6",review:"#EF4444"};
+/* Quadrant scatter: diagonal, ±band shading, hover tooltip */
+const ScatterPlot=({pts,w=560,h=310,xLabel,yLabel,xDom,yDom,diagonal,quadrants,r=4.5,xFmt=v=>v,yFmt=v=>v})=>{
+  const [tip,setTip]=useState(null);
+  const P={l:46,r:16,t:16,b:36};
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+  const xd=xDom||[Math.min(...xs),Math.max(...xs)],yd=yDom||[Math.min(...ys),Math.max(...ys)];
+  const X=scaleLinear(xd[0],xd[1],P.l,w-P.r),Y=scaleLinear(yd[0],yd[1],h-P.b,P.t);
+  const band=(xd[1]-xd[0])*.14;
+  return (
+    <ChartBox w={w} h={h} tip={tip}>
+      {quadrants&&<Fragment>
+        <polygon points={`${X(xd[0])},${Y(yd[0])} ${X(xd[0])},${Y(yd[1])} ${X(xd[1]-band)},${Y(yd[1])} ${X(xd[0])},${Y(yd[0]+band)}`} fill="#F59E0B" opacity=".055"/>
+        <polygon points={`${X(xd[0]+band)},${Y(yd[0])} ${X(xd[1])},${Y(yd[1]-band)} ${X(xd[1])},${Y(yd[0])}`} fill="#8B5CF6" opacity=".06"/>
+        <polygon points={`${X(xd[0]+band)},${Y(yd[0])} ${X(xd[0])},${Y(yd[0]+band)} ${X(xd[1]-band)},${Y(yd[1])} ${X(xd[1])},${Y(yd[1]-band)}`} fill="#10B981" opacity=".05"/>
+        <text x={X(xd[0])+8} y={Y(yd[1])+14} fontSize="9.5" fontWeight="700" fill="#F59E0B" opacity=".8">OVERPAID</text>
+        <text x={X(xd[1])-8} y={Y(yd[0])-8} fontSize="9.5" fontWeight="700" fill="#8B5CF6" opacity=".8" textAnchor="end">UNDERPAID</text>
+        <text x={X(xd[1])-8} y={Y(yd[1])+14} fontSize="9.5" fontWeight="700" fill="#10B981" opacity=".7" textAnchor="end">ALIGNED</text>
+      </Fragment>}
+      <Axis ticks={niceTicks(xd[0],xd[1],6)} pos={X} axis="x" at={h-P.b} grid={h-P.b-P.t} fmt={xFmt}/>
+      <Axis ticks={niceTicks(yd[0],yd[1],5)} pos={Y} axis="y" at={P.l} grid={w-P.l-P.r} fmt={yFmt}/>
+      <line x1={P.l} y1={h-P.b} x2={w-P.r} y2={h-P.b} stroke="#CBD5E1" strokeWidth="1"/>
+      <line x1={P.l} y1={P.t} x2={P.l} y2={h-P.b} stroke="#CBD5E1" strokeWidth="1"/>
+      {diagonal&&<line x1={X(xd[0])} y1={Y(yd[0])} x2={X(xd[1])} y2={Y(yd[1])} stroke="#64748B" strokeWidth="1.2" strokeDasharray="5 4" opacity=".55"/>}
+      {pts.map((p,i)=>(
+        <circle key={i} cx={X(p.x)} cy={Y(p.y)} r={p.big?r+2.5:r} fill={p.c||C.primary} opacity={p.big?.95:.72} stroke="#fff" strokeWidth={p.big?1.5:.8}
+          style={{cursor:"pointer",animation:`fadeIn .5s ease-out ${i*.004}s both`}}
+          onMouseEnter={()=>setTip({x:X(p.x),y:Y(p.y),c:<span><b>{p.label}</b>{p.sub&&<Fragment><br/>{p.sub}</Fragment>}</span>})}
+          onMouseLeave={()=>setTip(null)}/>
+      ))}
+      {xLabel&&<text x={(P.l+w-P.r)/2} y={h-3} fontSize="9.5" fontWeight="600" fill={C.muted} textAnchor="middle">{xLabel}</text>}
+      {yLabel&&<text x={11} y={(P.t+h-P.b)/2} fontSize="9.5" fontWeight="600" fill={C.muted} textAnchor="middle" transform={`rotate(-90 11 ${(P.t+h-P.b)/2})`}>{yLabel}</text>}
+    </ChartBox>
+  );
+};
+/* Histogram + ideal-bell overlay + vertical markers */
+const Histogram=({bins,w=560,h=240,bell,markers=[],color=C.primary,xFmt=v=>v,highlight})=>{
+  const [tip,setTip]=useState(null);
+  const P={l:34,r:12,t:16,b:28};
+  const maxN=Math.max(...bins.map(b=>b.n),1);
+  const X=scaleLinear(bins[0].x0,bins[bins.length-1].x1,P.l,w-P.r),Y=scaleLinear(0,maxN*1.15,h-P.b,P.t);
+  const bellPts=bell?Array.from({length:80},(_,i)=>{
+    const x=bins[0].x0+(bins[bins.length-1].x1-bins[0].x0)*i/79;
+    return `${X(x).toFixed(1)},${Y(Math.exp(-((x-bell.mu)**2)/(2*bell.sigma**2))*maxN).toFixed(1)}`;
+  }).join(" "):null;
+  return (
+    <ChartBox w={w} h={h} tip={tip}>
+      <Axis ticks={niceTicks(bins[0].x0,bins[bins.length-1].x1,7)} pos={X} axis="x" at={h-P.b} fmt={xFmt}/>
+      <Axis ticks={niceTicks(0,maxN,4).filter(t=>t>0)} pos={Y} axis="y" at={P.l} grid={w-P.l-P.r}/>
+      <line x1={P.l} y1={h-P.b} x2={w-P.r} y2={h-P.b} stroke="#CBD5E1" strokeWidth="1"/>
+      {bins.map((b,i)=>{
+        const hl=highlight&&highlight(b);
+        return <rect key={i} x={X(b.x0)+1} y={Y(b.n)} width={Math.max(1,X(b.x1)-X(b.x0)-2)} height={h-P.b-Y(b.n)} rx="2"
+          fill={hl?C.warn:color} opacity={hl?.85:.65} style={{cursor:"pointer",animation:`fadeIn .4s ease-out ${i*.02}s both`}}
+          onMouseEnter={()=>setTip({x:(X(b.x0)+X(b.x1))/2,y:Y(b.n),c:<span><b>{b.n}</b> territories<br/>{xFmt(Math.round(b.x0))}–{xFmt(Math.round(b.x1))}</span>})}
+          onMouseLeave={()=>setTip(null)}/>;
+      })}
+      {bellPts&&<polyline points={bellPts} fill="none" stroke={C.heading} strokeWidth="1.8" strokeDasharray="1000" pathLength="1000" opacity=".65" style={{animation:"dashDraw 1.6s ease-out both"}}/>}
+      {markers.map((m,i)=>(
+        <g key={i}>
+          <line x1={X(m.x)} y1={P.t} x2={X(m.x)} y2={h-P.b} stroke={m.color||C.error} strokeWidth="1.3" strokeDasharray="4 3"/>
+          <text x={X(m.x)} y={P.t-4} fontSize="8.5" fontWeight="700" fill={m.color||C.error} textAnchor="middle">{m.label}</text>
+        </g>
+      ))}
+    </ChartBox>
+  );
+};
+/* Multi-series line w/ draw-in; series=[{name,color,dashed,pts:[{x,y}]}] */
+const LineChart=({series,w=560,h=240,xDom,yDom,xFmt=v=>v,yFmt=v=>v,xLabel,yLabel,markers=[]})=>{
+  const [tip,setTip]=useState(null);
+  const P={l:44,r:14,t:14,b:30};
+  const allX=series.flatMap(s=>s.pts.map(p=>p.x)),allY=series.flatMap(s=>s.pts.map(p=>p.y));
+  const xd=xDom||[Math.min(...allX),Math.max(...allX)],yd=yDom||[Math.min(...allY),Math.max(...allY)*1.06];
+  const X=scaleLinear(xd[0],xd[1],P.l,w-P.r),Y=scaleLinear(yd[0],yd[1],h-P.b,P.t);
+  return (
+    <ChartBox w={w} h={h} tip={tip}>
+      <Axis ticks={niceTicks(xd[0],xd[1],6)} pos={X} axis="x" at={h-P.b} fmt={xFmt}/>
+      <Axis ticks={niceTicks(yd[0],yd[1],5)} pos={Y} axis="y" at={P.l} grid={w-P.l-P.r} fmt={yFmt}/>
+      <line x1={P.l} y1={h-P.b} x2={w-P.r} y2={h-P.b} stroke="#CBD5E1" strokeWidth="1"/>
+      {markers.map((m,i)=>(
+        <g key={i}><line x1={X(m.x)} y1={P.t} x2={X(m.x)} y2={h-P.b} stroke={m.color||C.muted} strokeWidth="1.2" strokeDasharray="4 3" opacity=".7"/>
+        <text x={X(m.x)} y={P.t-3} fontSize="8.5" fontWeight="700" fill={m.color||C.muted} textAnchor="middle">{m.label}</text></g>
+      ))}
+      {series.map((s,si)=>(
+        <polyline key={si} points={s.pts.map(p=>`${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`).join(" ")} fill="none"
+          stroke={s.color} strokeWidth={s.dashed?1.8:2.5} strokeDasharray={s.dashed?"6 5":"1000"} pathLength={s.dashed?undefined:"1000"}
+          strokeLinejoin="round" strokeLinecap="round" opacity={s.dashed?.65:1} style={s.dashed?{}:{animation:"dashDraw 1.4s ease-out both"}}/>
+      ))}
+      {series.filter(s=>!s.dashed).map((s,si)=>s.pts.filter((_,i)=>i%Math.ceil(s.pts.length/24)===0).map((p,i)=>(
+        <circle key={si+"-"+i} cx={X(p.x)} cy={Y(p.y)} r="6" fill="transparent" style={{cursor:"pointer"}}
+          onMouseEnter={()=>setTip({x:X(p.x),y:Y(p.y),c:<span><b>{s.name}</b><br/>{xFmt(Math.round(p.x))} → {yFmt(Math.round(p.y))}</span>})}
+          onMouseLeave={()=>setTip(null)}/>
+      )))}
+      <g>{series.map((s,i)=>(
+        <g key={i} transform={`translate(${w-P.r-150},${P.t+4+i*15})`}>
+          <line x1="0" y1="4" x2="18" y2="4" stroke={s.color} strokeWidth="2.5" strokeDasharray={s.dashed?"5 4":"none"}/>
+          <text x="24" y="7.5" fontSize="9.5" fontWeight="600" fill={C.muted}>{s.name}</text>
+        </g>))}
+      </g>
+      {xLabel&&<text x={(P.l+w-P.r)/2} y={h-2} fontSize="9.5" fontWeight="600" fill={C.muted} textAnchor="middle">{xLabel}</text>}
+    </ChartBox>
+  );
+};
+/* Bars: vertical/horizontal, refLine, flag markers, optional grouped series */
+const BarChart=({data,grouped,w=560,h=240,horizontal,refLine,fmt=v=>v,vFmt=v=>v,flagLabel="⚑"})=>{
+  const [tip,setTip]=useState(null);
+  if(grouped){
+    const P={l:40,r:14,t:18,b:30};
+    const maxV=Math.max(...grouped.flatMap(g=>g.series.map(s=>s.value)))*1.18;
+    const Y=scaleLinear(0,maxV,h-P.b,P.t);
+    const bw=(w-P.l-P.r)/grouped.length;
+    return (
+      <ChartBox w={w} h={h} tip={tip}>
+        <Axis ticks={niceTicks(0,maxV,4)} pos={Y} axis="y" at={P.l} grid={w-P.l-P.r} fmt={vFmt}/>
+        <line x1={P.l} y1={h-P.b} x2={w-P.r} y2={h-P.b} stroke="#CBD5E1" strokeWidth="1"/>
+        {grouped.map((g,gi)=>{
+          const n=g.series.length,sw=Math.min(26,(bw-18)/n);
+          return (
+            <g key={gi}>
+              {g.series.map((s,si)=>(
+                <rect key={si} x={P.l+gi*bw+bw/2-(n*sw)/2+si*sw+1} y={Y(s.value)} width={sw-2} height={h-P.b-Y(s.value)} rx="2.5" fill={s.color} opacity=".82"
+                  style={{cursor:"pointer",animation:`fadeIn .4s ease-out ${(gi*n+si)*.04}s both`}}
+                  onMouseEnter={()=>setTip({x:P.l+gi*bw+bw/2-(n*sw)/2+si*sw+sw/2,y:Y(s.value),c:<span><b>{s.name}</b><br/>{g.label}: {vFmt(s.value)}</span>})}
+                  onMouseLeave={()=>setTip(null)}/>
+              ))}
+              <text x={P.l+gi*bw+bw/2} y={h-P.b+13} fontSize="9" fill="#94A3B8" textAnchor="middle">{g.label}</text>
+            </g>
+          );
+        })}
+        {refLine&&<g><line x1={P.l} y1={Y(refLine.value)} x2={w-P.r} y2={Y(refLine.value)} stroke={C.error} strokeWidth="1.4" strokeDasharray="6 4"/>
+          <text x={w-P.r} y={Y(refLine.value)-5} fontSize="8.5" fontWeight="700" fill={C.error} textAnchor="end">{refLine.label}</text></g>}
+      </ChartBox>
+    );
+  }
+  if(horizontal){
+    const P={l:118,r:44,t:8,b:8};
+    const maxV=Math.max(...data.map(d=>d.value))*1.08;
+    const X=scaleLinear(0,maxV,P.l,w-P.r);
+    const bh=(h-P.t-P.b)/data.length;
+    return (
+      <ChartBox w={w} h={h} tip={tip}>
+        {data.map((d,i)=>(
+          <g key={i}>
+            <text x={P.l-8} y={P.t+i*bh+bh/2+3} fontSize="10" fontWeight="600" fill={C.muted} textAnchor="end">{d.label}</text>
+            <rect x={P.l} y={P.t+i*bh+bh*.18} width={Math.max(2,X(d.value)-P.l)} height={bh*.64} rx="3" fill={d.color||C.primary} opacity=".85"
+              style={{cursor:"pointer",animation:`fadeIn .4s ease-out ${i*.05}s both`}}
+              onMouseEnter={()=>setTip({x:X(d.value),y:P.t+i*bh+bh/2,c:<span><b>{d.label}</b><br/>{vFmt(d.value)}{d.sub?<Fragment><br/>{d.sub}</Fragment>:null}</span>})}
+              onMouseLeave={()=>setTip(null)}/>
+            <text x={X(d.value)+5} y={P.t+i*bh+bh/2+3} fontSize="9.5" fontWeight="700" fill={C.heading}>{vFmt(d.value)}{d.flag&&<tspan fill={C.error}> {flagLabel}</tspan>}</text>
+          </g>
+        ))}
+      </ChartBox>
+    );
+  }
+  const P={l:40,r:14,t:18,b:30};
+  const maxV=Math.max(...data.map(d=>d.value))*1.18;
+  const Y=scaleLinear(0,maxV,h-P.b,P.t);
+  const bw=(w-P.l-P.r)/data.length;
+  return (
+    <ChartBox w={w} h={h} tip={tip}>
+      <Axis ticks={niceTicks(0,maxV,4)} pos={Y} axis="y" at={P.l} grid={w-P.l-P.r} fmt={vFmt}/>
+      <line x1={P.l} y1={h-P.b} x2={w-P.r} y2={h-P.b} stroke="#CBD5E1" strokeWidth="1"/>
+      {data.map((d,i)=>(
+        <g key={i}>
+          <rect x={P.l+i*bw+bw*.16} y={Y(d.value)} width={bw*.68} height={h-P.b-Y(d.value)} rx="3" fill={d.color||C.primary} opacity={d.flag?.95:.78}
+            style={{cursor:"pointer",animation:`fadeIn .4s ease-out ${i*.04}s both`}}
+            onMouseEnter={()=>setTip({x:P.l+i*bw+bw/2,y:Y(d.value),c:<span><b>{d.label}</b>: {vFmt(d.value)}{d.sub?<Fragment><br/>{d.sub}</Fragment>:null}</span>})}
+            onMouseLeave={()=>setTip(null)}/>
+          {d.flag&&<text x={P.l+i*bw+bw/2} y={Y(d.value)-5} fontSize="10" fontWeight="800" fill={C.error} textAnchor="middle">{flagLabel}</text>}
+          <text x={P.l+i*bw+bw/2} y={h-P.b+13} fontSize="9" fill="#94A3B8" textAnchor="middle">{fmt(d.label)}</text>
+        </g>
+      ))}
+      {refLine&&<g><line x1={P.l} y1={Y(refLine.value)} x2={w-P.r} y2={Y(refLine.value)} stroke={C.error} strokeWidth="1.4" strokeDasharray="6 4"/>
+        <text x={w-P.r} y={Y(refLine.value)-5} fontSize="8.5" fontWeight="700" fill={C.error} textAnchor="end">{refLine.label}</text></g>}
+    </ChartBox>
+  );
+};
+/* Region × metric heatmap w/ hover */
+const Heatmap=({rows,cols,w=560,h=216,fmt=v=>v+"%"})=>{
+  const [tip,setTip]=useState(null);
+  const P={l:104,r:10,t:30,b:8};
+  const all=rows.flatMap(r=>r.vals);
+  const lo=Math.min(...all),hi=Math.max(...all);
+  const cw=(w-P.l-P.r)/cols.length,ch=(h-P.t-P.b)/rows.length;
+  return (
+    <ChartBox w={w} h={h} tip={tip}>
+      {cols.map((c,i)=><text key={i} x={P.l+i*cw+cw/2} y={P.t-10} fontSize="9" fontWeight="700" fill={C.muted} textAnchor="middle">{c}</text>)}
+      {rows.map((r,ri)=>(
+        <g key={ri}>
+          <text x={P.l-8} y={P.t+ri*ch+ch/2+3} fontSize="10" fontWeight="600" fill={C.muted} textAnchor="end">{r.region}</text>
+          {r.vals.map((v,ci)=>{
+            const t=(v-lo)/((hi-lo)||1);
+            const weak=v<lo+(hi-lo)*.22;
+            return <g key={ci}>
+              <rect x={P.l+ci*cw+2} y={P.t+ri*ch+2} width={cw-4} height={ch-4} rx="6"
+                fill={weak?"#FDE8E8":lerpHex("#EFF6FC","#1E82BD",t*.92)} stroke={weak?C.error+"66":"transparent"} strokeWidth="1.5"
+                style={{cursor:"pointer",animation:`fadeIn .4s ease-out ${(ri*cols.length+ci)*.025}s both`}}
+                onMouseEnter={()=>setTip({x:P.l+ci*cw+cw/2,y:P.t+ri*ch+4,c:<span><b>{r.region}</b> · {cols[ci]}<br/>{fmt(v)}{weak?" ⚠ weak":""}</span>})}
+                onMouseLeave={()=>setTip(null)}/>
+              <text x={P.l+ci*cw+cw/2} y={P.t+ri*ch+ch/2+3.5} fontSize="10" fontWeight="700" fill={weak?C.error:t>.55?"#fff":C.heading} textAnchor="middle" style={{pointerEvents:"none"}}>{v}</text>
+            </g>;
+          })}
+        </g>
+      ))}
+    </ChartBox>
+  );
+};
+/* Donut w/ center label + legend chips */
+const DonutChart=({segs,size=170,centerLabel,centerSub})=>{
+  const [tip,setTip]=useState(null);
+  const total=segs.reduce((a,s)=>a+s.value,0)||1;
+  const r=size*.36,cx=size/2,cy=size/2,circ=2*Math.PI*r;
+  let acc=0;
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:16}}>
+      <ChartBox w={size} h={size} tip={tip} style={{width:size,flexShrink:0}}>
+        {segs.map((s,i)=>{
+          const frac=s.value/total,off=acc;acc+=frac;
+          return <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth={size*.13}
+            strokeDasharray={`${Math.max(0,frac*circ-2)} ${circ}`} strokeDashoffset={-off*circ} transform={`rotate(-90 ${cx} ${cy})`}
+            style={{cursor:"pointer",transition:"stroke-width .2s"}}
+            onMouseEnter={()=>setTip({x:cx,y:cy-r-8,c:<span><b>{s.label}</b>: {s.value} ({Math.round(frac*100)}%)</span>})}
+            onMouseLeave={()=>setTip(null)}/>;
+        })}
+        <text x={cx} y={cy-1} textAnchor="middle" fontSize={size*.16} fontWeight="800" fill={C.heading}>{centerLabel}</text>
+        {centerSub&&<text x={cx} y={cy+size*.1} textAnchor="middle" fontSize={size*.057} fill={C.muted}>{centerSub}</text>}
+      </ChartBox>
+      <div style={{display:"grid",gap:6}}>
+        {segs.map((s,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:C.muted}}>
+            <span style={{width:10,height:10,borderRadius:3,background:s.color,flexShrink:0}}/>
+            <span style={{fontWeight:600,color:C.text}}>{s.label}</span><span>· {s.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+/* Payout curve canvas: proposed solid vs current dashed over shaded attainment underlay + threshold/target/cap markers */
+const CurveBuilder=({plan,base,hist,w=640,h=300})=>{
+  const [tip,setTip]=useState(null);
+  const P={l:46,r:16,t:20,b:32};
+  const x0=plan.archetype==="gmCommission"?20:40,x1=160;
+  const cur=payoutCurve(plan),basC=base?payoutCurve(base):null;
+  const yMax=Math.max(plan.cap||200,base?base.cap||200:0)*1.12;
+  const X=scaleLinear(x0,x1,P.l,w-P.r),Y=scaleLinear(0,yMax,h-P.b,P.t);
+  const sample=(fn)=>Array.from({length:121},(_,i)=>{const a=x0+(x1-x0)*i/120;return `${X(a).toFixed(1)},${Y(Math.min(yMax,fn(a))).toFixed(1)}`}).join(" ");
+  const maxN=hist?Math.max(...hist.map(b=>b.n),1):1;
+  return (
+    <ChartBox w={w} h={h} tip={tip}>
+      {hist&&hist.map((b,i)=>(
+        <rect key={i} x={X(Math.max(x0,b.x0))} y={Y(0)-((h-P.b-P.t)*.32)*(b.n/maxN)} width={Math.max(1,X(Math.min(x1,b.x1))-X(Math.max(x0,b.x0))-1)} height={((h-P.b-P.t)*.32)*(b.n/maxN)} fill={C.primary} opacity=".1"/>
+      ))}
+      <Axis ticks={niceTicks(x0,x1,7)} pos={X} axis="x" at={h-P.b} fmt={v=>v+"%"}/>
+      <Axis ticks={niceTicks(0,yMax,5)} pos={Y} axis="y" at={P.l} grid={w-P.l-P.r} fmt={v=>v+"%"}/>
+      <line x1={P.l} y1={h-P.b} x2={w-P.r} y2={h-P.b} stroke="#CBD5E1" strokeWidth="1"/>
+      {plan.threshold>0&&<g><line x1={X(plan.threshold)} y1={P.t} x2={X(plan.threshold)} y2={h-P.b} stroke={C.warn} strokeWidth="1.2" strokeDasharray="4 3"/>
+        <text x={X(plan.threshold)} y={P.t-6} fontSize="8.5" fontWeight="700" fill={C.warn} textAnchor="middle">THRESHOLD {plan.threshold}%</text></g>}
+      <line x1={X(100)} y1={P.t} x2={X(100)} y2={h-P.b} stroke="#94A3B8" strokeWidth="1" strokeDasharray="3 3" opacity=".7"/>
+      <text x={X(100)} y={h-P.b+24} fontSize="8.5" fontWeight="700" fill="#94A3B8" textAnchor="middle">TARGET</text>
+      {plan.cap<yMax&&plan.archetype!=="rankBased"&&<g><line x1={P.l} y1={Y(plan.cap)} x2={w-P.r} y2={Y(plan.cap)} stroke={C.error} strokeWidth="1.2" strokeDasharray="5 4"/>
+        <text x={w-P.r-4} y={Y(plan.cap)-5} fontSize="8.5" fontWeight="700" fill={C.error} textAnchor="end">CAP {plan.cap}%</text></g>}
+      {basC&&<polyline points={sample(basC)} fill="none" stroke="#94A3B8" strokeWidth="1.8" strokeDasharray="6 5" opacity=".75"/>}
+      <polyline points={sample(cur)} fill="none" stroke={C.primary} strokeWidth="2.6" strokeLinejoin="round" strokeDasharray="1400" pathLength="1400" style={{animation:"dashDraw 1.2s ease-out both"}}/>
+      {Array.from({length:13},(_,i)=>{const a=x0+(x1-x0)*i/12;return (
+        <circle key={i} cx={X(a)} cy={Y(Math.min(yMax,cur(a)))} r="7" fill="transparent" style={{cursor:"pointer"}}
+          onMouseEnter={()=>setTip({x:X(a),y:Y(Math.min(yMax,cur(a))),c:<span>{Math.round(a)}% attainment<br/><b>{Math.round(cur(a))}%</b> payout{basC?<Fragment> · was {Math.round(basC(a))}%</Fragment>:null}</span>})}
+          onMouseLeave={()=>setTip(null)}/>);})}
+      <g transform={`translate(${P.l+10},${P.t+2})`}>
+        <line x1="0" y1="4" x2="18" y2="4" stroke={C.primary} strokeWidth="2.6"/><text x="23" y="7.5" fontSize="9.5" fontWeight="600" fill={C.muted}>Proposed</text>
+        {basC&&<Fragment><line x1="78" y1="4" x2="96" y2="4" stroke="#94A3B8" strokeWidth="1.8" strokeDasharray="5 4"/><text x="101" y="7.5" fontSize="9.5" fontWeight="600" fill={C.muted}>Current</text></Fragment>}
+      </g>
+    </ChartBox>
+  );
+};
 /* ▓▓ END:CHARTS ▓▓ */
 
 /* ▓▓ SECTION:UI ▓▓ */
