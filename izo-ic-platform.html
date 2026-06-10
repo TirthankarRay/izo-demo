@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Improzo iZO — IC &amp; SFE Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{height:100%;width:100%;overflow:hidden}
+body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:#EDF2F7}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#A0AEC0;border-radius:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 6px rgba(30,130,189,.3)}50%{box-shadow:0 0 18px rgba(30,130,189,.6)}}
+@keyframes flowPulse{0%{opacity:.3;transform:scaleX(.3)}50%{opacity:1;transform:scaleX(1)}100%{opacity:.3;transform:scaleX(.3)}}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes slideRight{0%{transform:translateX(-100%);opacity:0}100%{transform:translateX(0);opacity:1}}
+@keyframes hitlPulse{0%,100%{box-shadow:0 0 0 0 rgba(30,130,189,.3)}50%{box-shadow:0 0 0 8px rgba(30,130,189,0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes barGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes dashDraw{from{stroke-dashoffset:1000}to{stroke-dashoffset:0}}
+button{cursor:pointer;transition:all .2s;border:none}
+button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+button:active{transform:translateY(0)}
+.hitl-card{border:2px solid #1E82BD44;background:linear-gradient(135deg,#E8F4FD,#F0F7FF);border-radius:12px;padding:16px 20px}
+.hitl-card:hover{border-color:#1E82BD88}
+.mono{font-family:'JetBrains Mono','Fira Code',monospace}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;background:#D9E2EC;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:#1E82BD;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#1E82BD;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer}
+.boot{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#0A5081,#083D63);gap:14px}
+.boot-logo{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#1E82BD,#3A9BD5);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;font-family:'Inter',sans-serif;animation:pulseGlow 1.6s infinite}
+.boot-title{font-size:18px;font-weight:700;color:#fff;font-family:'Inter',sans-serif;letter-spacing:.5px}
+.boot-sub{font-size:12px;color:#7BA3C9;font-family:'Inter',sans-serif;animation:breathe 1.6s infinite}
+</style>
+</head>
+<body>
+<div id="root"><div class="boot"><div class="boot-logo">iZ</div><div class="boot-title">iZO IC &amp; SFE Intelligence</div><div class="boot-sub">Compiling interactive demo…</div></div></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useMemo,Fragment}=React;
+
+/* ▓▓ SECTION:TOKENS ▓▓ */
+/* ══ IMPROZO DESIGN TOKENS — extracted from improzo.com ══ */
+const C={
+  sidebar:"#0A5081",       /* Improzo dark navy */
+  sidebarDark:"#083D63",   /* Deeper navy for footer */
+  primary:"#1E82BD",       /* Improzo brand blue - buttons/CTAs */
+  primaryLight:"#3A9BD5",  /* Lighter blue for hover/accents */
+  primaryDark:"#0A5081",   /* Dark blue sections */
+  primaryBg:"#E8F4FD",     /* Light blue background tint */
+  heading:"#28426D",       /* Dark blue for headings */
+  accent:"#1E82BD",        /* Same brand blue as accent */
+  bg:"#EDF2F7",            /* Light gray-blue background */
+  card:"#FFFFFF",
+  text:"#333333",          /* Improzo body text */
+  muted:"#666666",         /* Muted text */
+  light:"#999999",         /* Light gray text */
+  border:"#D9E2EC",        /* Soft blue-gray border */
+  success:"#10B981",successBg:"#ECFDF5",
+  warn:"#F59E0B",warnBg:"#FFFBEB",
+  error:"#EF4444",errorBg:"#FEF2F2",
+  info:"#1E82BD",infoBg:"#E8F4FD",
+  hitl:"#1E82BD",          /* HITL accent color */
+  hitlBg:"#E8F4FD",        /* HITL background */
+  hitlBorder:"#1E82BD44",  /* HITL border */
+  codeBg:"#0F172A",codeText:"#E2E8F0",codeComment:"#64748B",codeKeyword:"#7DD3FC",codeString:"#86EFAC",codeFunc:"#C4B5FD",codeNum:"#FCD34D",
+};
+const PHASE_COLORS={"PLAN":"#8B5CF6","TOOL USE":"#1E82BD","REFLECT":"#F59E0B","ACT":"#10B981"};
+const PHASE_ICONS={"PLAN":"🧠","TOOL USE":"🔧","REFLECT":"💭","ACT":"⚡"};
+const fmt$=(v)=>{const a=Math.abs(v);if(a>=1e6)return "$"+(v/1e6).toFixed(1)+"M";if(a>=1e3)return "$"+(v/1e3).toFixed(0)+"K";return "$"+Math.round(v)};
+const fmtPct=(v,d=1)=>v.toFixed(d)+"%";
+/* ▓▓ END:TOKENS ▓▓ */
+
+/* ▓▓ SECTION:RNG ▓▓ */
+/* Seeded RNG — all demo data is deterministic per persona; Math.random() reserved for animation jitter only */
+const hashStr=(s)=>{let h=1779033703;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19}return h>>>0};
+const mulberry32=(seed)=>{let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}};
+const gauss=(rng)=>{let u=0,v=0;while(u===0)u=rng();while(v===0)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+const pick=(rng,arr)=>arr[Math.floor(rng()*arr.length)];
+/* ▓▓ END:RNG ▓▓ */
+
+/* ▓▓ SECTION:PERSONAS ▓▓ */
+/* 5 fictional pharma company personas — selector re-skins data, KPIs, plan archetype, narrative */
+const PERSONAS=[
+  {id:"vertanis",name:"Vertanis Pharma",initials:"VP",type:"Big Pharma — Primary Care",typeShort:"Primary Care",reps:812,roleLabel:"Sales Reps",
+   products:["Cardiozen","Lipidra"],metric:"TRx",attainLabel:"TRx Attainment",color:"#1E82BD",launch:false,
+   plan:{archetype:"goalAttainment",freq:"Quarterly",threshold:90,thresholdPay:50,accelerator:2.0,excellence:110,cap:200,ti:18500},
+   sigma:.11,bias:"lowBaseline",lumpy:false,cycleStage:4,
+   story:"Goal-setting bias against low-baseline territories is suppressing fair payout for 11% of the field",
+   nudge:{p4p:0,dist:-4,curve:-2,diff:-6,fair:-22,budget:2,cmplx:-4,comp:0}},
+  {id:"oncovia",name:"Oncovia Therapeutics",initials:"OT",type:"Specialty — Oncology KAM",typeShort:"Oncology",reps:124,roleLabel:"Key Account Managers",
+   products:["Veltrazia"],metric:"Volume + MBO",attainLabel:"Blended Attainment (60% MBO / 40% Vol)",color:"#7C3AED",launch:false,
+   plan:{archetype:"mboHybrid",freq:"Quarterly",threshold:85,thresholdPay:55,accelerator:1.6,excellence:112,cap:175,ti:24000,mboWeight:.6},
+   sigma:.09,bias:"none",lumpy:false,cycleStage:5,
+   story:"Healthy plan — MBO scoring inflation is the one watch-item (92% of KAMs scored ≥95 on MBOs)",
+   nudge:{p4p:3,dist:4,curve:3,diff:-8,fair:6,budget:3,cmplx:-10,comp:4}},
+  {id:"neurelis",name:"Neurelis Bio",initials:"NB",type:"Launch Biotech — CNS",typeShort:"Launch",reps:96,roleLabel:"Launch Reps",
+   products:["Nexavio"],metric:"NBRx",attainLabel:"NBRx vs Launch Goal",color:"#0D9488",launch:true,
+   plan:{archetype:"rankBased",freq:"Monthly",threshold:80,thresholdPay:40,accelerator:2.5,excellence:120,cap:250,ti:15000,sigmaPct:24,
+     tiers:[250,205,170,145,120,100,82,65,52,40]},
+   sigma:.24,bias:"opportunity",lumpy:false,cycleStage:2,
+   story:"Rank-based plan is driving differentiation by design — but 9 territories still have zero NBRx activation",
+   nudge:{p4p:-6,dist:-12,curve:-8,diff:14,fair:-14,budget:-18,cmplx:2,comp:-6}},
+  {id:"auralys",name:"Auralys Rare",initials:"AR",type:"Rare Disease — Account Model",typeShort:"Rare Disease",reps:38,roleLabel:"Account Directors",
+   products:["Auragen"],metric:"Milestones",attainLabel:"Account Milestone Completion",color:"#BE185D",launch:false,
+   plan:{archetype:"accountMBO",freq:"Semi-Annual",threshold:70,thresholdPay:40,accelerator:1.5,excellence:115,cap:180,ti:32000,base:40,
+     milestones:[{at:70,add:30},{at:90,add:30},{at:100,add:25},{at:115,add:30}]},
+   sigma:.17,bias:"none",lumpy:true,cycleStage:6,
+   story:"Lumpy account outcomes make payouts cliff-heavy — 5 ADs missed a milestone by <3 points",
+   nudge:{p4p:-8,dist:-10,curve:-14,diff:0,fair:2,budget:0,cmplx:-6,comp:2}},
+  {id:"genovex",name:"Genovex Labs",initials:"GL",type:"Generics — Portfolio GM",typeShort:"Generics",reps:210,roleLabel:"Portfolio Reps",
+   products:["240-SKU Portfolio"],metric:"GM",attainLabel:"Gross Margin vs Plan",color:"#B45309",launch:false,
+   plan:{archetype:"gmCommission",freq:"Monthly",threshold:0,thresholdPay:0,accelerator:1.0,excellence:120,cap:300,ti:9500,floor:35,rate:1.0},
+   sigma:.14,bias:"none",lumpy:false,cycleStage:3,
+   story:"GM-commission floor pays 35% to the bottom decile regardless of margin — $310K/yr in unearned floor payments",
+   nudge:{p4p:4,dist:-6,curve:-8,diff:4,fair:0,budget:-8,cmplx:6,comp:-4}},
+];
+/* ▓▓ END:PERSONAS ▓▓ */
+
+/* ▓▓ SECTION:STATS ▓▓ */
+const rank=(arr,desc=true)=>{const idx=arr.map((v,i)=>[v,i]).sort((a,b)=>desc?b[0]-a[0]:a[0]-b[0]);const r=new Array(arr.length);idx.forEach(([,i],k)=>r[i]=k+1);return r};
+const spearman=(xs,ys)=>{const rx=rank(xs),ry=rank(ys),n=xs.length;let d2=0;for(let i=0;i<n;i++)d2+=(rx[i]-ry[i])**2;return 1-6*d2/(n*(n*n-1))};
+const pearson=(xs,ys)=>{const n=xs.length,mx=xs.reduce((a,b)=>a+b,0)/n,my=ys.reduce((a,b)=>a+b,0)/n;let sxy=0,sx=0,sy=0;for(let i=0;i<n;i++){sxy+=(xs[i]-mx)*(ys[i]-my);sx+=(xs[i]-mx)**2;sy+=(ys[i]-my)**2}return sxy/Math.sqrt(sx*sy||1)};
+const percentile=(arr,p)=>{const s=[...arr].sort((a,b)=>a-b);const i=(s.length-1)*p;const lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo)};
+const mean=(arr)=>arr.reduce((a,b)=>a+b,0)/arr.length;
+const normCdf=(z)=>{const t=1/(1+.2316419*Math.abs(z));const d=.3989423*Math.exp(-z*z/2);let p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p};
+const binHistogram=(values,min,max,bins)=>{const w=(max-min)/bins;const out=Array.from({length:bins},(_,i)=>({x0:min+i*w,x1:min+(i+1)*w,n:0}));values.forEach(v=>{const i=Math.max(0,Math.min(bins-1,Math.floor((v-min)/w)));out[i].n++});return out};
+/* payoutCurve(plan) → fn(attainment%) → payout% of target incentive. Dispatches on plan archetype. */
+const payoutCurve=(plan)=>{
+  const p=plan;
+  const core=(att)=>{ /* goal-attainment archetype: threshold → linear → accelerator → excellence kicker → cap */
+    if(att<p.threshold)return 0;
+    if(att<100)return p.thresholdPay+(att-p.threshold)*((100-p.thresholdPay)/Math.max(1,100-p.threshold));
+    let pay=att<=p.excellence?100+(att-100)*p.accelerator:100+(p.excellence-100)*p.accelerator+(att-p.excellence)*p.accelerator*1.5;
+    return Math.min(p.cap,pay);
+  };
+  if(p.archetype==="rankBased")return(att)=>{const pct=normCdf((att-100)/(p.sigmaPct||24));const d=Math.min(9,Math.max(0,Math.floor((1-pct)*10)));return p.tiers[d]};
+  if(p.archetype==="gmCommission")return(att)=>Math.max(p.floor,Math.min(p.cap,att*p.rate));
+  if(p.archetype==="accountMBO")return(att)=>{let pay=att>=p.threshold?p.base:p.base*.5;p.milestones.forEach(m=>{if(att>=m.at)pay+=m.add});return Math.min(p.cap,pay)};
+  if(p.archetype==="mboHybrid")return(att)=>{const mbo=Math.max(60,Math.min(118,100+(att-100)*.45));return p.mboWeight*mbo+(1-p.mboWeight)*core(att)};
+  return core;
+};
+/* Expected cost of a plan against an attainment sample, annualized across the full field */
+const costOfPlan=(plan,atts,reps)=>{const curve=payoutCurve(plan);const m=mean(atts.map(a=>curve(a)));return m/100*plan.ti*reps};
+/* Monte Carlo over goal-scenario draws — precomputed at DATAGEN, screen animation is reveal-only */
+const monteCarlo=(plan,sigma,rng,n=500)=>{
+  const curve=payoutCurve(plan);const draws=[];
+  for(let i=0;i<n;i++)draws.push(100+gauss(rng)*sigma*100);
+  const pT=draws.filter(a=>a>=plan.threshold).length/n,p100=draws.filter(a=>a>=100).length/n,pE=draws.filter(a=>a>=plan.excellence).length/n;
+  const payouts=draws.map(curve);
+  return {pThreshold:pT,pTarget:p100,pExcellence:pE,meanPayout:mean(payouts),bins:binHistogram(draws,40,160,24),draws:draws.slice(0,60)};
+};
+/* ▓▓ END:STATS ▓▓ */
+
+/* ▓▓ SECTION:DATAGEN ▓▓ */
+const FIRSTS=["Maya","James","Priya","Daniel","Sofia","Marcus","Elena","Ryan","Aisha","Tom","Nina","Carlos","Grace","Kevin","Lara","Omar","Jenna","Derek","Tara","Sam","Ivy","Noah","Zara","Felix","Dana"];
+const LASTS=["Kapoor","Whitfield","Chen","Moreau","Delgado","Okafor","Lindqvist","Harrington","Patel","Brooks","Tanaka","Rivera","Sloane","Novak","Ferreira","Quinn","Marsh","Iyer","Bauer","Cole"];
+const REGIONS=[
+  {r:"Northeast",d:["Boston","NY Metro","Philadelphia"]},
+  {r:"Southeast",d:["Atlanta","Miami","Carolinas"]},
+  {r:"Midwest",d:["Chicago","Twin Cities","Ohio Valley"]},
+  {r:"South Central",d:["Dallas","Houston","Gulf Coast"]},
+  {r:"West",d:["SoCal","Bay Area","Pacific NW"]},
+];
+const CYCLE_STAGES=["Data Lock","Validation","Calc Run","Shadow Audit","QC","HITL Approval","Statements","Payroll Feed"];
+const DIST_FLAGS=["Legacy guarantee","Windfall account","Quota error"];
+
+const buildPersonaData=(pid)=>{
+  const ps=PERSONAS.find(p=>p.id===pid);
+  const rng=mulberry32(hashStr("izo-ic-"+pid));
+  const curve=payoutCurve(ps.plan);
+  /* ── 100 territory rows, fixed draw order ── */
+  const rows=[];
+  for(let i=0;i<100;i++){
+    const reg=REGIONS[i%5],district=reg.d[Math.floor(i/5)%3];
+    const rep=FIRSTS[Math.floor(rng()*FIRSTS.length)]+" "+LASTS[Math.floor(rng()*LASTS.length)];
+    const tenureYrs=Math.round((rng()*13+.5)*10)/10;
+    const baselineVol=Math.round(2200+rng()*7800);
+    const marketOpportunity=Math.round((40+rng()*60));
+    let att=100+gauss(rng)*ps.sigma*100;
+    if(ps.bias==="lowBaseline"&&baselineVol<3900)att-=6.5;          /* Vertanis story: biased goals on low-baseline territories */
+    if(ps.bias==="opportunity"&&marketOpportunity<52)att-=9;        /* Neurelis: low-opportunity territories can't ramp */
+    if(ps.lumpy&&rng()<.28)att+=(rng()<.5?-1:1)*(8+rng()*26);       /* Auralys: lumpy account milestones */
+    const quota=Math.round(baselineVol*(1+(marketOpportunity-65)*.004+.06));
+    const actual=Math.round(quota*att/100);
+    const calls=Math.round(180+rng()*420);
+    const callPlanAdherence=Math.round(58+rng()*40);
+    const reach=Math.round(52+rng()*44);
+    const freq=Math.round((1.4+rng()*3.2)*10)/10;
+    const tierAShare=Math.round((25+rng()*52));
+    const workloadIdx=Math.round((0.62+rng()*0.92)*100)/100;
+    let payoutPct=curve(att)+gauss(rng)*2.2;                        /* small admin noise on top of curve */
+    if(payoutPct<0)payoutPct=0;
+    rows.push({id:"T-"+String(i+1).padStart(3,"0"),rep,region:reg.r,district,tenureYrs,quota,actual,
+      attainment:Math.round(att*10)/10,payoutPct:Math.round(payoutPct*10)/10,payout:0,
+      perfRank:0,payoutRank:0,decile:0,quadrant:"aligned",calls,callPlanAdherence,reach,freq,tierAShare,
+      marketOpportunity,baselineVol,workloadIdx,flags:[]});
+  }
+  /* ── inject ~8% payout distortions; these SAME rows drive P4P outliers, health findings, disputes ── */
+  const distorted=[];
+  for(let k=0;k<8;k++){
+    let idx=Math.floor(rng()*100);
+    while(distorted.includes(idx))idx=Math.floor(rng()*100);
+    distorted.push(idx);
+    const row=rows[idx],type=DIST_FLAGS[k%3];
+    if(type==="Legacy guarantee"){row.payoutPct=Math.max(row.payoutPct,128+rng()*30);row.flags.push("Legacy guarantee")}
+    else if(type==="Windfall account"){row.attainment=Math.round((row.attainment+24+rng()*14)*10)/10;row.payoutPct=Math.round(curve(row.attainment)*10)/10;row.calls=Math.round(row.calls*.55);row.flags.push("Windfall account")}
+    else{row.attainment=Math.round((row.attainment-16-rng()*8)*10)/10;row.payoutPct=Math.round(Math.max(0,curve(row.attainment))*10)/10;row.flags.push("Quota error")}
+  }
+  /* ── ranks, deciles, quadrants, dollar payouts ── */
+  const atts=rows.map(r=>r.attainment),pays=rows.map(r=>r.payoutPct);
+  const pr=rank(atts),yr=rank(pays);
+  const perQ=ps.plan.freq==="Quarterly"?4:ps.plan.freq==="Monthly"?12:2;
+  rows.forEach((r,i)=>{
+    r.perfRank=pr[i];r.payoutRank=yr[i];r.decile=Math.min(10,Math.ceil(pr[i]/10));
+    const gap=r.payoutRank-r.perfRank;
+    r.quadrant=r.flags.length?"review":gap<=-18?"overpaid":gap>=18?"underpaid":"aligned";
+    if(r.flags.includes("Legacy guarantee"))r.quadrant="overpaid";
+    if(r.flags.includes("Quota error"))r.quadrant="underpaid";
+    r.payout=Math.round(ps.plan.ti/perQ*r.payoutPct/100);
+  });
+  const rho=Math.round(spearman(atts,pays)*1000)/1000;
+  /* ── health check: 8 scored dimensions, data-derived + persona nudges ── */
+  const clamp=(v)=>Math.max(8,Math.min(98,Math.round(v)));
+  const pctMid=rows.filter(r=>r.attainment>=ps.plan.threshold&&r.payoutPct<ps.plan.cap).length;
+  const spread=(percentile(pays,.9)-percentile(pays,.1))/Math.max(1,percentile(pays,.5));
+  const fairCorr=pearson(rows.map(r=>r.baselineVol),atts);
+  const tenCorr=pearson(rows.map(r=>r.tenureYrs),atts);
+  const sizeCorr=pearson(rows.map(r=>r.quota),atts);
+  const capped=rows.filter(r=>r.payoutPct>=ps.plan.cap-.5).length;
+  const below=rows.filter(r=>r.payoutPct<=0.5).length;
+  const util=mean(pays)/100;
+  const n=ps.nudge;
+  const dims=[
+    {id:"p4p",label:"Pay-for-Performance Alignment",icon:"🎯",link:"p4p",score:clamp(rho*100+n.p4p),
+     metric:"ρ = "+rho.toFixed(2)},
+    {id:"dist",label:"Payout Distribution vs Design",icon:"📊",link:"p4p",score:clamp(pctMid+n.dist),
+     metric:capped+"% capped · "+below+"% at zero"},
+    {id:"curve",label:"Attainment Curve Health",icon:"📈",link:"studio",score:clamp(82+n.curve-(capped>8?10:0)),
+     metric:"kink @ "+ps.plan.excellence+"%"},
+    {id:"diff",label:"Differentiation & Motivation",icon:"⚡",link:"p4p",score:clamp(spread*88+n.diff),
+     metric:"top:median spread "+spread.toFixed(2)+"×"},
+    {id:"fair",label:"Goal Fairness",icon:"⚖️",link:"goals",score:clamp(86-Math.abs(fairCorr)*120+n.fair),
+     metric:"baseline corr r="+fairCorr.toFixed(2)},
+    {id:"budget",label:"Budget Utilization",icon:"💰",link:"command",score:clamp(96-Math.abs(util-1)*160+n.budget),
+     metric:fmtPct(util*100,0)+" of target spend"},
+    {id:"cmplx",label:"Plan Complexity",icon:"🧩",link:"studio",score:clamp(88+n.cmplx),
+     metric:ps.plan.archetype==="mboHybrid"?"7 moving parts":"4 moving parts"},
+    {id:"comp",label:"Compliance & Audit Readiness",icon:"🛡️",link:"govern",score:clamp(92+n.comp),
+     metric:"99.97% shadow-calc parity"},
+  ];
+  dims.forEach(d=>{d.status=d.score>=80?"good":d.score>=60?"warn":"risk"});
+  const overall=Math.round(dims.reduce((a,d)=>a+d.score,0)/dims.length);
+  /* ── KPIs w/ seeded sparklines ── */
+  const spark=(v,vol)=>{const s=[];let x=v*(.84+rng()*.06);for(let i=0;i<8;i++){s.push(Math.round(x*10)/10);x+=v*(rng()-.42)*vol}s[7]=v;return s};
+  const spendQTD=ps.plan.ti/perQ*util*ps.reps*.78;
+  const pctAtGoal=rows.filter(r=>r.attainment>=100).length;
+  const disputeRate=Math.round((1.4+rng()*1.6)*10)/10;
+  const forecastAcc=Math.round((91+rng()*6)*10)/10;
+  const kpis=[
+    {id:"spend",label:"Incentive Spend QTD",value:fmt$(spendQTD),delta:(rng()>.5?"+":"−")+(1+rng()*4).toFixed(1)+"%",spark:spark(spendQTD/1e3,.12),good:true},
+    {id:"budget",label:"Budget Utilization",value:fmtPct(util*100,0),delta:(util>1?"+":"")+((util-1)*100).toFixed(1)+" pts",spark:spark(util*100,.05),good:util<=1.04},
+    {id:"rho",label:"Pay-for-Performance ρ",value:rho.toFixed(2),delta:(rng()>.4?"+":"−")+(rng()*.05).toFixed(2),spark:spark(rho*100,.04),good:rho>=.8},
+    {id:"goal",label:"% "+ps.roleLabel+" ≥ Goal",value:pctAtGoal+"%",delta:(rng()>.5?"+":"−")+(1+rng()*5).toFixed(0)+" pts",spark:spark(pctAtGoal,.1),good:pctAtGoal>=40&&pctAtGoal<=70},
+    {id:"disputes",label:"Dispute Rate",value:fmtPct(disputeRate),delta:"−"+(rng()*.8).toFixed(1)+" pts",spark:spark(disputeRate,.25),good:disputeRate<3},
+    {id:"forecast",label:"Payout Forecast Accuracy",value:fmtPct(forecastAcc),delta:"+"+(rng()*1.4).toFixed(1)+" pts",spark:spark(forecastAcc,.02),good:forecastAcc>=92},
+  ];
+  /* ── IC cycle ── */
+  const cycle={stages:CYCLE_STAGES,current:ps.cycleStage,period:ps.plan.freq==="Monthly"?"May 2026":ps.plan.freq==="Quarterly"?"Q2 2026":"H1 2026"};
+  /* ── agent activity feed pool ── */
+  const prod=ps.products[0];
+  const feedPool=[
+    {agent:"Payout Auditor",icon:"🧮",text:"Shadow recalc complete — "+ps.reps+" statements verified at 99.97% parity",type:"success"},
+    {agent:"P4P Analyst",icon:"🎯",text:"Spearman ρ recomputed: "+rho.toFixed(2)+" ("+(rho>=.8?"healthy":"below 0.80 guardrail")+")",type:rho>=.8?"info":"warn"},
+    {agent:"Goal Setting",icon:"📐",text:"Detected goal-bias signal on low-baseline territories ("+prod+")",type:"warn"},
+    {agent:"Field Inquiry",icon:"💬",text:"Auto-resolved payout inquiry from "+rows[14].rep+" — curve explanation sent",type:"success"},
+    {agent:"Health Check",icon:"🩺",text:"Dimension rescored: Goal Fairness → "+dims[4].score+"/100",type:dims[4].score<60?"warn":"info"},
+    {agent:"Territory Alignment",icon:"🗺️",text:"Workload imbalance flagged in "+rows[31].region+" — index "+rows[31].workloadIdx,type:"info"},
+    {agent:"SFE / Call Plan",icon:"📞",text:"Call-plan adherence dipped to "+Math.round(mean(rows.map(r=>r.callPlanAdherence)))+"% field-wide",type:"info"},
+    {agent:"Plan Simulator",icon:"🧪",text:"What-if cached: remove cap → cost +"+(2+rng()*4).toFixed(1)+"% of budget",type:"info"},
+    {agent:"Fairness & Compliance",icon:"⚖️",text:"Disparate-impact screen passed — 80% rule satisfied on all cohorts",type:"success"},
+    {agent:"Launch Readiness",icon:"🚀",text:ps.launch?"NBRx velocity +12% WoW — 87% territories activated":"Quarterly launch-readiness scan idle (no active launch)",type:"info"},
+    {agent:"IC Communications",icon:"📣",text:"Drafted plan-change FAQ for "+ps.roleLabel.toLowerCase()+" — pending HITL review",type:"hitl"},
+    {agent:"Payout Auditor",icon:"🧮",text:"2 statement discrepancies >25bps flagged for review ("+rows[7].region+")",type:"warn"},
+    {agent:"Field Inquiry",icon:"💬",text:"New dispute: "+rows[distorted[0]].rep+" — "+rows[distorted[0]].flags[0]+" adjustment claim",type:"hitl"},
+    {agent:"Goal Setting",icon:"📐",text:"Monte Carlo refreshed: P(target) = "+Math.round(monteCarlo(ps.plan,ps.sigma,mulberry32(hashStr(pid+"mc-feed")),200).pTarget*100)+"%",type:"info"},
+  ];
+  /* ── top findings (deep-link cards) ── */
+  const findings=[
+    {sev:dims[4].score<60?"risk":"warn",icon:"⚖️",title:"Goal fairness signal",view:"goals",agent:"Goal Setting Agent",
+     text:ps.story},
+    {sev:"warn",icon:"🎯",title:rows.filter(r=>r.quadrant==="overpaid").length+" overpaid / "+rows.filter(r=>r.quadrant==="underpaid").length+" underpaid "+ps.roleLabel.toLowerCase(),view:"p4p",agent:"P4P Analyst",
+     text:"Rank-gap analysis isolates "+distorted.length+" territories where payout rank diverges ≥18 positions from performance rank."},
+    {sev:"info",icon:"🧮",title:"Shadow audit: 2 discrepancies",view:"govern",agent:"Payout Auditor",
+     text:"Parallel recalculation of all "+ps.reps+" statements found 2 region-level deltas >25bps — root cause traced to a stale rate table."},
+  ];
+  /* ── disputes (2 wired to distorted rows = one coherent story) ── */
+  const dRow1=rows[distorted[1]],dRow2=rows[distorted[2]];
+  const mkTriage=(row,cause,fix)=>[
+    {phase:"PLAN",lines:["Parse inquiry intent → payout adjustment claim","Pull statement lineage for "+row.id+" ("+row.rep+")","Identify plan components in scope: "+ps.plan.archetype]},
+    {phase:"TOOL USE",lines:["Varicent: fetch calc trace for "+row.id+" period "+cycle.period,"Snowflake: SELECT * FROM ic_payouts WHERE terr_id='"+row.id+"'","IQVIA: validate "+ps.metric+" actuals vs restated panel"]},
+    {phase:"REFLECT",lines:["Recomputed payout: "+fmtPct(row.payoutPct)+" of TI — matches statement","Root cause isolated: "+cause,"Confidence 0."+(88+Math.floor(rng()*10))+" — within auto-resolve band? "+(row.payout>2500?"NO → HITL":"YES")]},
+    {phase:"ACT",lines:[fix,"Draft rep-facing explanation in plain English","Log resolution to audit trail w/ evidence chain"]},
+  ];
+  const disputes=[
+    {id:"DSP-1041",rep:dRow1.rep,terr:dRow1.id,region:dRow1.region,type:"Windfall clawback appeal",sentiment:"negative",age:2,amount:Math.round(dRow1.payout*.4),status:"needs-hitl",
+     message:"My "+ps.metric+" number includes the "+dRow1.region+" hospital system win — that was 18 months of work, not a windfall. The clawback feels arbitrary.",
+     triage:mkTriage(dRow1,"Account tagged 'windfall' by volume-spike rule; CRM shows 14 logged interactions pre-spike","Recommend: reverse 60% of clawback ("+fmt$(dRow1.payout*.4)+") — spike partially effort-driven"),
+     rootCause:"Volume-spike rule fired on a genuinely worked account",resolution:"Partial clawback reversal — "+fmt$(dRow1.payout*.4),confidence:.91},
+    {id:"DSP-1038",rep:dRow2.rep,terr:dRow2.id,region:dRow2.region,type:"Quota baseline error",sentiment:"negative",age:5,amount:Math.round(ps.plan.ti/perQ*.35),status:"needs-hitl",
+     message:"My quota was set off the old alignment — half my "+dRow2.district+" accounts moved to another territory but the goal never changed.",
+     triage:mkTriage(dRow2,"Quota built on pre-alignment baseline; Veeva Align shows 47% account-base reduction effective period start","Recommend: restate quota −38% and re-run payout ("+fmt$(ps.plan.ti/perQ*.35)+" adjustment)"),
+     rootCause:"Quota set on stale territory baseline (pre-alignment)",resolution:"Quota restatement + payout re-run",confidence:.94},
+    {id:"DSP-1036",rep:rows[22].rep,terr:rows[22].id,region:rows[22].region,type:"Statement clarification",sentiment:"neutral",age:1,amount:0,status:"auto-resolved",
+     message:"Can someone explain why my accelerator didn't kick in this period?",
+     triage:mkTriage(rows[22],"Attainment "+rows[22].attainment+"% is below the 100% accelerator gate — statement correct","Send curve walkthrough w/ personalized chart; no adjustment"),
+     rootCause:"Plan-mechanics question — no calc error",resolution:"Explanation sent (auto)",confidence:.98},
+    {id:"DSP-1033",rep:rows[57].rep,terr:rows[57].id,region:rows[57].region,type:"Split-credit claim",sentiment:"negative",age:8,amount:Math.round(ps.plan.ti/perQ*.18),status:"in-review",
+     message:"The "+rows[57].district+" IDN order was co-sold with my counterpart — I should see 50% credit, statement shows 0%.",
+     triage:mkTriage(rows[57],"CRM co-selling records support 50/50 split; crediting rule v2.3 missed the secondary rep","Recommend: apply split credit, adjust both statements"),
+     rootCause:"Crediting rule gap on co-sold IDN orders",resolution:"50/50 split credit application",confidence:.87},
+    {id:"DSP-1029",rep:rows[71].rep,terr:rows[71].id,region:rows[71].region,type:"Statement clarification",sentiment:"positive",age:1,amount:0,status:"auto-resolved",
+     message:"New to the team — where can I see how the "+(ps.plan.archetype==="rankBased"?"decile tiers":"payout curve")+" works?",
+     triage:mkTriage(rows[71],"Onboarding question — no calc issue","Send interactive plan explainer + book IC office hours"),
+     rootCause:"Onboarding / plan literacy",resolution:"Explainer sent (auto)",confidence:.99},
+  ];
+  /* ── President's Club ── */
+  const clubN=Math.max(5,Math.round(ps.reps>200?10:8));
+  const sorted=[...rows].sort((a,b)=>a.perfRank-b.perfRank);
+  const club={cutRank:10,qualifiers:sorted.slice(0,10).map(r=>({...r})),nearMiss:sorted.slice(10,14).map(r=>({...r})),
+    insight:sorted[10].rep+" missed the Club cutline by "+((sorted[9].attainment-sorted[10].attainment)).toFixed(1)+" attainment pts — but ranks #3 on "+ps.metric+" growth %. Consider a growth-axis wildcard slot.",seats:clubN};
+  /* ── SFE aggregates ── */
+  const weakRegion=REGIONS[hashStr(pid)%5].r;
+  const sfeMetrics=["Call Plan Adherence","Reach","Frequency","Tier-A Effort"];
+  const heat=REGIONS.map(rg=>{
+    const rr=rows.filter(r=>r.region===rg.r);
+    const pen=rg.r===weakRegion?-11:0;
+    return {region:rg.r,vals:[Math.round(mean(rr.map(r=>r.callPlanAdherence)))+pen,Math.round(mean(rr.map(r=>r.reach)))+pen,Math.round(mean(rr.map(r=>r.freq))*25)+pen,Math.round(mean(rr.map(r=>r.tierAShare)))+pen]};
+  });
+  const targeting=Array.from({length:10},(_,i)=>({decile:i+1,called:Math.max(4,Math.round(88-i*8.4+gauss(rng)*4)),uncalled:Math.max(2,Math.round(34-i*2.6+gauss(rng)*3))}));
+  const whitespace=Array.from({length:6},(_,i)=>{
+    const rg=REGIONS[(hashStr(pid)+i)%5];
+    return {cluster:["Academic IDN","Community Oncology","Large Group Practice","Hospital System","Specialty Pharmacy Hub","FQHC Network"][i],
+      region:rg.r,hcps:Math.round(18+rng()*60),opportunity:Math.round((.4+rng()*2.4)*10)/10,share:Math.round(4+rng()*22),covered:rng()>.55};
+  });
+  const wlHist=binHistogram(rows.map(r=>r.workloadIdx),.6,1.6,10);
+  const sfe={kpi:{adherence:Math.round(mean(rows.map(r=>r.callPlanAdherence))),reach:Math.round(mean(rows.map(r=>r.reach))),freq:Math.round(mean(rows.map(r=>r.freq))*10)/10,tierA:Math.round(mean(rows.map(r=>r.tierAShare)))},
+    metrics:sfeMetrics,heat,weakRegion,targeting,whitespace,wlHist,
+    overloaded:rows.filter(r=>r.workloadIdx>1.3).length,underloaded:rows.filter(r=>r.workloadIdx<.78).length};
+  /* ── goal fairness aggregates ── */
+  const goals={hist:binHistogram(atts,40,160,24),fairCorr,tenCorr,sizeCorr,
+    growthScatter:rows.map(r=>({x:r.marketOpportunity,y:Math.round((r.quota/r.baselineVol-1)*1000)/10,flag:r.baselineVol<3900&&ps.bias==="lowBaseline"})),
+    mc:monteCarlo(ps.plan,ps.sigma,mulberry32(hashStr("izo-ic-mc-"+pid)))};
+  /* ── launch strip (persona-conditional) ── */
+  const launchStrip=ps.launch?{weeks:9,nbrxVelocity:"+12% WoW",activated:87,rampVsPlan:"+4 pts",zeroTerr:9}:null;
+  return {ps,rows,distorted,rho,dims,overall,kpis,cycle,feedPool,findings,disputes,club,sfe,goals,launchStrip,
+    util,spendQTD,perQ,curve};
+};
+const _dataCache={};
+const getData=(pid)=>_dataCache[pid]||(_dataCache[pid]=buildPersonaData(pid));
+/* ▓▓ END:DATAGEN ▓▓ */
+
+/* ▓▓ SECTION:AGENTS ▓▓ */
+/* 11 IC agents — same schema as the iZO data-agent registry (persona, tools, 4-phase steps, hitlConfig) */
+const IC_TOOLS=["Snowflake","IQVIA Xponent","Veeva CRM","Veeva Align","Varicent ICM","Workday","SAP","Power BI","Slack"];
+const AGENTS=[
+  {id:"health",name:"IC Health Check Agent",persona:"IC Strategy Consultant",icon:"🩺",color:"#1E82BD",status:"Active",tasks:96,success:99.1,
+   desc:"Runs the always-on 8-dimension IC health check that consultants used to deliver as a 6-week quarterly engagement. Scores plan health continuously and routes findings to specialist agents.",
+   tools:["Snowflake","Varicent ICM","IQVIA Xponent","Power BI"],
+   capabilities:["8-Dimension Health Scoring","P4P Diagnostics","Trend Watchlists","Exec Narrative Generation","Cross-Agent Routing"],
+   hitlConfig:{approvalGate:"ACT",escalationThreshold:"Medium",
+     requiresHumanFor:["Publishing exec health report","Re-scoring a dimension after methodology change","Triggering plan-design review"],
+     recentReviews:[
+       {action:"Publish Q2 health report (score 78)",reviewer:"VP Sales Ops",decision:"Approved",time:"1h ago"},
+       {action:"Re-score Goal Fairness after bias fix",reviewer:"IC Council",decision:"Approved",time:"1d ago"},
+       {action:"Escalate: differentiation below guardrail",reviewer:"Pending",decision:"Pending",time:"22m ago"}]},
+   steps:[
+     {phase:"PLAN",title:"Frame the Health Check",desc:"Decide which of the 8 dimensions need rescoring based on data freshness and trigger events.",actions:["Pull last scores + deltas from health ledger","Check trigger queue: new payout run, quota refresh, alignment change","Order dimensions by staleness × business impact"],color:"#8B5CF6"},
+     {phase:"TOOL USE",title:"Compute Dimension Scores",desc:"Run the scoring battery against live IC and sales data.",actions:["Snowflake: attainment, payout & quota distributions by territory","Varicent: plan parameters, payout traces, exception log","IQVIA: prescriber-level demand for windfall detection","Power BI: refresh health-score dataset"],color:"#1E82BD"},
+     {phase:"REFLECT",title:"Diagnose & Prioritize",desc:"Convert scores into findings with root-cause hypotheses and route to specialist agents.",actions:["Compare each score vs guardrail and prior period","Attach evidence micro-charts to each finding","Route: fairness → Goal Agent, curve → Plan Simulator","Draft exec narrative with 3 headline findings"],color:"#F59E0B"},
+     {phase:"ACT",title:"Publish & Monitor",desc:"Publish the health report and arm watchlists. HITL gate for exec publication.",actions:["⚠️ HITL GATE: exec report publication requires VP sign-off","Update Command Center gauge + dimension cards","Arm watchlist alerts on any dimension <60","Notify #ic-ops with summary and deep links"],color:"#10B981"}]},
+];
+/* ▓▓ END:AGENTS ▓▓ */
+
+/* ▓▓ SECTION:COPILOT-SCRIPTS ▓▓ */
+/* Keyword-matched copilot scripts: streaming phase trace → typed answer → inline chart from live persona data */
+const COPILOT_SCRIPTS=[
+  {id:"spike",match:["spike","payout spike","root cause","why did payout"],
+   prompt:"Why did incentive spend spike this period?",
+   trace:[
+     {phase:"PLAN",lines:["Decompose spend Δ into rate, mix, and volume effects","Target tables: ic_payouts, quota_master, territory_roster"]},
+     {phase:"TOOL USE",lines:["Snowflake ▸ SELECT region, SUM(payout) FROM ic_payouts GROUP BY 1 ORDER BY 2 DESC","Varicent ▸ GET /calc-runs/current/exceptions?threshold=25bps","IQVIA ▸ validate demand actuals vs panel restatement"]},
+     {phase:"REFLECT",lines:["Spend Δ concentrated in 2 regions; accelerator zone census +9pts","8 distorted territories contribute 31% of the Δ","Confidence 0.92 — evidence chain complete"]}],
+   answer:(d)=>["Incentive spend is tracking "+fmtPct(d.util*100,0)+" of target budget. The increase is concentrated where attainment crossed into the accelerator zone (above 100%), plus "+d.distorted.length+" flagged territories — legacy guarantees and windfall accounts — that contribute disproportionately to the delta.",
+     "The largest single driver is the "+d.rows[d.distorted[0]].region+" region. Recommend reviewing the flagged rows in the P4P Lab before approving the payroll feed."],
+   chart:{type:"bar",title:"Payout $ by region (this period)"},
+   followups:["Show the flagged territories","What would a 250% cap cost?","Draft comms explaining the accelerator"]},
+];
+/* ▓▓ END:COPILOT-SCRIPTS ▓▓ */
+
+/* ▓▓ SECTION:CHARTS ▓▓ */
+/* Shared scale helpers */
+const scaleLinear=(d0,d1,r0,r1)=>{const m=(r1-r0)/((d1-d0)||1);return v=>r0+(v-d0)*m};
+const niceTicks=(min,max,count=5)=>{const span=max-min||1;const step0=span/count;const mag=Math.pow(10,Math.floor(Math.log10(step0)));const norm=step0/mag;const step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;const lo=Math.ceil(min/step)*step;const out=[];for(let v=lo;v<=max+1e-9;v+=step)out.push(Math.round(v*100)/100);return out};
+/* Chart stubs — replaced by full library in CHARTS build step */
+const ChartStub=({label,h=160})=>(
+  <div style={{height:h,borderRadius:10,border:`2px dashed ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",color:C.light,fontSize:12,fontWeight:600,background:"#FAFBFC"}}>◌ {label}</div>
+);
+const Gauge=({value,size=180,label})=>(<ChartStub label={`Gauge ${Math.round(value)} ${label||""}`} h={size}/>);
+const Sparkline=({data,w=90,h=28,color=C.primary})=>{
+  const min=Math.min(...data),max=Math.max(...data);
+  const x=scaleLinear(0,data.length-1,2,w-2),y=scaleLinear(min,max===min?min+1:max,h-3,3);
+  const pts=data.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}><polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round"/></svg>;
+};
+const ScatterPlot=(p)=>(<ChartStub label="ScatterPlot" h={p.h||260}/>);
+const Histogram=(p)=>(<ChartStub label="Histogram" h={p.h||200}/>);
+const LineChart=(p)=>(<ChartStub label="LineChart" h={p.h||200}/>);
+const BarChart=(p)=>(<ChartStub label="BarChart" h={p.h||200}/>);
+const Heatmap=(p)=>(<ChartStub label="Heatmap" h={p.h||200}/>);
+const DonutChart=(p)=>(<ChartStub label="Donut" h={p.h||160}/>);
+const CurveBuilder=(p)=>(<ChartStub label="CurveBuilder" h={p.h||260}/>);
+/* ▓▓ END:CHARTS ▓▓ */
+
+/* ▓▓ SECTION:UI ▓▓ */
+const Badge=({children,variant="success",small})=>{
+  const m={success:{bg:C.successBg,c:C.success},warning:{bg:C.warnBg,c:C.warn},error:{bg:C.errorBg,c:C.error},info:{bg:C.infoBg,c:C.info},neutral:{bg:"#EDF2F7",c:C.muted},primary:{bg:C.primaryBg,c:C.primary},purple:{bg:"#F3F0FF",c:"#7C3AED"},hitl:{bg:"#FFF7ED",c:"#EA580C"}};
+  const s=m[variant]||m.neutral;
+  return <span style={{display:"inline-flex",alignItems:"center",padding:small?"1px 6px":"2px 10px",borderRadius:20,fontSize:small?9:11,fontWeight:600,letterSpacing:.3,background:s.bg,color:s.c,border:`1px solid ${s.c}33`,whiteSpace:"nowrap"}}>{children}</span>;
+};
+const ProgressBar=({value,color=C.primary,height=6})=>(
+  <div style={{width:"100%",background:"#D9E2EC",borderRadius:height,height,overflow:"hidden"}}>
+    <div style={{width:`${Math.max(0,Math.min(100,value))}%`,height:"100%",borderRadius:height,background:`linear-gradient(90deg,${color},${color}CC)`,transition:"width 1.2s cubic-bezier(0.4,0,0.2,1)"}}/>
+  </div>
+);
+const StatCard=({icon,label,value,sub,color=C.heading,spark,good,delay=0})=>(
+  <div style={{background:C.card,borderRadius:12,padding:"16px 18px",border:`1px solid ${C.border}`,animation:`fadeUp .4s ease-out ${delay}s both`}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+      <div style={{fontSize:11,color:C.muted,fontWeight:600,lineHeight:1.3}}>{icon&&<span style={{marginRight:5}}>{icon}</span>}{label}</div>
+      {spark&&<Sparkline data={spark} color={good===false?C.warn:C.primary}/>}
+    </div>
+    <div style={{fontSize:24,fontWeight:800,color,marginTop:6}}>{value}</div>
+    {sub&&<div style={{fontSize:10.5,color:good===false?C.warn:C.muted,marginTop:3,fontWeight:500}}>{sub}</div>}
+  </div>
+);
+const SectionCard=({title,sub,right,children,pad=20,style})=>(
+  <div style={{background:C.card,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",...style}}>
+    {(title||right)&&<div style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+      <div><div style={{fontWeight:700,fontSize:14,color:C.heading}}>{title}</div>{sub&&<div style={{fontSize:11.5,color:C.muted,marginTop:2}}>{sub}</div>}</div>
+      {right}
+    </div>}
+    <div style={{padding:pad}}>{children}</div>
+  </div>
+);
+const PhasePill=({phase,active})=>(
+  <span style={{padding:"3px 8px",borderRadius:6,background:`${PHASE_COLORS[phase]}${active?"33":"15"}`,fontSize:9,fontWeight:700,color:PHASE_COLORS[phase],border:active?`1px solid ${PHASE_COLORS[phase]}`:"1px solid transparent"}}>{phase}</span>
+);
+const HITLDecisionRow=({action,detail,onDecide,decided})=>(
+  <div className="hitl-card" style={{display:"flex",alignItems:"center",gap:14,marginBottom:10,animation:"fadeUp .3s ease-out"}}>
+    <div style={{width:34,height:34,borderRadius:9,background:"#1E82BD18",border:"2px solid #1E82BD44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,animation:"hitlPulse 2s infinite",flexShrink:0}}>👤</div>
+    <div style={{flex:1,minWidth:0}}>
+      <div style={{fontWeight:600,fontSize:12.5,color:C.heading}}>{action}</div>
+      {detail&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{detail}</div>}
+    </div>
+    {decided?<Badge variant={decided==="Approved"?"success":decided==="Denied"?"error":"warning"}>{decided}</Badge>:
+      <div style={{display:"flex",gap:8,flexShrink:0}}>
+        <button onClick={()=>onDecide("Approved")} style={{padding:"7px 16px",borderRadius:7,background:C.success,color:"#fff",fontWeight:600,fontSize:11.5}}>✓ Approve</button>
+        <button onClick={()=>onDecide("Denied")} style={{padding:"7px 16px",borderRadius:7,background:C.error,color:"#fff",fontWeight:600,fontSize:11.5}}>✕ Deny</button>
+        <button onClick={()=>onDecide("Escalated")} style={{padding:"7px 16px",borderRadius:7,background:"#FFF7ED",color:"#EA580C",fontWeight:600,fontSize:11.5,border:"1px solid #FB923C44"}}>↗ Escalate</button>
+      </div>}
+  </div>
+);
+const TabBar=({tabs,active,onChange})=>(
+  <div style={{display:"flex",gap:4,borderBottom:`1px solid ${C.border}`,marginBottom:18}}>
+    {tabs.map(t=>(
+      <div key={t.id} onClick={()=>onChange(t.id)} style={{padding:"10px 18px",fontSize:12.5,fontWeight:600,cursor:"pointer",color:active===t.id?C.primary:C.muted,borderBottom:active===t.id?`2.5px solid ${C.primary}`:"2.5px solid transparent",display:"flex",alignItems:"center",gap:7}}>
+        <span>{t.icon}</span>{t.label}
+      </div>
+    ))}
+  </div>
+);
+const ScreenHeader=({title,sub,right})=>(
+  <div style={{marginBottom:22,display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:16,flexWrap:"wrap"}}>
+    <div><h2 style={{fontSize:21,fontWeight:800,color:C.heading,margin:0}}>{title}</h2>
+    {sub&&<p style={{fontSize:12.5,color:C.muted,marginTop:4,maxWidth:760}}>{sub}</p>}</div>
+    {right}
+  </div>
+);
+const StubScreen=({title,icon,desc,persona,data})=>(
+  <div style={{padding:28}}>
+    <ScreenHeader title={`${icon} ${title}`} sub={desc}/>
+    <SectionCard title="Screen under construction" sub="Skeleton checkpoint — live persona data is already wired">
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+        <StatCard label="Persona" value={persona.name} sub={persona.type}/>
+        <StatCard label="Field size" value={persona.reps} sub={persona.roleLabel}/>
+        <StatCard label="Territories modeled" value={data.rows.length} sub="seeded, deterministic"/>
+        <StatCard label="P4P ρ" value={data.rho.toFixed(2)} sub={`health ${data.overall}/100`} color={data.rho>=.8?C.success:C.warn}/>
+      </div>
+    </SectionCard>
+  </div>
+);
+/* ▓▓ END:UI ▓▓ */
+
+/* ▓▓ SECTION:SHELL ▓▓ */
+const NAV=[
+  {group:"OVERVIEW",items:[{id:"command",icon:"🛰️",label:"Command Center"}]},
+  {group:"DIAGNOSE",items:[
+    {id:"health",icon:"🩺",label:"IC Health Check"},
+    {id:"p4p",icon:"🎯",label:"Pay-for-Performance Lab"},
+    {id:"goals",icon:"📐",label:"Goal Setting & Fairness"},
+    {id:"sfe",icon:"🗺️",label:"Territory & SFE"}]},
+  {group:"DESIGN",items:[{id:"studio",icon:"🧪",label:"Plan Design Studio"}]},
+  {group:"EXECUTE",items:[{id:"pulse",icon:"💬",label:"Field Pulse & Disputes"}]},
+  {group:"ASK iZO",items:[{id:"copilot",icon:"✨",label:"Ask iZO Copilot"}]},
+  {group:"GOVERN",items:[
+    {id:"registry",icon:"🤖",label:"Agent Registry"},
+    {id:"govern",icon:"🛡️",label:"Governance & Compliance"}]},
+];
+const VIEW_LABELS={};NAV.forEach(g=>g.items.forEach(it=>VIEW_LABELS[it.id]=it.label));
+const SidebarItem=({icon,label,active,onClick,isHitl})=>(
+  <div onClick={onClick} style={{display:"flex",alignItems:"center",gap:11,padding:"9px 18px",cursor:"pointer",background:active?"rgba(30,130,189,.22)":"transparent",borderLeft:active?`3px solid ${C.primaryLight}`:"3px solid transparent",color:active?"#fff":"#A0B4CC",transition:"all .2s",fontSize:13,fontWeight:active?600:400}}>
+    <span style={{fontSize:15,width:20,textAlign:"center"}}>{icon}</span>
+    <span style={{flex:1}}>{label}</span>
+    {isHitl&&<span style={{width:8,height:8,borderRadius:"50%",background:"#EA580C",animation:"breathe 2s infinite"}}/>}
+  </div>
+);
+const Sidebar=({view,onNav,persona,pendingHitl})=>(
+  <div style={{width:248,minWidth:248,background:`linear-gradient(180deg,${C.sidebar},${C.sidebarDark})`,display:"flex",flexDirection:"column",height:"100vh"}}>
+    <div style={{padding:"20px 18px 16px",borderBottom:"1px solid rgba(255,255,255,.1)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <div style={{width:36,height:36,borderRadius:10,background:`linear-gradient(135deg,${C.primary},${C.primaryLight})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:"#fff"}}>iZ</div>
+        <div><div style={{fontSize:15,fontWeight:700,color:"#fff",letterSpacing:.4}}>iZO IC Platform</div><div style={{fontSize:9,color:"#7BA3C9",letterSpacing:2,textTransform:"uppercase",marginTop:1}}>Incentives · SFE · by Improzo</div></div>
+      </div>
+    </div>
+    <div style={{flex:1,paddingTop:6,overflowY:"auto"}}>
+      {NAV.map(g=>(
+        <div key={g.group}>
+          <div style={{padding:"12px 18px 4px",fontSize:9.5,fontWeight:700,color:"#7BA3C9",textTransform:"uppercase",letterSpacing:1.6}}>{g.group}</div>
+          {g.items.map(it=><SidebarItem key={it.id} icon={it.icon} label={it.label} active={view===it.id} onClick={()=>onNav(it.id)} isHitl={it.id==="pulse"&&pendingHitl>0}/>)}
+        </div>
+      ))}
+    </div>
+    <div style={{padding:"13px 18px",borderTop:"1px solid rgba(255,255,255,.1)",display:"flex",alignItems:"center",gap:10,background:"rgba(0,0,0,.15)"}}>
+      <div style={{width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:`linear-gradient(135deg,${persona.color},${C.heading})`,fontSize:11,fontWeight:700,color:"#fff"}}>{persona.initials}</div>
+      <div style={{minWidth:0}}><div style={{fontSize:12,fontWeight:600,color:"#E2E8F0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{persona.name}</div><div style={{fontSize:9.5,color:"#7BA3C9"}}>{persona.type}</div></div>
+    </div>
+  </div>
+);
+const PersonaSelector=({persona,onSelect})=>{
+  const [open,setOpen]=useState(false);
+  return (
+    <div style={{position:"relative"}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:9,padding:"6px 12px",borderRadius:8,border:`1px solid ${open?C.primary:C.border}`,cursor:"pointer",background:"#F8FAFC",transition:"all .2s"}}>
+        <div style={{width:24,height:24,borderRadius:7,background:`linear-gradient(135deg,${persona.color},${C.heading})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,color:"#fff"}}>{persona.initials}</div>
+        <div><div style={{fontSize:12,fontWeight:700,color:C.heading,lineHeight:1.1}}>{persona.name}</div><div style={{fontSize:9,color:C.muted}}>{persona.type}</div></div>
+        <span style={{fontSize:10,color:C.muted,marginLeft:4}}>{open?"▲":"▼"}</span>
+      </div>
+      {open&&<Fragment>
+        <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
+        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,width:300,background:C.card,borderRadius:12,border:`1px solid ${C.border}`,boxShadow:"0 12px 40px rgba(10,80,129,.18)",zIndex:50,overflow:"hidden",animation:"fadeUp .2s ease-out"}}>
+          <div style={{padding:"10px 16px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1.2,borderBottom:`1px solid ${C.border}`,background:"#F8FAFC"}}>Switch demo company</div>
+          {PERSONAS.map(p=>(
+            <div key={p.id} onClick={()=>{onSelect(p.id);setOpen(false)}} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 16px",cursor:"pointer",background:p.id===persona.id?C.primaryBg:"transparent",borderLeft:p.id===persona.id?`3px solid ${C.primary}`:"3px solid transparent"}}
+              onMouseEnter={e=>{if(p.id!==persona.id)e.currentTarget.style.background="#F8FAFC"}} onMouseLeave={e=>{if(p.id!==persona.id)e.currentTarget.style.background="transparent"}}>
+              <div style={{width:30,height:30,borderRadius:8,background:`linear-gradient(135deg,${p.color},${C.heading})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:"#fff"}}>{p.initials}</div>
+              <div style={{flex:1}}><div style={{fontSize:12.5,fontWeight:600,color:C.heading}}>{p.name}</div><div style={{fontSize:10,color:C.muted}}>{p.type} · {p.reps} {p.roleLabel.toLowerCase()}</div></div>
+              {p.id===persona.id&&<span style={{color:C.primary,fontWeight:700}}>✓</span>}
+            </div>
+          ))}
+        </div>
+      </Fragment>}
+    </div>
+  );
+};
+const TopBar=({crumbs,persona,onSelectPersona})=>(
+  <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"11px 26px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:30}}>
+    <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:C.muted}}>
+      {crumbs.map((b,i)=><span key={i} style={{display:"flex",alignItems:"center",gap:8}}>{i>0&&<span style={{color:C.light}}>›</span>}<span style={{fontWeight:i===crumbs.length-1?600:400,color:i===crumbs.length-1?C.heading:C.muted}}>{b}</span></span>)}
+    </div>
+    <div style={{display:"flex",alignItems:"center",gap:14}}>
+      <PersonaSelector persona={persona} onSelect={onSelectPersona}/>
+      <div style={{position:"relative"}}><span style={{fontSize:17,cursor:"pointer"}}>🔔</span><span style={{position:"absolute",top:-4,right:-4,width:15,height:15,borderRadius:"50%",background:"#EA580C",color:"#fff",fontSize:8.5,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>2</span></div>
+      <div style={{width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:`linear-gradient(135deg,${C.primary},${C.heading})`,color:"#fff",fontSize:11,fontWeight:700}}>SO</div>
+    </div>
+  </div>
+);
+/* ▓▓ END:SHELL ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-COMMAND ▓▓ */
+const CommandCenter=({persona,data,onNav})=>(
+  <StubScreen title="Command Center" icon="🛰️" desc="Always-on IC health gauge, KPI tiles, cycle timeline, live agent feed, top findings." persona={persona} data={data}/>
+);
+/* ▓▓ END:SCREEN-COMMAND ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-HEALTH ▓▓ */
+const HealthCheck=({persona,data,onNav})=>(
+  <StubScreen title="IC Health Check" icon="🩺" desc="8 scored dimensions — the 6-week consultant health check, rerun in 4 minutes." persona={persona} data={data}/>
+);
+/* ▓▓ END:SCREEN-HEALTH ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-P4P ▓▓ */
+const P4PLab=({persona,data,onNav})=>(
+  <StubScreen title="Pay-for-Performance Lab" icon="🎯" desc="Perf-rank vs payout-rank quadrants, decile curve, flagged outliers, President's Club." persona={persona} data={data}/>
+);
+/* ▓▓ END:SCREEN-P4P ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-GOALS ▓▓ */
+const GoalsFairness=({persona,data,onNav})=>(
+  <StubScreen title="Goal Setting & Fairness" icon="📐" desc="Attainment distribution vs ideal bell, bias detectors, Monte Carlo goal simulation." persona={persona} data={data}/>
+);
+/* ▓▓ END:SCREEN-GOALS ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-STUDIO ▓▓ */
+const PlanStudio=({persona,data,onNav})=>(
+  <StubScreen title="Plan Design Studio" icon="🧪" desc="Archetype templates, 6 live sliders, payout curve vs current, cost & ρ impact tiles." persona={persona} data={data}/>
+);
+/* ▓▓ END:SCREEN-STUDIO ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-SFE ▓▓ */
+const TerritorySFE=({persona,data,onNav})=>(
+  <StubScreen title="Territory & SFE" icon="🗺️" desc="Call-plan adherence heatmap, targeting effectiveness, white space, workload balance." persona={persona} data={data}/>
+);
+/* ▓▓ END:SCREEN-SFE ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-PULSE ▓▓ */
+const FieldPulse=({persona,data,onNav})=>(
+  <StubScreen title="Field Pulse & Disputes" icon="💬" desc="Inquiry queue with AI triage traces, HITL adjudication, sentiment + themes." persona={persona} data={data}/>
+);
+/* ▓▓ END:SCREEN-PULSE ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-COPILOT ▓▓ */
+const Copilot=({persona,data,onNav})=>(
+  <StubScreen title="Ask iZO Copilot" icon="✨" desc="Conversational IC analyst — streaming reasoning traces, typed answers, live charts." persona={persona} data={data}/>
+);
+/* ▓▓ END:SCREEN-COPILOT ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-REGISTRY ▓▓ */
+const Registry=({persona,data,onNav})=>(
+  <StubScreen title="Agent Registry" icon="🤖" desc="11 IC agents — 4-phase loop, simulate runs, HITL gates." persona={persona} data={data}/>
+);
+/* ▓▓ END:SCREEN-REGISTRY ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-GOVERN ▓▓ */
+const Governance=({persona,data,onNav})=>(
+  <StubScreen title="Governance & Compliance" icon="🛡️" desc="Fairness audit, shadow-payout parity, audit trail, model cards & HITL policy." persona={persona} data={data}/>
+);
+/* ▓▓ END:SCREEN-GOVERN ▓▓ */
+
+/* ▓▓ SECTION:APP ▓▓ */
+const SCREENS={command:CommandCenter,health:HealthCheck,p4p:P4PLab,goals:GoalsFairness,studio:PlanStudio,sfe:TerritorySFE,pulse:FieldPulse,copilot:Copilot,registry:Registry,govern:Governance};
+function App(){
+  const [personaId,setPersonaId]=useState("vertanis");
+  const [view,setView]=useState("command");
+  const persona=PERSONAS.find(p=>p.id===personaId);
+  const data=getData(personaId);
+  const Screen=SCREENS[view]||CommandCenter;
+  const pendingHitl=data.disputes.filter(d=>d.status==="needs-hitl").length;
+  return (
+    <div style={{display:"flex",height:"100vh",background:C.bg,fontFamily:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif"}}>
+      <Sidebar view={view} onNav={setView} persona={persona} pendingHitl={pendingHitl}/>
+      <div style={{flex:1,overflowY:"auto",minWidth:0}}>
+        <TopBar crumbs={["iZO IC Platform",VIEW_LABELS[view]]} persona={persona} onSelectPersona={setPersonaId}/>
+        <Screen key={personaId+view} persona={persona} data={data} onNav={setView}/>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+/* ▓▓ END:APP ▓▓ */
+</script>
+</body>
+</html>
