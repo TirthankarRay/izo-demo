@@ -92,35 +92,35 @@ const PERSONAS=[
   {id:"vertanis",name:"Vertanis Pharma",initials:"VP",type:"Big Pharma — Primary Care",typeShort:"Primary Care",reps:812,roleLabel:"Sales Reps",
    products:["Cardiozen","Lipidra"],metric:"TRx",attainLabel:"TRx Attainment",color:"#1E82BD",launch:false,
    plan:{archetype:"goalAttainment",freq:"Quarterly",threshold:90,thresholdPay:50,accelerator:2.0,excellence:110,cap:200,ti:18500},
-   sigma:.11,bias:"lowBaseline",lumpy:false,cycleStage:4,
+   sigma:.11,bias:"lowBaseline",lumpy:false,cycleStage:4,payNoise:30,
    story:"Goal-setting bias against low-baseline territories is suppressing fair payout for 11% of the field",
-   nudge:{p4p:0,dist:-4,curve:-2,diff:-6,fair:-22,budget:2,cmplx:-4,comp:0}},
+   nudge:{p4p:2,dist:0,curve:0,diff:-4,fair:-22,budget:2,cmplx:-4,comp:0}},
   {id:"oncovia",name:"Oncovia Therapeutics",initials:"OT",type:"Specialty — Oncology KAM",typeShort:"Oncology",reps:124,roleLabel:"Key Account Managers",
    products:["Veltrazia"],metric:"Volume + MBO",attainLabel:"Blended Attainment (60% MBO / 40% Vol)",color:"#7C3AED",launch:false,
    plan:{archetype:"mboHybrid",freq:"Quarterly",threshold:85,thresholdPay:55,accelerator:1.6,excellence:112,cap:175,ti:24000,mboWeight:.6},
-   sigma:.09,bias:"none",lumpy:false,cycleStage:5,
+   sigma:.09,bias:"none",lumpy:false,cycleStage:5,payNoise:4,
    story:"Healthy plan — MBO scoring inflation is the one watch-item (92% of KAMs scored ≥95 on MBOs)",
-   nudge:{p4p:3,dist:4,curve:3,diff:-8,fair:6,budget:3,cmplx:-10,comp:4}},
+   nudge:{p4p:4,dist:10,curve:8,diff:-2,fair:8,budget:6,cmplx:-2,comp:6}},
   {id:"neurelis",name:"Neurelis Bio",initials:"NB",type:"Launch Biotech — CNS",typeShort:"Launch",reps:96,roleLabel:"Launch Reps",
    products:["Nexavio"],metric:"NBRx",attainLabel:"NBRx vs Launch Goal",color:"#0D9488",launch:true,
    plan:{archetype:"rankBased",freq:"Monthly",threshold:80,thresholdPay:40,accelerator:2.5,excellence:120,cap:250,ti:15000,sigmaPct:24,
      tiers:[250,205,170,145,120,100,82,65,52,40]},
-   sigma:.24,bias:"opportunity",lumpy:false,cycleStage:2,
+   sigma:.24,bias:"opportunity",lumpy:false,cycleStage:2,payNoise:14,
    story:"Rank-based plan is driving differentiation by design — but 9 territories still have zero NBRx activation",
-   nudge:{p4p:-6,dist:-12,curve:-8,diff:14,fair:-14,budget:-18,cmplx:2,comp:-6}},
+   nudge:{p4p:-8,dist:-30,curve:-24,diff:14,fair:-28,budget:-34,cmplx:2,comp:-12}},
   {id:"auralys",name:"Auralys Rare",initials:"AR",type:"Rare Disease — Account Model",typeShort:"Rare Disease",reps:38,roleLabel:"Account Directors",
    products:["Auragen"],metric:"Milestones",attainLabel:"Account Milestone Completion",color:"#BE185D",launch:false,
    plan:{archetype:"accountMBO",freq:"Semi-Annual",threshold:70,thresholdPay:40,accelerator:1.5,excellence:115,cap:180,ti:32000,base:40,
      milestones:[{at:70,add:30},{at:90,add:30},{at:100,add:25},{at:115,add:30}]},
-   sigma:.17,bias:"none",lumpy:true,cycleStage:6,
+   sigma:.17,bias:"none",lumpy:true,cycleStage:6,payNoise:26,
    story:"Lumpy account outcomes make payouts cliff-heavy — 5 ADs missed a milestone by <3 points",
-   nudge:{p4p:-8,dist:-10,curve:-14,diff:0,fair:2,budget:0,cmplx:-6,comp:2}},
+   nudge:{p4p:-14,dist:-26,curve:-30,diff:0,fair:2,budget:-10,cmplx:-14,comp:0}},
   {id:"genovex",name:"Genovex Labs",initials:"GL",type:"Generics — Portfolio GM",typeShort:"Generics",reps:210,roleLabel:"Portfolio Reps",
    products:["240-SKU Portfolio"],metric:"GM",attainLabel:"Gross Margin vs Plan",color:"#B45309",launch:false,
    plan:{archetype:"gmCommission",freq:"Monthly",threshold:0,thresholdPay:0,accelerator:1.0,excellence:120,cap:300,ti:9500,floor:35,rate:1.0},
-   sigma:.14,bias:"none",lumpy:false,cycleStage:3,
+   sigma:.14,bias:"none",lumpy:false,cycleStage:3,payNoise:6,
    story:"GM-commission floor pays 35% to the bottom decile regardless of margin — $310K/yr in unearned floor payments",
-   nudge:{p4p:4,dist:-6,curve:-8,diff:4,fair:0,budget:-8,cmplx:6,comp:-4}},
+   nudge:{p4p:0,dist:-16,curve:-18,diff:4,fair:0,budget:-16,cmplx:6,comp:-8}},
 ];
 /* ▓▓ END:PERSONAS ▓▓ */
 
@@ -196,7 +196,7 @@ const buildPersonaData=(pid)=>{
     const freq=Math.round((1.4+rng()*3.2)*10)/10;
     const tierAShare=Math.round((25+rng()*52));
     const workloadIdx=Math.round((0.62+rng()*0.92)*100)/100;
-    let payoutPct=curve(att)+gauss(rng)*2.2;                        /* small admin noise on top of curve */
+    let payoutPct=curve(att)+gauss(rng)*ps.payNoise;                /* admin noise (splits, adjustments) — persona-tuned so ρ tells each story */
     if(payoutPct<0)payoutPct=0;
     rows.push({id:"T-"+String(i+1).padStart(3,"0"),rep,region:reg.r,district,tenureYrs,quota,actual,
       attainment:Math.round(att*10)/10,payoutPct:Math.round(payoutPct*10)/10,payout:0,
@@ -1046,33 +1046,618 @@ const TopBar=({crumbs,persona,onSelectPersona})=>(
 /* ▓▓ END:SHELL ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-COMMAND ▓▓ */
-const CommandCenter=({persona,data,onNav})=>(
-  <StubScreen title="Command Center" icon="🛰️" desc="Always-on IC health gauge, KPI tiles, cycle timeline, live agent feed, top findings." persona={persona} data={data}/>
+const SEV_STYLE={risk:{c:C.error,bg:C.errorBg,label:"RISK"},warn:{c:C.warn,bg:C.warnBg,label:"WATCH"},info:{c:C.info,bg:C.infoBg,label:"INFO"}};
+const CycleTimeline=({cycle})=>(
+  <SectionCard title={"IC Cycle — "+cycle.period} sub="Where this period's payout run is right now" right={<Badge variant="primary">{cycle.stages[cycle.current]} in progress</Badge>} pad={26}>
+    <div style={{display:"flex",alignItems:"flex-start"}}>
+      {cycle.stages.map((s,i)=>{
+        const done=i<cycle.current,cur=i===cycle.current;
+        return (
+          <Fragment key={s}>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:86,flexShrink:0}}>
+              <div style={{width:cur?34:26,height:cur?34:26,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:cur?13:11,fontWeight:800,
+                background:done?C.success:cur?C.primary:"#E2EBF3",color:done||cur?"#fff":C.light,border:cur?`3px solid ${C.primaryBg}`:"none",
+                animation:cur?"pulseGlow 2s infinite":"none",transition:"all .3s"}}>{done?"✓":i+1}</div>
+              <div style={{fontSize:9.5,fontWeight:cur?700:500,color:cur?C.primary:done?C.text:C.light,marginTop:7,textAlign:"center",lineHeight:1.25}}>{s}</div>
+            </div>
+            {i<cycle.stages.length-1&&<div style={{flex:1,height:3,borderRadius:2,background:i<cycle.current?C.success:"#E2EBF3",marginTop:cur?15:11,minWidth:8,position:"relative",overflow:"hidden"}}>
+              {i===cycle.current-1&&<div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,${C.success},${C.primary})`,animation:"flowPulse 2s infinite"}}/>}
+            </div>}
+          </Fragment>
+        );
+      })}
+    </div>
+  </SectionCard>
 );
+const AgentFeed=({pool})=>{
+  const [items,setItems]=useState(()=>pool.slice(0,5).map((p,i)=>({...p,t:i===0?"just now":(i*3)+"m ago"})));
+  const idxRef=useRef(5);
+  useEffect(()=>{
+    const iv=setInterval(()=>{
+      setItems(prev=>{
+        const next=[{...pool[idxRef.current%pool.length],t:"just now"},...prev.map(p=>({...p,t:p.t==="just now"?"3s ago":p.t}))];
+        idxRef.current++;
+        return next.slice(0,30);
+      });
+    },3000);
+    return()=>clearInterval(iv);
+  },[pool]);
+  const tc={success:C.success,info:C.primary,warn:C.warn,hitl:"#EA580C"};
+  return (
+    <SectionCard title="Live Agent Activity" sub="11 agents working this book of business" right={<span style={{display:"flex",alignItems:"center",gap:6,fontSize:10.5,fontWeight:700,color:C.success}}><span style={{width:8,height:8,borderRadius:"50%",background:C.success,animation:"breathe 1.6s infinite"}}/>LIVE</span>} pad={0}>
+      <div style={{maxHeight:372,overflowY:"auto"}}>
+        {items.map((it,i)=>(
+          <div key={items.length-i} style={{display:"flex",gap:10,padding:"10px 18px",borderBottom:`1px solid ${C.border}55`,borderLeft:`3px solid ${tc[it.type]||C.border}`,animation:i===0?"slideRight .35s ease-out":"none",background:i===0?`${tc[it.type]}08`:"transparent"}}>
+            <span style={{fontSize:15,flexShrink:0}}>{it.icon}</span>
+            <div style={{minWidth:0,flex:1}}>
+              <div style={{fontSize:11.5,color:C.text,lineHeight:1.45}}><strong style={{color:C.heading}}>{it.agent}</strong> · {it.text}</div>
+              <div style={{fontSize:9.5,color:C.light,marginTop:2}}>{it.t}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+};
+const CommandCenter=({persona,data,onNav})=>{
+  const good=data.dims.filter(d=>d.status==="good").length,warn=data.dims.filter(d=>d.status==="warn").length,risk=data.dims.filter(d=>d.status==="risk").length;
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title={"🛰️ Command Center — "+persona.name}
+        sub={persona.type+" · "+persona.reps+" "+persona.roleLabel.toLowerCase()+" · "+persona.products.join(", ")+" · "+persona.plan.freq+" "+persona.plan.archetype.replace(/([A-Z])/g," $1").toLowerCase()+" plan"}
+        right={<Badge variant={data.overall>=80?"success":data.overall>=60?"warning":"error"}>IC Health {data.overall}/100</Badge>}/>
+      {data.launchStrip&&(
+        <div style={{background:"linear-gradient(120deg,#0F766E,#0D9488 55%,#14B8A6)",borderRadius:14,padding:"16px 24px",marginBottom:18,display:"flex",alignItems:"center",gap:26,color:"#fff",animation:"fadeUp .4s ease-out",flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:26}}>🚀</span>
+            <div><div style={{fontWeight:800,fontSize:14}}>{persona.products[0]} Launch — Week {data.launchStrip.weeks}</div><div style={{fontSize:11,opacity:.85}}>Launch Readiness Agent · live ramp tracking</div></div></div>
+          {[["NBRx Velocity",data.launchStrip.nbrxVelocity],["Territories Activated",data.launchStrip.activated+"%"],["Ramp vs Plan",data.launchStrip.rampVsPlan],["Zero-NBRx Territories",data.launchStrip.zeroTerr]].map(([l,v])=>(
+            <div key={l} style={{textAlign:"center"}}><div style={{fontSize:19,fontWeight:800}}>{v}</div><div style={{fontSize:9.5,opacity:.8,letterSpacing:.4,textTransform:"uppercase"}}>{l}</div></div>
+          ))}
+          <button onClick={()=>onNav("registry")} style={{marginLeft:"auto",padding:"8px 18px",borderRadius:8,background:"rgba(255,255,255,.16)",color:"#fff",fontWeight:600,fontSize:11.5,border:"1px solid rgba(255,255,255,.3)"}}>Launch agent →</button>
+        </div>
+      )}
+      <div style={{display:"grid",gridTemplateColumns:"300px 1fr",gap:18,marginBottom:18}}>
+        <SectionCard title="IC Health Score" sub="Composite of 8 scored dimensions" pad={14}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+            <Gauge value={data.overall} size={196} label="of 100" sub={data.cycle.period+" · always-on"}/>
+            <div style={{display:"flex",gap:8,marginTop:2}}>
+              <Badge variant="success" small>{good} healthy</Badge>
+              {warn>0&&<Badge variant="warning" small>{warn} watch</Badge>}
+              {risk>0&&<Badge variant="error" small>{risk} at risk</Badge>}
+            </div>
+            <button onClick={()=>onNav("health")} style={{marginTop:14,padding:"9px 22px",borderRadius:8,background:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:600,fontSize:12,width:"100%"}}>Open Health Check →</button>
+          </div>
+        </SectionCard>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,alignContent:"start"}}>
+          {data.kpis.map((k,i)=>(
+            <StatCard key={k.id} label={k.label} value={k.value} sub={k.delta+" vs prior"} spark={k.spark} good={k.good} delay={i*.06}
+              color={k.good?C.heading:C.warn}/>
+          ))}
+        </div>
+      </div>
+      <div style={{marginBottom:18}}><CycleTimeline cycle={data.cycle}/></div>
+      <div style={{display:"grid",gridTemplateColumns:"1.45fr 1fr",gap:18}}>
+        <SectionCard title="Top Findings" sub="What the agents want a human to look at first" pad={14}>
+          <div style={{display:"grid",gap:12}}>
+            {data.findings.map((f,i)=>{
+              const sv=SEV_STYLE[f.sev];
+              return (
+                <div key={i} onClick={()=>onNav(f.view)} style={{display:"flex",gap:13,padding:"14px 16px",borderRadius:11,border:`1px solid ${C.border}`,borderLeft:`4px solid ${sv.c}`,cursor:"pointer",background:"#FDFEFE",transition:"all .2s",animation:`fadeUp .4s ease-out ${i*.08}s both`}}
+                  onMouseEnter={e=>{e.currentTarget.style.boxShadow=`0 6px 20px ${sv.c}1A`;e.currentTarget.style.transform="translateY(-1px)"}}
+                  onMouseLeave={e=>{e.currentTarget.style.boxShadow="none";e.currentTarget.style.transform="none"}}>
+                  <div style={{width:38,height:38,borderRadius:10,background:sv.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{f.icon}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <span style={{fontWeight:700,fontSize:13,color:C.heading}}>{f.title}</span>
+                      <Badge variant={f.sev==="risk"?"error":f.sev==="warn"?"warning":"info"} small>{sv.label}</Badge>
+                    </div>
+                    <div style={{fontSize:11.5,color:C.muted,marginTop:4,lineHeight:1.5}}>{f.text}</div>
+                    <div style={{fontSize:10,color:C.primary,fontWeight:600,marginTop:6}}>{f.agent} · open {VIEW_LABELS[f.view]} →</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </SectionCard>
+        <AgentFeed pool={data.feedPool}/>
+      </div>
+    </div>
+  );
+};
 /* ▓▓ END:SCREEN-COMMAND ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-HEALTH ▓▓ */
-const HealthCheck=({persona,data,onNav})=>(
-  <StubScreen title="IC Health Check" icon="🩺" desc="8 scored dimensions — the 6-week consultant health check, rerun in 4 minutes." persona={persona} data={data}/>
-);
+const dimNarrative=(dim,data,persona)=>{
+  const ov=data.rows.filter(r=>r.quadrant==="overpaid").length,un=data.rows.filter(r=>r.quadrant==="underpaid").length;
+  switch(dim.id){
+    case "p4p":return {finding:`Spearman ρ between performance rank and payout rank is ${data.rho.toFixed(2)} (guardrail ≥ 0.80). ${ov} territories pay above their performance rank, ${un} below.`,
+      rec:ov+un>10?"Re-credit the flagged outliers and retest before payroll lock.":"Maintain — monitor outliers at each calc run."};
+    case "dist":return {finding:`${data.rows.filter(r=>r.payoutPct>=persona.plan.cap-.5).length}% of the field is capped and ${data.rows.filter(r=>r.payoutPct<=0.5).length}% earns zero — vs design intent of ~5% / ~8%.`,
+      rec:"Re-shape the curve in Plan Design Studio: test cap +50pts against budget."};
+    case "curve":return {finding:`The ${persona.plan.archetype==="rankBased"?"decile tier table":"accelerator ("+persona.plan.accelerator+"× above 100%)"} creates a payout kink at ${persona.plan.excellence}% attainment that concentrates ${persona.plan.freq.toLowerCase()} spend.`,
+      rec:"Smooth the excellence kicker or stage it in 5-pt steps."};
+    case "diff":return {finding:`Top-decile earners take ${(percentile(data.rows.map(r=>r.payoutPct),.9)/Math.max(1,percentile(data.rows.map(r=>r.payoutPct),.5))).toFixed(1)}× the median payout — ${dim.score>=80?"strong motivation signal":dim.score>=60?"moderate differentiation":"too flat to motivate top talent"}.`,
+      rec:dim.score<60?"Steepen upside above 110% attainment; fund it from the sub-threshold band.":"Hold steady — differentiation is doing its job."};
+    case "fair":return {finding:persona.bias==="lowBaseline"?`Territories with baseline volume <3,900 attain 6.5 pts lower on average (r=${data.goals.fairCorr.toFixed(2)}) — goals are systematically harder where baselines are small.`:persona.bias==="opportunity"?`Low-opportunity launch territories attain 9 pts lower — launch goals ignore market access reality (r=${data.goals.fairCorr.toFixed(2)}).`:`No systematic goal bias detected across baseline, size, or tenure cohorts (max |r|=${Math.max(Math.abs(data.goals.fairCorr),Math.abs(data.goals.tenCorr)).toFixed(2)}).`,
+      rec:persona.bias!=="none"?"Re-weight goal allocation by market opportunity; restate affected territories.":"Keep the quarterly bias screen armed."};
+    case "budget":return {finding:`Projected spend lands at ${fmtPct(data.util*100,0)} of incentive budget for ${data.cycle.period} (${fmt$(data.spendQTD)} QTD).`,
+      rec:data.util>1.02?"Model a cap or decelerator in the Studio before next cycle.":data.util<.9?"Underspend risks demotivation — consider richer threshold pay.":"On plan — no action."};
+    case "cmplx":return {finding:`${persona.plan.archetype==="mboHybrid"?"Blended MBO + volume scoring takes 7 inputs per KAM per period — reps model it in spreadsheets to predict pay.":"Plan resolves to "+(persona.plan.archetype==="rankBased"?"a single decile lookup":"4 parameters")+" — reps can do the math on a napkin."}`,
+      rec:persona.plan.archetype==="mboHybrid"?"Cut MBO components from 5 to 3; publish a payout calculator.":"Preserve simplicity in any redesign."};
+    default:return {finding:`Shadow recalculation matches the vendor system at 99.97% parity; audit trail is complete for ${persona.reps} statements. 2 region-level deltas >25bps are isolated and explained.`,
+      rec:"Close the 2 open deltas before payroll feed sign-off."};
+  }
+};
+const DimEvidence=({dim,data})=>{
+  const w=190,h=40;
+  if(dim.id==="p4p"){const q={aligned:0,overpaid:0,underpaid:0,review:0};data.rows.forEach(r=>q[r.quadrant]++);let x=0;
+    return <svg width="100%" viewBox={`0 0 ${w} ${h}`}>{Object.entries(q).map(([k,v])=>{const seg=<rect key={k} x={x} y={14} width={v/100*w} height={12} rx="2" fill={QUAD_COLORS[k]} opacity=".8"/>;x+=v/100*w;return seg})}
+      <text x="0" y="9" fontSize="8" fill={C.light}>quadrant mix</text><text x="0" y="37" fontSize="8" fill={C.light}>{q.aligned} aligned · {q.overpaid+q.underpaid+q.review} flagged</text></svg>;}
+  if(dim.id==="fair"){const lo=data.rows.filter(r=>r.baselineVol<3900),hi=data.rows.filter(r=>r.baselineVol>=3900);
+    const ml=mean(lo.map(r=>r.attainment)),mh=mean(hi.map(r=>r.attainment));
+    return <svg width="100%" viewBox={`0 0 ${w} ${h}`}>
+      <text x="0" y="9" fontSize="8" fill={C.light}>avg attainment: low vs high baseline</text>
+      <rect x="0" y="13" width={(ml/130)*w} height="9" rx="2" fill={C.error} opacity=".75"/><text x={(ml/130)*w+4} y="20.5" fontSize="8.5" fontWeight="700" fill={C.error}>{ml.toFixed(1)}%</text>
+      <rect x="0" y="26" width={(mh/130)*w} height="9" rx="2" fill={C.success} opacity=".75"/><text x={(mh/130)*w+4} y="33.5" fontSize="8.5" fontWeight="700" fill={C.success}>{mh.toFixed(1)}%</text></svg>;}
+  if(dim.id==="dist"){const bins=binHistogram(data.rows.map(r=>r.payoutPct),0,Math.max(...data.rows.map(r=>r.payoutPct))+10,16);const mx=Math.max(...bins.map(b=>b.n),1);
+    return <svg width="100%" viewBox={`0 0 ${w} ${h}`}>{bins.map((b,i)=><rect key={i} x={i*(w/16)+1} y={h-4-(b.n/mx)*(h-12)} width={w/16-2} height={(b.n/mx)*(h-12)} rx="1.5" fill={C.primary} opacity=".65"/>)}</svg>;}
+  if(dim.id==="curve"){const pts=Array.from({length:50},(_,i)=>{const a=40+120*i/49;return `${(i/49*w).toFixed(1)},${(h-4-Math.min(1,data.curve(a)/260)*(h-10)).toFixed(1)}`}).join(" ");
+    return <svg width="100%" viewBox={`0 0 ${w} ${h}`}><polyline points={pts} fill="none" stroke={C.primary} strokeWidth="2"/></svg>;}
+  if(dim.id==="diff"){const d1=mean(data.rows.filter(r=>r.decile===1).map(r=>r.payoutPct)),d5=mean(data.rows.filter(r=>r.decile===5).map(r=>r.payoutPct)),d10=mean(data.rows.filter(r=>r.decile===10).map(r=>r.payoutPct));
+    return <svg width="100%" viewBox={`0 0 ${w} ${h}`}>{[["D1",d1,C.success],["D5",d5,C.primary],["D10",d10,C.light]].map(([l,v,c],i)=>(<g key={l}><rect x={i*64} y={h-8-(v/260)*(h-16)} width="40" height={(v/260)*(h-16)} rx="2" fill={c} opacity=".8"/><text x={i*64+20} y={h-0.5} fontSize="8" fill={C.muted} textAnchor="middle">{l} · {Math.round(v)}%</text></g>))}</svg>;}
+  if(dim.id==="budget")return <div style={{paddingTop:10}}><ProgressBar value={data.util*100} color={data.util>1.02?C.warn:C.success} height={9}/><div style={{fontSize:9,color:C.muted,marginTop:4}}>{fmtPct(data.util*100,0)} of budget</div></div>;
+  if(dim.id==="cmplx")return <div style={{display:"flex",gap:4,flexWrap:"wrap",paddingTop:8}}>{(data.ps.plan.archetype==="mboHybrid"?["MBO ×5","Vol curve","Weights"]:data.ps.plan.archetype==="rankBased"?["Decile lookup"]:["Threshold","Curve","Accel","Cap"]).map(t=><Badge key={t} variant="neutral" small>{t}</Badge>)}</div>;
+  return <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:10}}><span style={{fontSize:20,fontWeight:800,color:C.success}}>99.97%</span><span style={{fontSize:9.5,color:C.muted}}>shadow-calc parity<br/>2 open deltas</span></div>;
+};
+const HealthCheck=({persona,data,onNav})=>{
+  const [phase,setPhase]=useState("idle");       /* idle → scanning → narrating → done */
+  const [scanIdx,setScanIdx]=useState(-1);
+  const [narLines,setNarLines]=useState([]);
+  const timers=useRef([]);
+  const run=()=>{
+    timers.current.forEach(clearTimeout);timers.current=[];
+    setPhase("scanning");setScanIdx(0);setNarLines([]);
+    data.dims.forEach((_,i)=>{timers.current.push(setTimeout(()=>setScanIdx(i+1),700*(i+1)))});
+    const tEnd=700*data.dims.length;
+    timers.current.push(setTimeout(()=>setPhase("narrating"),tEnd+200));
+    const worst=[...data.dims].sort((a,b)=>a.score-b.score)[0],best=[...data.dims].sort((a,b)=>b.score-a.score)[0];
+    const lines=[
+      "Scanned "+persona.reps+" "+persona.roleLabel.toLowerCase()+" across "+data.rows.length+" modeled territories · "+data.cycle.period+".",
+      "Overall IC health: "+data.overall+"/100. Strongest dimension — "+best.label+" ("+best.score+"). Weakest — "+worst.label+" ("+worst.score+").",
+      "Primary finding: "+persona.story+".",
+      "Estimated payout misallocation in flagged territories: "+fmt$(data.rows.filter(r=>r.flags.length).reduce((a,r)=>a+r.payout*.3,0))+" this period.",
+      "Recommended sequence: fix goal fairness first, re-run P4P test, then revisit curve shape in the Studio. Full evidence attached to each dimension below."
+    ];
+    lines.forEach((ln,i)=>{timers.current.push(setTimeout(()=>{setNarLines(p=>[...p,ln]);if(i===lines.length-1)setPhase("done")},tEnd+500+i*900))});
+  };
+  useEffect(()=>{const t=setTimeout(run,500);return()=>{clearTimeout(t);timers.current.forEach(clearTimeout)}},[]);
+  const running=phase==="scanning";
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="🩺 IC Health Check" sub={"The quarterly consultant health check, reimagined as an always-on agent — 8 dimensions scored against "+persona.name+"'s live IC data."}
+        right={<button onClick={run} disabled={running} style={{padding:"10px 24px",borderRadius:8,background:running?C.primaryLight+"88":`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:700,fontSize:13,boxShadow:`0 4px 14px ${C.primary}44`}}>{running?"⟳ Scanning…":"▶ Run Health Check"}</button>}/>
+      <div style={{display:"grid",gridTemplateColumns:"280px 1fr",gap:18,marginBottom:18}}>
+        <SectionCard title="Overall Score" pad={14}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+            <Gauge value={phase==="idle"?0:scanIdx>=data.dims.length?data.overall:Math.round(data.overall*scanIdx/data.dims.length)} size={188} label="IC Health" sub={running?("scanning "+(data.dims[Math.min(scanIdx,7)]||{}).label+"…"):"8 dimensions · evidence-backed"}/>
+            <div style={{marginTop:4,width:"100%"}}><ProgressBar value={phase==="idle"?0:Math.min(100,scanIdx/data.dims.length*100)} color={C.primary} height={5}/></div>
+            <div style={{fontSize:10,color:C.muted,marginTop:6}}>{phase==="idle"?"ready":scanIdx>=8?"scan complete":"dimension "+Math.min(scanIdx+1,8)+" of 8"}</div>
+          </div>
+        </SectionCard>
+        <SectionCard title="Agent Narrative — Executive Summary" sub="Streams as the Health Check Agent reasons over the evidence"
+          right={phase!=="idle"&&phase!=="done"?<Badge variant="info">⟳ generating</Badge>:phase==="done"?<Badge variant="success">complete</Badge>:null} pad={18}>
+          {narLines.length===0&&<div style={{fontSize:12,color:C.light,fontStyle:"italic",padding:"14px 0"}}>{running?"Evidence first, narrative second — summary streams when the scan completes…":"Run the health check to generate the executive summary."}</div>}
+          <div style={{display:"grid",gap:9}}>
+            {narLines.map((ln,i)=>(
+              <div key={i} style={{display:"flex",gap:9,fontSize:12.5,color:C.text,lineHeight:1.55,animation:"fadeUp .4s ease-out"}}>
+                <span style={{color:C.primary,fontWeight:800,flexShrink:0}}>{i===0?"◆":"·"}</span>
+                <span>{ln}{i===narLines.length-1&&phase==="narrating"&&<span style={{display:"inline-block",width:7,height:13,background:C.primary,marginLeft:3,verticalAlign:"-2px",animation:"blink .8s infinite"}}/>}</span>
+              </div>
+            ))}
+          </div>
+          {phase==="done"&&(
+            <div style={{marginTop:16,background:`linear-gradient(120deg,${C.sidebar},${C.sidebarDark})`,borderRadius:10,padding:"13px 20px",display:"flex",alignItems:"center",gap:18,flexWrap:"wrap",animation:"fadeUp .4s ease-out"}}>
+              <span style={{fontSize:20}}>⏱️</span>
+              <div style={{flex:1,minWidth:200}}>
+                <span style={{fontSize:12.5,color:"#A0B4CC"}}>Traditional health check: </span><span style={{fontSize:12.5,color:"#fff",fontWeight:700,textDecoration:"line-through",textDecorationColor:C.error}}>6 weeks · 3 consultants</span>
+                <span style={{fontSize:12.5,color:"#A0B4CC"}}> → iZO: </span><span style={{fontSize:14,color:"#4ADE80",fontWeight:800}}>4 minutes 12 seconds</span>
+                <span style={{fontSize:11,color:"#7BA3C9"}}> — rerun on every calc cycle, free</span>
+              </div>
+            </div>
+          )}
+        </SectionCard>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
+        {data.dims.map((dim,i)=>{
+          const state=phase==="idle"?"pending":i<scanIdx?"revealed":i===scanIdx&&running?"scanning":"pending";
+          const txt=dimNarrative(dim,data,persona);
+          const col=dim.status==="good"?C.success:dim.status==="warn"?C.warn:C.error;
+          return (
+            <div key={dim.id} style={{background:C.card,borderRadius:13,border:`1px solid ${state==="scanning"?C.primary:C.border}`,padding:16,opacity:state==="pending"?.45:1,transition:"all .4s",animation:state==="scanning"?"pulseGlow 1s infinite":"none",display:"flex",flexDirection:"column"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <span style={{fontSize:17}}>{dim.icon}</span>
+                  <div style={{fontWeight:700,fontSize:12,color:C.heading,lineHeight:1.25}}>{dim.label}</div>
+                </div>
+                {state==="revealed"?<Gauge value={dim.score} size={56} color={col}/>:
+                 <div style={{width:56,height:49,display:"flex",alignItems:"center",justifyContent:"center"}}>{state==="scanning"?<span style={{width:22,height:22,border:`3px solid ${C.primaryBg}`,borderTopColor:C.primary,borderRadius:"50%",display:"inline-block",animation:"spin .8s linear infinite"}}/>:<span style={{fontSize:18,color:C.light}}>—</span>}</div>}
+              </div>
+              <div style={{margin:"6px 0 4px"}}>{state==="revealed"&&<Badge variant={dim.status==="good"?"success":dim.status==="warn"?"warning":"error"} small>{dim.status==="good"?"HEALTHY":dim.status==="warn"?"WATCH":"AT RISK"}</Badge>}<span style={{fontSize:9.5,color:C.light,marginLeft:6}}>{state==="revealed"?dim.metric:state==="scanning"?"computing…":"awaiting scan"}</span></div>
+              {state==="revealed"&&(
+                <Fragment>
+                  <div style={{animation:"fadeIn .5s ease-out"}}><DimEvidence dim={dim} data={data}/></div>
+                  <div style={{fontSize:10.5,color:C.muted,lineHeight:1.5,marginTop:8,flex:1}}>{txt.finding}</div>
+                  <div style={{fontSize:10.5,color:C.heading,lineHeight:1.45,marginTop:7,padding:"7px 10px",background:"#F4F8FB",borderRadius:7,borderLeft:`3px solid ${col}`}}><strong>Rec:</strong> {txt.rec}</div>
+                  <div onClick={()=>onNav(dim.link)} style={{fontSize:10.5,color:C.primary,fontWeight:700,marginTop:9,cursor:"pointer"}}>Open {VIEW_LABELS[dim.link]} →</div>
+                </Fragment>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 /* ▓▓ END:SCREEN-HEALTH ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-P4P ▓▓ */
-const P4PLab=({persona,data,onNav})=>(
-  <StubScreen title="Pay-for-Performance Lab" icon="🎯" desc="Perf-rank vs payout-rank quadrants, decile curve, flagged outliers, President's Club." persona={persona} data={data}/>
-);
+const P4PLab=({persona,data,onNav})=>{
+  const [filter,setFilter]=useState("flagged");
+  const pts=data.rows.map(r=>({x:101-r.perfRank,y:101-r.payoutRank,c:QUAD_COLORS[r.quadrant],big:r.flags.length>0,label:r.rep+" · "+r.id,
+    sub:r.attainment+"% att → "+r.payoutPct+"% payout"+(r.flags.length?" · "+r.flags.join(", "):"")}));
+  const counts={aligned:0,overpaid:0,underpaid:0,review:0};data.rows.forEach(r=>counts[r.quadrant]++);
+  const tableRows=data.rows.filter(r=>filter==="flagged"?(r.flags.length>0||r.quadrant!=="aligned"):r.quadrant===filter).sort((a,b)=>Math.abs(b.payoutRank-b.perfRank)-Math.abs(a.payoutRank-a.perfRank)).slice(0,10);
+  const deciles=Array.from({length:10},(_,i)=>{
+    const rr=data.rows.filter(r=>r.decile===i+1);
+    return {label:"D"+(i+1),value:Math.round(mean(rr.map(r=>r.payoutPct))),n:rr.length};
+  });
+  deciles.forEach((d,i)=>{if(i>0&&d.value>deciles[i-1].value+2){d.flag=true;d.sub="kink: pays more than decile above"}d.color=lerpHex("#1E82BD","#C9DDF0",i/9)});
+  const verdict=data.rho>=.88?{t:"Strong alignment",v:"success",d:"Pay follows performance across the field. Outliers are idiosyncratic, not structural."}:
+    data.rho>=.75?{t:"Acceptable, with leaks",v:"warning",d:"Correlation holds overall, but flagged territories leak payout above/below earned rank."}:
+    {t:"Alignment at risk",v:"error",d:"Pay and performance are diverging — flagged clusters are structural, not noise."};
+  const FLAG_COLOR={"Legacy guarantee":"#F59E0B","Windfall account":"#EF4444","Quota error":"#8B5CF6"};
+  const club=data.club;
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="🎯 Pay-for-Performance Lab" sub={"Does pay actually follow performance at "+persona.name+"? Every calc run, the P4P Analyst re-tests rank alignment across all "+data.rows.length+" modeled territories."}
+        right={<Badge variant={verdict.v}>ρ = {data.rho.toFixed(2)} · {verdict.t}</Badge>}/>
+      <div style={{display:"grid",gridTemplateColumns:"1.55fr 1fr",gap:18,marginBottom:18}}>
+        <SectionCard title="Performance Rank vs Payout Rank" sub="Each dot = one territory · diagonal = perfect alignment · shaded bands = misalignment zones" pad={14}>
+          <ScatterPlot pts={pts} w={620} h={330} diagonal quadrants xDom={[0,100]} yDom={[0,100]} xLabel="Performance percentile →" yLabel="Payout percentile →"/>
+        </SectionCard>
+        <div style={{display:"grid",gap:14,alignContent:"start"}}>
+          <SectionCard title="Spearman Verdict" pad={16}>
+            <div style={{display:"flex",alignItems:"center",gap:16}}>
+              <div style={{fontSize:40,fontWeight:800,color:verdict.v==="success"?C.success:verdict.v==="warning"?C.warn:C.error}}>{data.rho.toFixed(2)}</div>
+              <div><div style={{fontWeight:700,fontSize:13,color:C.heading}}>{verdict.t}</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:3,lineHeight:1.5}}>{verdict.d}</div></div>
+            </div>
+            <div style={{marginTop:10,fontSize:10,color:C.light}}>Guardrail: ρ ≥ 0.80 · recomputed on every calc run by the P4P Analyst Agent</div>
+          </SectionCard>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            {[["aligned","Aligned","pay ≈ perf"],["overpaid","Overpaid","pay ≫ perf"],["underpaid","Underpaid","pay ≪ perf"],["review","Review","flagged rows"]].map(([k,l,s])=>(
+              <div key={k} onClick={()=>setFilter(filter===k?"flagged":k)} style={{background:filter===k?QUAD_COLORS[k]+"14":C.card,border:`1.5px solid ${filter===k?QUAD_COLORS[k]:C.border}`,borderRadius:11,padding:"12px 14px",cursor:"pointer",transition:"all .2s"}}>
+                <div style={{display:"flex",alignItems:"center",gap:7}}><span style={{width:9,height:9,borderRadius:"50%",background:QUAD_COLORS[k]}}/><span style={{fontSize:11,fontWeight:700,color:C.heading}}>{l}</span></div>
+                <div style={{fontSize:23,fontWeight:800,color:QUAD_COLORS[k],marginTop:4}}>{counts[k]}</div>
+                <div style={{fontSize:9.5,color:C.muted}}>{s} · click to filter</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <SectionCard title={"Flagged Territories"+(filter!=="flagged"?" — "+filter:"")} sub="Rank-gap outliers with the P4P Analyst's reason codes — these same rows drive the health findings and two open disputes"
+        right={filter!=="flagged"&&<button onClick={()=>setFilter("flagged")} style={{padding:"6px 14px",borderRadius:7,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:11}}>clear filter</button>} pad={0} style={{marginBottom:18}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+          <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>
+            {["Territory","Rep","Region","Attainment","Payout % TI","Perf Rank","Payout Rank","Rank Gap","Reason"].map(h=><th key={h} style={{padding:"10px 14px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.6,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {tableRows.map((r,i)=>{
+              const gap=r.perfRank-r.payoutRank;
+              return (
+                <tr key={r.id} style={{borderBottom:`1px solid ${C.border}66`,animation:`fadeUp .3s ease-out ${i*.04}s both`}}>
+                  <td style={{padding:"9px 14px",fontWeight:700,color:C.heading}} className="mono">{r.id}</td>
+                  <td style={{padding:"9px 14px",color:C.text}}>{r.rep}</td>
+                  <td style={{padding:"9px 14px",color:C.muted}}>{r.region}</td>
+                  <td style={{padding:"9px 14px",fontWeight:600,color:r.attainment>=100?C.success:C.text}}>{r.attainment}%</td>
+                  <td style={{padding:"9px 14px",fontWeight:700,color:C.heading}}>{r.payoutPct}%</td>
+                  <td style={{padding:"9px 14px",color:C.muted}}>#{r.perfRank}</td>
+                  <td style={{padding:"9px 14px",color:C.muted}}>#{r.payoutRank}</td>
+                  <td style={{padding:"9px 14px",fontWeight:700,color:gap>0?"#F59E0B":"#8B5CF6"}}>{gap>0?"+":""}{gap}</td>
+                  <td style={{padding:"9px 14px"}}>{r.flags.length?r.flags.map(f=>(
+                    <span key={f} style={{display:"inline-block",padding:"2px 9px",borderRadius:12,fontSize:9.5,fontWeight:700,background:FLAG_COLOR[f]+"18",color:FLAG_COLOR[f],border:`1px solid ${FLAG_COLOR[f]}44`,marginRight:4}}>{f}</span>
+                  )):<span style={{fontSize:10,color:C.light}}>rank gap {gap>0?"overpay":"underpay"}</span>}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </SectionCard>
+      <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:18}}>
+        <SectionCard title="Average Payout by Performance Decile" sub="D1 = top performers. Bars should fall monotonically — a rise is a curve kink the Plan Simulator should fix" pad={14}>
+          <BarChart data={deciles} w={580} h={250} vFmt={v=>v+"%"} flagLabel="⚑ kink"/>
+        </SectionCard>
+        <SectionCard title="🏆 President's Club" sub={"Top "+club.cutRank+" qualify · "+persona.plan.freq.toLowerCase()+" standings"} pad={14}>
+          <div style={{maxHeight:178,overflowY:"auto",marginBottom:10}}>
+            {club.qualifiers.map((q,i)=>(
+              <div key={q.id} style={{display:"flex",alignItems:"center",gap:9,padding:"5.5px 10px",borderRadius:7,background:i<3?"#FFFBEB":"transparent"}}>
+                <span style={{width:20,fontSize:11,fontWeight:800,color:i<3?"#D97706":C.muted}}>{i+1}</span>
+                <span style={{flex:1,fontSize:11.5,fontWeight:600,color:C.heading}}>{q.rep}</span>
+                <span style={{fontSize:10.5,color:C.muted}} className="mono">{q.id}</span>
+                <span style={{fontSize:11,fontWeight:700,color:C.success}}>{q.attainment}%</span>
+              </div>
+            ))}
+          </div>
+          <div style={{borderTop:`2px dashed ${C.error}88`,position:"relative",margin:"4px 0 10px"}}><span style={{position:"absolute",right:0,top:-9,fontSize:9,fontWeight:800,color:C.error,background:C.card,padding:"0 6px"}}>CUTLINE</span></div>
+          {club.nearMiss.slice(0,2).map((q,i)=>(
+            <div key={q.id} style={{display:"flex",alignItems:"center",gap:9,padding:"5.5px 10px",opacity:.75}}>
+              <span style={{width:20,fontSize:11,fontWeight:800,color:C.light}}>{club.cutRank+i+1}</span>
+              <span style={{flex:1,fontSize:11.5,fontWeight:600,color:C.muted}}>{q.rep}</span>
+              <span style={{fontSize:11,fontWeight:700,color:C.warn}}>{q.attainment}%</span>
+            </div>
+          ))}
+          <div style={{marginTop:10,padding:"10px 13px",borderRadius:9,background:C.infoBg,border:`1px solid ${C.primary}33`,fontSize:11,color:C.heading,lineHeight:1.55}}>
+            <strong>💡 Near-miss insight:</strong> {club.insight}
+          </div>
+        </SectionCard>
+      </div>
+    </div>
+  );
+};
 /* ▓▓ END:SCREEN-P4P ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-GOALS ▓▓ */
-const GoalsFairness=({persona,data,onNav})=>(
-  <StubScreen title="Goal Setting & Fairness" icon="📐" desc="Attainment distribution vs ideal bell, bias detectors, Monte Carlo goal simulation." persona={persona} data={data}/>
-);
+const BiasCard=({title,icon,r,desc,delay})=>{
+  const a=Math.abs(r);
+  const v=a<.15?{badge:"success",label:"NO BIAS",c:C.success}:a<.3?{badge:"warning",label:"WATCH",c:C.warn}:{badge:"error",label:"BIAS SIGNAL",c:C.error};
+  return (
+    <div style={{background:C.card,borderRadius:11,border:`1px solid ${C.border}`,borderLeft:`4px solid ${v.c}`,padding:"13px 16px",animation:`fadeUp .4s ease-out ${delay}s both`}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{fontSize:11.5,fontWeight:700,color:C.heading}}>{icon} {title}</div>
+        <Badge variant={v.badge} small>{v.label}</Badge>
+      </div>
+      <div style={{display:"flex",alignItems:"baseline",gap:8,marginTop:6}}>
+        <span style={{fontSize:21,fontWeight:800,color:v.c}} className="mono">r = {r.toFixed(2)}</span>
+        <div style={{flex:1,height:5,background:"#EDF2F7",borderRadius:3,overflow:"hidden"}}><div style={{width:Math.min(100,a*200)+"%",height:"100%",background:v.c,borderRadius:3,transition:"width 1s ease-out"}}/></div>
+      </div>
+      <div style={{fontSize:10.5,color:C.muted,marginTop:6,lineHeight:1.5}}>{desc}</div>
+    </div>
+  );
+};
+const GoalsFairness=({persona,data,onNav})=>{
+  const [mcState,setMcState]=useState("idle");   /* idle → running → done */
+  const [mcProg,setMcProg]=useState(0);
+  const timers=useRef([]);
+  const mc=data.goals.mc;
+  const runMc=()=>{
+    timers.current.forEach(clearTimeout);timers.current=[];
+    setMcState("running");setMcProg(0);
+    for(let i=1;i<=20;i++)timers.current.push(setTimeout(()=>setMcProg(i*25),i*80));
+    timers.current.push(setTimeout(()=>setMcState("done"),20*80+250));
+  };
+  useEffect(()=>()=>timers.current.forEach(clearTimeout),[]);
+  const atts=data.rows.map(r=>r.attainment);
+  const sd=Math.sqrt(mean(atts.map(a=>(a-mean(atts))**2)));
+  const distVerdict=sd<persona.sigma*100*.85?{t:"Tighter than design — goals may be sandbagged",v:"warning"}:
+    sd>persona.sigma*100*1.35?{t:"Wider than design — goal quality is inconsistent",v:"warning"}:
+    {t:"Spread matches design intent",v:"success"};
+  const flagged=data.goals.growthScatter.filter(p=>p.flag).length;
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="📐 Goal Setting & Fairness" sub={"Were "+persona.name+"'s goals achievable, differentiated, and fair? The Goal Setting Agent screens every allocation for systematic bias before reps ever see a number."}
+        right={<Badge variant={persona.bias==="none"?"success":"error"}>{persona.bias==="none"?"No bias detected":"Bias signal active"}</Badge>}/>
+      <div style={{display:"grid",gridTemplateColumns:"1.5fr 1fr",gap:18,marginBottom:18}}>
+        <SectionCard title="Attainment Distribution vs Design Intent" sub={"Bars = actual territory attainment · curve = the bell the plan was designed for (μ=100, σ="+Math.round(persona.sigma*100)+")"}
+          right={<Badge variant={distVerdict.v}>{distVerdict.t}</Badge>} pad={14}>
+          <Histogram bins={data.goals.hist} w={620} h={272} bell={{mu:100,sigma:persona.sigma*100}} xFmt={v=>v+"%"}
+            markers={[{x:persona.plan.threshold||60,label:"THRESHOLD",color:C.warn},{x:100,label:"GOAL",color:"#64748B"}]}
+            highlight={persona.bias!=="none"?(b)=>b.x1<=92:null}/>
+          {persona.bias!=="none"&&<div style={{fontSize:10.5,color:C.warn,fontWeight:600,marginTop:6}}>⚠ Amber bars: the sub-92% mass is dominated by {persona.bias==="lowBaseline"?"low-baseline":"low-opportunity"} territories — that's a goal problem, not a talent problem.</div>}
+        </SectionCard>
+        <div style={{display:"grid",gap:12,alignContent:"start"}}>
+          <div style={{fontSize:10.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1.2,padding:"2px 2px 0"}}>Bias detectors — attainment correlated against…</div>
+          <BiasCard title="Baseline Volume" icon="📦" r={data.goals.fairCorr} delay={0}
+            desc={Math.abs(data.goals.fairCorr)>=.3?"Low-baseline territories systematically under-attain — goal allocation is punishing small books of business.":"Attainment is independent of starting baseline — allocation looks clean."}/>
+          <BiasCard title="Territory Size (Quota $)" icon="📏" r={data.goals.sizeCorr} delay={.08}
+            desc={Math.abs(data.goals.sizeCorr)>=.3?"Big territories attain differently than small ones — size normalization is off.":"No size effect — large and small territories attain alike."}/>
+          <BiasCard title="Rep Tenure" icon="🎓" r={data.goals.tenCorr} delay={.16}
+            desc={Math.abs(data.goals.tenCorr)>=.3?"Tenure predicts attainment — goals may be protecting veterans.":"New hires and veterans face equally achievable goals."}/>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:18}}>
+        <SectionCard title="Goal Growth vs Market Opportunity" sub="Each dot = a territory's goal growth plotted against its real market opportunity. Red = flagged by the bias screen." pad={14}>
+          <ScatterPlot pts={data.goals.growthScatter.map(p=>({x:p.x,y:p.y,c:p.flag?C.error:persona.color,big:p.flag,label:p.flag?"Flagged territory":"Territory",sub:"opportunity "+p.x+" · goal growth "+p.y+"%"}))}
+            w={580} h={266} xLabel="Market opportunity index →" yLabel="Goal growth % →"/>
+          <div style={{fontSize:10.5,color:C.muted,marginTop:6}}>{flagged>0?"⚠ "+flagged+" territories carry high growth asks without the market opportunity to support them.":"Growth asks track opportunity — the allocation engine is doing its job."}</div>
+        </SectionCard>
+        <SectionCard title="🎲 Monte Carlo Goal Attainability" sub="500 demand scenarios against the current goal set — precomputed by the Goal Setting Agent, replayed here"
+          right={<button onClick={runMc} disabled={mcState==="running"} style={{padding:"8px 16px",borderRadius:8,background:mcState==="running"?C.primaryLight+"77":`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:700,fontSize:11.5}}>{mcState==="running"?"⟳ Simulating…":mcState==="done"?"↻ Re-simulate":"▶ Simulate 500 scenarios"}</button>} pad={16}>
+          {mcState!=="done"&&(
+            <div style={{padding:"22px 6px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.muted,marginBottom:7}}>
+                <span>{mcState==="idle"?"Ready — goals, demand variance and curve are loaded":"Drawing demand scenarios…"}</span>
+                <span className="mono" style={{fontWeight:700,color:C.primary}}>{mcState==="idle"?"0":Math.min(500,mcProg)} / 500</span>
+              </div>
+              <ProgressBar value={mcState==="idle"?0:mcProg/5} color={C.primary} height={8}/>
+              {mcState==="running"&&<div style={{fontSize:10,color:C.light,marginTop:8,fontStyle:"italic"}}>sampling N(100, {Math.round(persona.sigma*100)}²) · applying {persona.plan.archetype} curve · tallying outcomes…</div>}
+            </div>
+          )}
+          {mcState==="done"&&(
+            <Fragment>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14,animation:"fadeUp .4s ease-out"}}>
+                {[["P(≥ threshold)",mc.pThreshold,C.primary],["P(≥ target)",mc.pTarget,C.success],["P(≥ excellence)",mc.pExcellence,"#7C3AED"]].map(([l,p,c])=>(
+                  <div key={l} style={{textAlign:"center",padding:"12px 8px",borderRadius:10,background:c+"0E",border:`1px solid ${c}33`}}>
+                    <div style={{fontSize:22,fontWeight:800,color:c}}>{Math.round(p*100)}%</div>
+                    <div style={{fontSize:9.5,color:C.muted,fontWeight:600,marginTop:2}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              <Histogram bins={mc.bins} w={520} h={150} color="#7C3AED" xFmt={v=>v+"%"}
+                markers={[{x:persona.plan.threshold||60,label:"THR",color:C.warn},{x:100,label:"GOAL",color:"#64748B"}]}/>
+              <div style={{fontSize:10.5,color:C.muted,marginTop:8,lineHeight:1.5}}>
+                {mc.pTarget<.35?"⚠ Fewer than 35% of scenarios reach goal — the field will read these goals as unwinnable.":mc.pTarget>.7?"⚠ Goals are too easy — "+Math.round(mc.pTarget*100)+"% of scenarios clear target, which overpays the middle.":"✓ Goal difficulty sits in the motivational sweet spot (40–65% of scenarios reach target)."} Mean simulated payout: {Math.round(mc.meanPayout)}% of TI.
+              </div>
+            </Fragment>
+          )}
+        </SectionCard>
+      </div>
+    </div>
+  );
+};
 /* ▓▓ END:SCREEN-GOALS ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-STUDIO ▓▓ */
-const PlanStudio=({persona,data,onNav})=>(
-  <StubScreen title="Plan Design Studio" icon="🧪" desc="Archetype templates, 6 live sliders, payout curve vs current, cost & ρ impact tiles." persona={persona} data={data}/>
-);
+const ARCHETYPES=[
+  {id:"goalAttainment",label:"Goal Attainment",icon:"📈",desc:"Threshold → linear → accelerator → cap. The primary-care workhorse."},
+  {id:"rankBased",label:"Rank-Based",icon:"🏁",desc:"Forced decile tiers. Maximum differentiation — launch favorite."},
+  {id:"mboHybrid",label:"MBO Hybrid",icon:"🧬",desc:"60% MBO / 40% volume blend for KAM & specialty models."},
+  {id:"accountMBO",label:"Account MBO",icon:"🏥",desc:"Milestone steps per account — rare disease & account teams."},
+  {id:"gmCommission",label:"GM Commission",icon:"💹",desc:"Straight margin commission with a floor — generics portfolio."},
+];
+const SLIDER_RELEVANCE={goalAttainment:["threshold","thresholdPay","accelerator","excellence","cap","ti"],mboHybrid:["threshold","thresholdPay","accelerator","excellence","cap","ti"],rankBased:["cap","ti"],accountMBO:["threshold","cap","ti"],gmCommission:["cap","ti"]};
+const archDefaults=(arch,base)=>{
+  const p={...base,archetype:arch};
+  if(arch==="rankBased"&&!p.tiers){p.tiers=[250,205,170,145,120,100,82,65,52,40];p.sigmaPct=18}
+  if(arch==="accountMBO"&&!p.milestones){p.base=40;p.milestones=[{at:70,add:30},{at:90,add:30},{at:100,add:25},{at:115,add:30}]}
+  if(arch==="gmCommission"){p.floor=p.floor||35;p.rate=p.rate||1.0}
+  return p;
+};
+const PlanStudio=({persona,data,onNav})=>{
+  const [plan,setPlan]=useState({...persona.plan});
+  const [scen,setScen]=useState({shock:false,nocap:false,stretch:false});
+  const [modal,setModal]=useState(false);
+  const [submitted,setSubmitted]=useState(false);
+  const upd=(k,v)=>setPlan(p=>({...p,[k]:v}));
+  const effPlan=useMemo(()=>({...plan,cap:scen.nocap?400:plan.cap}),[plan,scen.nocap]);
+  const impact=useMemo(()=>{
+    const shift=(scen.shock?-10:0)+(scen.stretch?-5:0);
+    const atts=data.rows.map(r=>r.attainment+shift);
+    const cN=payoutCurve(effPlan),cC=payoutCurve(persona.plan);
+    const pN=atts.map(a=>Math.max(0,cN(a))),pC=atts.map(a=>Math.max(0,cC(a)));
+    const costN=mean(pN)/100*effPlan.ti/data.perQ*persona.reps,costC=mean(pC)/100*persona.plan.ti/data.perQ*persona.reps;
+    const budget=persona.plan.ti/data.perQ*persona.reps;
+    return {costN,costC,budget,utilN:costN/budget*100,dCost:(costN-costC)/Math.max(1,costC)*100,
+      rhoN:spearman(atts,pN),rhoC:spearman(atts,pC),
+      capN:pN.filter(p=>p>=effPlan.cap-.5).length,belowN:pN.filter(p=>p<=.5).length,
+      capC:pC.filter(p=>p>=persona.plan.cap-.5).length,belowC:pC.filter(p=>p<=.5).length};
+  },[effPlan,scen,persona,data]);
+  const rel=SLIDER_RELEVANCE[plan.archetype]||[];
+  const sliders=[
+    {k:"threshold",label:"Payout Threshold",min:50,max:100,step:1,fmt:v=>v+"% att"},
+    {k:"thresholdPay",label:"Pay at Threshold",min:0,max:100,step:5,fmt:v=>v+"% TI"},
+    {k:"accelerator",label:"Accelerator Slope",min:1,max:4,step:.1,fmt:v=>v.toFixed(1)+"×"},
+    {k:"excellence",label:"Excellence Point",min:100,max:140,step:1,fmt:v=>v+"% att"},
+    {k:"cap",label:"Payout Cap",min:100,max:400,step:5,fmt:v=>v+"% TI"},
+    {k:"ti",label:"Target Incentive",min:5000,max:50000,step:500,fmt:v=>fmt$(v)+"/yr"},
+  ];
+  const changed=sliders.filter(s=>plan[s.k]!==persona.plan[s.k]);
+  const tile=(label,val,delta,goodWhen)=>(
+    <div style={{background:C.card,borderRadius:11,border:`1px solid ${C.border}`,padding:"13px 16px"}}>
+      <div style={{fontSize:10,color:C.muted,fontWeight:600}}>{label}</div>
+      <div style={{fontSize:21,fontWeight:800,color:C.heading,marginTop:3}}>{val}</div>
+      {delta&&<div style={{fontSize:10.5,fontWeight:700,marginTop:2,color:goodWhen?C.success:C.warn}}>{delta}</div>}
+    </div>
+  );
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="🧪 Plan Design Studio" sub={"Reshape "+persona.name+"'s "+persona.plan.freq.toLowerCase()+" plan and watch cost, alignment and motivation react instantly — powered by the Plan Simulator Agent."}
+        right={<button onClick={()=>setModal(true)} disabled={submitted} style={{padding:"10px 22px",borderRadius:8,background:submitted?"#D9E2EC":`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:submitted?C.muted:"#fff",fontWeight:700,fontSize:12.5,boxShadow:submitted?"none":`0 4px 14px ${C.primary}44`}}>{submitted?"✓ Submitted to IC Council":"Submit to HITL review →"}</button>}/>
+      {submitted&&<div className="hitl-card" style={{marginBottom:16,display:"flex",alignItems:"center",gap:12}}>
+        <span style={{fontSize:20,animation:"hitlPulse 2s infinite",borderRadius:"50%"}}>👤</span>
+        <div style={{fontSize:12,color:C.heading}}><strong>Pending human review.</strong> Scenario routed to the IC Council queue — {changed.length} parameter change{changed.length!==1?"s":""}, cost impact {impact.dCost>=0?"+":""}{impact.dCost.toFixed(1)}%. You'll keep full edit access until approval.</div>
+      </div>}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:11,marginBottom:18}}>
+        {ARCHETYPES.map(a=>{
+          const active=plan.archetype===a.id,isDefault=persona.plan.archetype===a.id;
+          return (
+            <div key={a.id} onClick={()=>setPlan(p=>archDefaults(a.id,p))} style={{background:active?C.primaryBg:C.card,border:`1.5px solid ${active?C.primary:C.border}`,borderRadius:11,padding:"12px 14px",cursor:"pointer",transition:"all .2s",position:"relative"}}>
+              {isDefault&&<span style={{position:"absolute",top:-8,right:8,fontSize:8,fontWeight:800,background:persona.color,color:"#fff",padding:"2px 8px",borderRadius:8,letterSpacing:.5}}>CURRENT</span>}
+              <div style={{fontSize:18}}>{a.icon}</div>
+              <div style={{fontSize:11.5,fontWeight:700,color:active?C.primary:C.heading,marginTop:4}}>{a.label}</div>
+              <div style={{fontSize:9.5,color:C.muted,marginTop:3,lineHeight:1.4}}>{a.desc}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"320px 1fr",gap:18,marginBottom:18}}>
+        <SectionCard title="Plan Parameters" sub="Drag — the curve and tiles react live" pad={18}>
+          <div style={{display:"grid",gap:15}}>
+            {sliders.map(s=>{
+              const active=rel.includes(s.k);
+              return (
+                <div key={s.k} style={{opacity:active?1:.38}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                    <span style={{fontSize:11,fontWeight:700,color:C.heading}}>{s.label}</span>
+                    <span style={{fontSize:11,fontWeight:800,color:C.primary}} className="mono">{s.fmt(plan[s.k])}</span>
+                  </div>
+                  <input type="range" min={s.min} max={s.max} step={s.step} value={plan[s.k]} disabled={!active}
+                    onChange={e=>upd(s.k,parseFloat(e.target.value))}/>
+                  {!active&&<div style={{fontSize:8.5,color:C.light,marginTop:2}}>not used by {ARCHETYPES.find(a=>a.id===plan.archetype).label}</div>}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{marginTop:18,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+            <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>What-if scenarios</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+              {[["shock","🌧 Demand shock −10%"],["nocap","🚀 Remove cap"],["stretch","🎯 Stretch goals +5%"]].map(([k,l])=>(
+                <div key={k} onClick={()=>setScen(s=>({...s,[k]:!s[k]}))} style={{padding:"6px 13px",borderRadius:16,fontSize:10.5,fontWeight:700,cursor:"pointer",border:`1.5px solid ${scen[k]?C.primary:C.border}`,background:scen[k]?C.primaryBg:"#FAFBFC",color:scen[k]?C.primary:C.muted,transition:"all .2s"}}>{l}</div>
+              ))}
+            </div>
+          </div>
+        </SectionCard>
+        <SectionCard title="Payout Curve — Proposed vs Current" sub={"Shaded underlay = where "+persona.name+"'s field actually lands on attainment"+(scen.shock||scen.stretch?" (scenario-shifted)":"")} pad={14}>
+          <CurveBuilder plan={effPlan} base={persona.plan} hist={data.goals.hist} w={660} h={318}/>
+        </SectionCard>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
+        {tile("Cost of Plan / "+(persona.plan.freq==="Quarterly"?"quarter":persona.plan.freq==="Monthly"?"month":"half"),fmt$(impact.costN),
+          (impact.dCost>=0?"+":"")+impact.dCost.toFixed(1)+"% vs current · "+fmtPct(impact.utilN,0)+" of budget",impact.utilN<=102)}
+        {tile("P4P Alignment ρ",impact.rhoN.toFixed(2),(impact.rhoN-impact.rhoC>=0?"+":"")+(impact.rhoN-impact.rhoC).toFixed(2)+" vs current",impact.rhoN>=impact.rhoC)}
+        {tile("% of Field Capped",impact.capN+"%",(impact.capN-impact.capC>=0?"+":"")+(impact.capN-impact.capC)+" pts vs current",impact.capN<=impact.capC)}
+        {tile("% Below Threshold",impact.belowN+"%",(impact.belowN-impact.belowC>=0?"+":"")+(impact.belowN-impact.belowC)+" pts vs current",impact.belowN<=impact.belowC)}
+      </div>
+      {modal&&(
+        <div onClick={()=>setModal(false)} style={{position:"fixed",inset:0,background:"rgba(8,40,70,.45)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .2s ease-out"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.card,borderRadius:16,width:560,maxWidth:"92vw",maxHeight:"86vh",overflowY:"auto",boxShadow:"0 30px 80px rgba(8,40,70,.4)",animation:"fadeUp .25s ease-out"}}>
+            <div style={{padding:"18px 26px",borderBottom:`1px solid ${C.border}`,background:"linear-gradient(135deg,#E8F4FD,#F0F7FF)"}}>
+              <div style={{fontWeight:800,fontSize:15,color:C.heading}}>👤 Submit Plan Change for Human Review</div>
+              <div style={{fontSize:11.5,color:C.muted,marginTop:3}}>Plan Simulator Agent packages the evidence — the IC Council decides</div>
+            </div>
+            <div style={{padding:24}}>
+              <div style={{fontSize:10.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1,marginBottom:9}}>Parameter changes</div>
+              {changed.length===0&&plan.archetype===persona.plan.archetype?<div style={{fontSize:12,color:C.light,fontStyle:"italic",marginBottom:14}}>No changes vs the current plan yet — drag a slider first.</div>:(
+                <div style={{display:"grid",gap:7,marginBottom:16}}>
+                  {plan.archetype!==persona.plan.archetype&&(
+                    <div style={{display:"flex",justifyContent:"space-between",padding:"8px 13px",borderRadius:8,background:"#F6F9FC",fontSize:12}}>
+                      <span style={{fontWeight:600,color:C.heading}}>Archetype</span>
+                      <span className="mono" style={{color:C.muted}}>{persona.plan.archetype} → <strong style={{color:C.primary}}>{plan.archetype}</strong></span>
+                    </div>)}
+                  {changed.map(s=>(
+                    <div key={s.k} style={{display:"flex",justifyContent:"space-between",padding:"8px 13px",borderRadius:8,background:"#F6F9FC",fontSize:12}}>
+                      <span style={{fontWeight:600,color:C.heading}}>{s.label}</span>
+                      <span className="mono" style={{color:C.muted}}>{s.fmt(persona.plan[s.k])} → <strong style={{color:C.primary}}>{s.fmt(plan[s.k])}</strong></span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{fontSize:10.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1,marginBottom:9}}>Simulated impact ({persona.reps} {persona.roleLabel.toLowerCase()})</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:18}}>
+                {[["Cost Δ",(impact.dCost>=0?"+":"")+impact.dCost.toFixed(1)+"%"],["Budget utilization",fmtPct(impact.utilN,0)],["P4P ρ",impact.rhoN.toFixed(2)],["Capped / below-threshold",impact.capN+"% / "+impact.belowN+"%"]].map(([l,v])=>(
+                  <div key={l} style={{padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`}}><div style={{fontSize:9.5,color:C.muted}}>{l}</div><div style={{fontSize:15,fontWeight:800,color:C.heading,marginTop:1}}>{v}</div></div>
+                ))}
+              </div>
+              <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+                <button onClick={()=>setModal(false)} style={{padding:"10px 20px",borderRadius:8,background:"#EDF2F7",color:C.muted,fontWeight:600,fontSize:12.5}}>Cancel</button>
+                <button onClick={()=>{setSubmitted(true);setModal(false)}} style={{padding:"10px 24px",borderRadius:8,background:`linear-gradient(135deg,${C.success},#059669)`,color:"#fff",fontWeight:700,fontSize:12.5}}>👤 Route to IC Council</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 /* ▓▓ END:SCREEN-STUDIO ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-SFE ▓▓ */
@@ -1117,9 +1702,11 @@ function App(){
   return (
     <div style={{display:"flex",height:"100vh",background:C.bg,fontFamily:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif"}}>
       <Sidebar view={view} onNav={setView} persona={persona} pendingHitl={pendingHitl}/>
-      <div style={{flex:1,overflowY:"auto",minWidth:0}}>
-        <TopBar crumbs={["iZO IC Platform",VIEW_LABELS[view]]} persona={persona} onSelectPersona={setPersonaId}/>
-        <Screen key={personaId+view} persona={persona} data={data} onNav={setView}/>
+      <div style={{flex:1,overflow:"auto",minWidth:0}}>
+        <div style={{minWidth:1060}}>
+          <TopBar crumbs={["iZO IC Platform",VIEW_LABELS[view]]} persona={persona} onSelectPersona={setPersonaId}/>
+          <Screen key={personaId+view} persona={persona} data={data} onNav={setView}/>
+        </div>
       </div>
     </div>
   );
