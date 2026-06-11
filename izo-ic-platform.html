@@ -1029,6 +1029,7 @@ const NAV=[
   {group:"EXECUTE",items:[{id:"pulse",icon:"💬",label:"Field Pulse & Disputes"}]},
   {group:"ASK iZO",items:[{id:"copilot",icon:"✨",label:"Ask iZO Copilot"}]},
   {group:"PLATFORM",items:[
+    {id:"models",icon:"🧠",label:"Model Hub"},
     {id:"tokens",icon:"💠",label:"Token Usage"},
     {id:"connectors",icon:"🔌",label:"Data Connectors"}]},
   {group:"GOVERN",items:[
@@ -1091,7 +1092,7 @@ const PersonaSelector=({persona,onSelect})=>{
     </div>
   );
 };
-const NOTIF_KIND_STYLE={verdict:{c:"#B45309"},ack:{c:"#1E82BD"},due:{c:"#F59E0B"}};
+const NOTIF_KIND_STYLE={verdict:{c:"#B45309"},ack:{c:"#1E82BD"},due:{c:"#F59E0B"},model:{c:"#7C3AED"}};
 const NotifBell=({persona,onNav})=>{
   const [open,setOpen]=useState(false);
   const mine=NOTIF_STORE.filter(n=>n.persona===persona.id);
@@ -1163,8 +1164,9 @@ const traceMeta=(persona,id,agentName)=>{
   const rng=mulberry32(hashStr("trace-"+persona.id+"-"+id));
   const agent=AGENTS.find(x=>x.name===agentName)||AGENTS[0];
   const prof=TOKEN_PROFILE[agent.id]||[20,.2,.2];
+  const te=tierEff(prof[1]>.35?2:prof[1]>.12?1:0);   /* effective tier — label carries the routed foundation model */
   return {agent,runId:"RUN-"+(31200+hashStr(persona.id+id)%900),
-    tier:prof[1]>.35?MODEL_TIERS[2]:prof[1]>.12?MODEL_TIERS[1]:MODEL_TIERS[0],
+    tier:{...te,label:te.label+" · "+te.model.name},temp:MODEL_STORE.temps.narrative,
     durData:(0.4+rng()*2.2).toFixed(1),durReason:(2+rng()*9).toFixed(0),
     tokens:Math.round(prof[0]*1000*(.85+rng()*.3)),
     confidence:Math.round(86+rng()*11)};
@@ -1203,7 +1205,7 @@ const TraceModal=({persona,spec,meta,onClose})=>{
           <button onClick={onClose} style={{padding:"5px 12px",borderRadius:6,background:"#EDF2F7",color:C.muted,fontWeight:700,fontSize:11}}>✕</button>
         </div>
         <div style={{display:"flex",gap:10,padding:"13px 24px",borderBottom:`1px solid ${C.border}`,flexWrap:"wrap",alignItems:"center"}}>
-          {[["Model tier",meta.tier.label],["Data pull",meta.durData+"s"],["Reasoning",meta.durReason+"s"],["Tokens",meta.tokens.toLocaleString()]].map(([l,v])=>(
+          {[["Model tier",meta.tier.label],["Temp","T = "+(meta.temp!==undefined?meta.temp.toFixed(2):"0.20")],["Data pull",meta.durData+"s"],["Reasoning",meta.durReason+"s"],["Tokens",meta.tokens.toLocaleString()]].map(([l,v])=>(
             <div key={l} style={{padding:"6px 13px",borderRadius:8,background:"#F6F9FC",border:`1px solid ${C.border}`}}><div style={{fontSize:8.5,color:C.muted,textTransform:"uppercase",letterSpacing:.5}}>{l}</div><div style={{fontSize:12,fontWeight:800,color:C.heading}} className="mono">{v}</div></div>
           ))}
           <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
@@ -2741,7 +2743,8 @@ const Governance=({persona,data,onNav})=>{
     return rows;
   });
   const livePulse=Object.entries(_P["pulse-"+persona.id]||{}).map(([id,raw])=>{const d=decOf(raw);return {when:"Today (live)",agent:"Field Inquiry",what:"Dispute "+id+" — "+(d.d||"reviewed")+(d.note?" — “"+d.note+"”":""),who:"S. Okafor",hitl:true}});
-  const trailAll=[...liveChallenges,...livePulse,...trail];
+  const liveModel=MODEL_STORE.log.map(e=>({when:"Today (live)",agent:"Model Hub",what:"Model routing change (platform-wide) — "+e.tier+": "+e.from+" → "+e.to,who:e.by,hitl:true}));
+  const trailAll=[...liveModel,...liveChallenges,...livePulse,...trail];
   const filteredTrail=trailFilter==="all"?trailAll:trailAll.filter(t=>trailFilter==="hitl"?t.hitl:t.agent===trailFilter);
   return (
     <div style={{padding:26}}>
@@ -3007,7 +3010,7 @@ const buildTokenData=(persona)=>{
     const totalTok=autoTok+hitlTok;
     const inTok=totalTok/1.26,outTok=totalTok-inTok;                 /* ~26% of traffic is model output */
     const mix=[(1-reasonShare)*.4,(1-reasonShare)*.6,reasonShare];
-    const cost=mix.reduce((s,m,i)=>s+(inTok*m*MODEL_TIERS[i].inRate+outTok*m*MODEL_TIERS[i].outRate)/1e6,0);
+    const cost=mix.reduce((s,m,i)=>{const te=tierEff(i);return s+(inTok*m*te.inRate+outTok*m*te.outRate)/1e6},0);  /* rates follow Model Hub routing */
     const spark=Array.from({length:8},()=>Math.round(totalTok/8*(0.6+rng()*0.8)/1000));
     return {a,flows,autoFlows,hitlFlows,autoTok,hitlTok,totalTok,inTok,outTok,mix,cost,hitlShare,spark};
   });
@@ -3015,7 +3018,7 @@ const buildTokenData=(persona)=>{
   const totalFlows=rows.reduce((s,r)=>s+r.flows,0),totalHitl=rows.reduce((s,r)=>s+r.hitlFlows,0);
   const hitlTok=rows.reduce((s,r)=>s+r.hitlTok,0);
   const phases=[["PLAN",.14],["TOOL USE",.38],["REFLECT",.31],["ACT",.17]].map(([p,w])=>({label:p,value:Math.round(totalTok*w*(0.92+rng()*.16)/1e6),color:PHASE_COLORS[p]}));
-  const tiers=MODEL_TIERS.map((t,i)=>({...t,tok:rows.reduce((s,r)=>s+r.totalTok*r.mix[i],0),cost:rows.reduce((s,r)=>s+(r.inTok*r.mix[i]*t.inRate+r.outTok*r.mix[i]*t.outRate)/1e6,0)}));
+  const tiers=MODEL_TIERS.map((t,i)=>{const te=tierEff(i);return {...te,tok:rows.reduce((s,r)=>s+r.totalTok*r.mix[i],0),cost:rows.reduce((s,r)=>s+(r.inTok*r.mix[i]*te.inRate+r.outTok*r.mix[i]*te.outRate)/1e6,0)}});
   const daily=Array.from({length:14},(_,i)=>({x:i+1,y:Math.round(totalTok/14*(i===9?2.4:0.55+rng()*0.55)/1e6)}));
   const cacheHit=.58+rng()*.18;
   const cacheSaved=totalCost*cacheHit*.75;
@@ -3064,11 +3067,11 @@ const TokenUsage=({persona,data,onNav})=>{
                   <span style={{width:9,height:9,borderRadius:3,background:t.color,flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
-                      <span style={{fontWeight:700,color:C.heading}}>{t.label}</span>
+                      <span style={{fontWeight:700,color:C.heading}}>{t.label} <span style={{fontWeight:400,color:C.muted,fontSize:10}}>· {t.model.icon} {t.model.name}</span></span>
                       <span style={{color:C.muted}} className="mono">{fmtTok(t.tok)} · ${Math.round(t.cost).toLocaleString()}</span>
                     </div>
                     <div style={{height:5,background:"#EDF2F7",borderRadius:3,marginTop:3,overflow:"hidden"}}><div style={{width:(t.tok/td.totalTok*100)+"%",height:"100%",background:t.color,borderRadius:3}}/></div>
-                    <div style={{fontSize:9,color:C.light,marginTop:2}}>{t.desc}</div>
+                    <div style={{fontSize:9,color:C.light,marginTop:2}}>{t.desc} · routed via Model Hub</div>
                   </div>
                 </div>
               ))}
@@ -3337,6 +3340,202 @@ const DataConnectors=({persona,data,onNav})=>{
   );
 };
 /* ▓▓ END:SCREEN-CONNECTORS ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-MODELS ▓▓ */
+/* Foundation Model Hub — the platform-wide control plane for which models back each routing tier,
+   plus decoding temperature per path. Applies to ALL iZO modules (Data Agents, IC & SFE, DQ), not
+   just IC. Changing a tier assignment ripples live into Token Usage economics, trace modals and the
+   Excel export; every change is logged to the Governance audit trail. Analytics stay deterministic
+   code — models only narrate, converse and classify. */
+const MODEL_CATALOG=[
+  {id:"opus48",name:"Claude Opus 4.8",provider:"Anthropic",icon:"🔶",type:"Frontier LLM",ctx:"1M",inCost:15,outCost:75,latency:"~2.4s",hosting:"API · AWS Bedrock VPC",compliance:["SOC 2","HIPAA-eligible","Zero retention"],fit:["reasoner"],blurb:"Council-grade multi-step diagnosis and plan-simulation narratives."},
+  {id:"sonnet46",name:"Claude Sonnet 4.6",provider:"Anthropic",icon:"🔷",type:"Frontier LLM",ctx:"1M",inCost:3,outCost:15,latency:"~1.1s",hosting:"API · AWS Bedrock VPC",compliance:["SOC 2","HIPAA-eligible","Zero retention"],fit:["core","reasoner"],blurb:"Workhorse analysis, triage and drafting at frontier quality."},
+  {id:"haiku45",name:"Claude Haiku 4.5",provider:"Anthropic",icon:"⚡",type:"Frontier LLM",ctx:"200K",inCost:.25,outCost:1.25,latency:"~380ms",hosting:"API · AWS Bedrock VPC",compliance:["SOC 2","HIPAA-eligible"],fit:["light"],blurb:"Routing, extraction and classification at near-SLM cost."},
+  {id:"gpt5",name:"GPT-5",provider:"OpenAI",icon:"🟢",type:"Frontier LLM",ctx:"400K",inCost:8,outCost:32,latency:"~1.6s",hosting:"API · Azure OpenAI VPC",compliance:["SOC 2","HIPAA BAA"],fit:["core","reasoner"],blurb:"Strong general reasoning; Azure-native estates plug in directly."},
+  {id:"o4mini",name:"o4-mini",provider:"OpenAI",icon:"🟩",type:"Frontier LLM",ctx:"200K",inCost:1.1,outCost:4.4,latency:"~600ms",hosting:"API · Azure OpenAI VPC",compliance:["SOC 2"],fit:["light","core"],blurb:"Budget reasoning tier for high-volume triage."},
+  {id:"gemini25",name:"Gemini 2.5 Pro",provider:"Google",icon:"🔵",type:"Frontier LLM",ctx:"2M",inCost:2.5,outCost:15,latency:"~1.3s",hosting:"API · GCP Vertex VPC",compliance:["SOC 2","HIPAA-eligible"],fit:["core","reasoner"],blurb:"Massive context — whole plan documents and claims histories in one pass."},
+  {id:"llama4",name:"Llama 4 Maverick",provider:"Meta (open)",icon:"🦙",type:"Open source",ctx:"512K",inCost:.4,outCost:1.2,latency:"~900ms",hosting:"Self-hosted · your VPC",compliance:["Weights in-house","Zero data egress"],fit:["light","core"],blurb:"Open weights inside your firewall — no tokens ever leave the tenant."},
+  {id:"mistral3",name:"Mistral Large 3",provider:"Mistral AI",icon:"🌬️",type:"Open source",ctx:"256K",inCost:2,outCost:6,latency:"~1.0s",hosting:"API · EU sovereign cloud",compliance:["EU data residency","GDPR"],fit:["core"],blurb:"Open-weight frontier-class with EU residency for ex-US affiliates."},
+  {id:"phi4",name:"Phi-4 14B",provider:"Microsoft",icon:"🟪",type:"SLM",ctx:"128K",inCost:.1,outCost:.35,latency:"~280ms",hosting:"On-prem · edge",compliance:["Runs inside firewall"],fit:["light"],blurb:"Small language model for routing and field extraction at trivial cost."},
+  {id:"gemma3",name:"Gemma 3 12B",provider:"Google (open)",icon:"🟦",type:"SLM",ctx:"128K",inCost:.08,outCost:.3,latency:"~260ms",hosting:"On-prem · edge",compliance:["Weights in-house"],fit:["light"],blurb:"Open SLM alternative for the light tier — air-gapped deployments."},
+  {id:"izobert",name:"iZO-IC-BERT",provider:"Improzo fine-tune",icon:"🧬",type:"Domain (Pharma IC)",ctx:"512 tok",inCost:.02,outCost:.02,latency:"~40ms",hosting:"In-pipeline encoder",compliance:["Trained on de-identified IC corpus"],domain:true,task:"Dispute intent classification · windfall tagging · plan-doc clause extraction",metric:"F1 0.94 on IC corpus",pipeline:"Runs ahead of triage in Field Inquiry and P4P flows"},
+  {id:"pubmedbert",name:"PubMedBERT",provider:"Microsoft Research",icon:"🧪",type:"Domain (Biomedical)",ctx:"512 tok",inCost:.02,outCost:.02,latency:"~45ms",hosting:"In-pipeline encoder",compliance:["Public biomedical corpus"],domain:true,task:"Clinical & literature grounding for launch analogs",metric:"F1 0.91 (BLURB)",pipeline:"Backs launch-analog retrieval in Goal Setting"},
+  {id:"complm",name:"CompLM-3B",provider:"Improzo",icon:"🛡️",type:"Domain SLM (Compliance)",ctx:"32K",inCost:.05,outCost:.15,latency:"~120ms",hosting:"On-prem",compliance:["Promotional-review aligned"],domain:true,task:"Promissory-language & off-label scan on every model narrative",metric:"Precision 0.97",pipeline:"Final NARRATE gate — every analysis passes through it before display"},
+];
+const modelOf=(id)=>MODEL_CATALOG.find(m=>m.id===id)||MODEL_CATALOG[1];
+const _MH=_P.modelhub||{};
+const MODEL_STORE={
+  assign:{light:"haiku45",core:"sonnet46",reasoner:"opus48",...(_MH.assign||{})},
+  temps:{narrative:.2,copilot:.4,ideation:.7,...(_MH.temps||{})},
+  log:_MH.log||[],
+};
+/* effective tier = tier definition + the foundation model currently routed to it (rates follow the model) */
+const tierEff=(iOrId)=>{
+  const t=typeof iOrId==="number"?MODEL_TIERS[iOrId]:MODEL_TIERS.find(x=>x.id===iOrId);
+  const m=modelOf(MODEL_STORE.assign[t.id]);
+  return {...t,model:m,inRate:m.inCost,outRate:m.outCost};
+};
+const setTierModel=(tierId,modelId,personaId)=>{
+  const t=MODEL_TIERS.find(x=>x.id===tierId);
+  const from=modelOf(MODEL_STORE.assign[tierId]).name,to=modelOf(modelId).name;
+  if(from===to)return;
+  MODEL_STORE.assign[tierId]=modelId;
+  MODEL_STORE.log.unshift({at:Date.now(),tier:t.label,from,to,by:"S. Okafor"});
+  if(MODEL_STORE.log.length>20)MODEL_STORE.log.length=20;
+  persist("modelhub",MODEL_STORE);
+  pushNotif({persona:personaId,kind:"model",icon:"🧠",title:"Model routing updated — platform-wide",
+    body:t.label+" re-pointed: "+from+" → "+to+". Cost projections and traces refreshed across all modules.",view:"models"});
+};
+const TEMP_PATHS=[
+  {id:"compute",label:"Deterministic compute",desc:"Payout math, ρ, Monte Carlo, parity — pure code. The model never touches these numbers.",locked:true},
+  {id:"narrative",label:"Narrative generation",desc:"Findings & recommendations drafted strictly from computed values"},
+  {id:"copilot",label:"Copilot conversation",desc:"Ask-iZO dialogue — grounding plus conversational tone"},
+  {id:"ideation",label:"Scenario ideation",desc:"What-if framing and option generation in Plan Studio packets"},
+];
+const tempWord=(v)=>v<.15?"near-deterministic":v<.35?"grounded":v<.6?"balanced":"exploratory";
+const ModelHub=({persona,data,onNav})=>{
+  const [,bump]=useState(0);
+  const [typeFilter,setTypeFilter]=useState("all");
+  const td=buildTokenData(persona);   /* deterministic per persona + current assignment — recomputes on every render */
+  const types=["all","Frontier LLM","Open source","SLM","Domain"];
+  const shown=MODEL_CATALOG.filter(m=>typeFilter==="all"?true:typeFilter==="Domain"?m.domain:m.type===typeFilter);
+  const statusOf=(m)=>{
+    const tier=MODEL_TIERS.find(t=>MODEL_STORE.assign[t.id]===m.id);
+    if(tier)return {label:"IN USE — "+tier.label.replace("iZO ","").toUpperCase(),v:"primary"};
+    if(m.domain)return {label:"ACTIVE — PIPELINE",v:"success"};
+    return {label:"AVAILABLE",v:"neutral"};
+  };
+  const blended=td.totalCost/(td.totalTok/1e6);
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="🧠 Foundation Model Hub" sub="Which models think for the platform — routing tiers, open-source and pharma-specific specialists, and how creative each path is allowed to be."
+        right={<Badge variant="purple">Platform-wide control plane — all iZO modules</Badge>}/>
+      <div style={{padding:"12px 18px",borderRadius:12,background:"linear-gradient(135deg,#F3F0FF,#EEF2FF)",border:"1px solid #7C3AED33",marginBottom:18,fontSize:11.5,color:C.text,lineHeight:1.6}}>
+        <strong style={{color:"#5B21B6"}}>One control plane, every module.</strong> Routing set here applies across iZO — Data Agents, IC & SFE, DQ Deep Dive. Models <em>narrate, converse and classify</em>; every number on every screen is computed by deterministic code, so swapping GPT for Claude (or an on-prem Llama) changes cost, latency and voice — never the math. Changes log to the Governance audit trail.
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:18}}>
+        <StatCard icon="📚" label="Models in Catalog" value={MODEL_CATALOG.length} sub="frontier · open source · SLM · domain" delay={0}/>
+        <StatCard icon="🧭" label="Routing Tiers" value={MODEL_TIERS.length} sub="light / core / reasoner" delay={.05}/>
+        <StatCard icon="🧬" label="Domain Specialists" value={MODEL_CATALOG.filter(m=>m.domain).length} sub="pharma-specific, in-pipeline" color={C.success} delay={.1}/>
+        <StatCard icon="💠" label="Blended $/1M Tokens" value={"$"+blended.toFixed(2)} sub={"at "+persona.name+"'s current mix"} delay={.15}/>
+      </div>
+      <SectionCard title="Tier Routing — which model backs each tier" sub="Click a model chip to re-point a tier. Cost reflects this company's month-to-date volume; Token Usage, traces and the Excel export follow instantly." pad={16} style={{marginBottom:18}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
+          {MODEL_TIERS.map((t,i)=>{
+            const eff=tierEff(i);const tt=td.tiers[i];
+            const eligible=MODEL_CATALOG.filter(m=>!m.domain&&(m.fit||[]).includes(t.id));
+            return (
+              <div key={t.id} style={{padding:"14px 16px",borderRadius:12,border:`1.5px solid ${t.color}44`,background:`${t.color}08`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:10,fontWeight:800,color:t.color,letterSpacing:1}}>{t.label.toUpperCase()}</span>
+                  <span style={{fontSize:9,color:C.muted}}>{t.desc}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8,margin:"10px 0 4px"}}>
+                  <span style={{fontSize:20}}>{eff.model.icon}</span>
+                  <div><div style={{fontSize:13.5,fontWeight:800,color:C.heading}}>{eff.model.name}</div><div style={{fontSize:9.5,color:C.muted}}>{eff.model.provider} · {eff.model.ctx} ctx · {eff.model.latency}</div></div>
+                </div>
+                <div style={{fontSize:10.5,color:C.muted,margin:"6px 0 10px"}} className="mono">${eff.inRate}/1M in · ${eff.outRate}/1M out → <strong style={{color:C.heading}}>${Math.round(tt.cost).toLocaleString()}</strong> MTD on {fmtTok(tt.tok)} tok</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                  {eligible.map(m=>{
+                    const sel=MODEL_STORE.assign[t.id]===m.id;
+                    return <span key={m.id} onClick={()=>{setTierModel(t.id,m.id,persona.id);bump(x=>x+1)}}
+                      style={{padding:"3px 9px",borderRadius:11,fontSize:9.5,fontWeight:700,cursor:"pointer",border:`1px solid ${sel?t.color:C.border}`,background:sel?`${t.color}18`:"#FAFBFC",color:sel?t.color:C.muted}}>{m.icon} {m.name}</span>;
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </SectionCard>
+      <div style={{display:"grid",gridTemplateColumns:"1.15fr 1fr",gap:18,marginBottom:18}}>
+        <SectionCard title="Decoding Paths — deterministic ↔ creative" sub="Temperature per path. Computation is locked at zero by construction; only language generation has a dial." pad={16}>
+          <div style={{display:"grid",gap:13}}>
+            {TEMP_PATHS.map(p=>{
+              const v=p.locked?0:MODEL_STORE.temps[p.id];
+              return (
+                <div key={p.id}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+                    <span style={{fontSize:11.5,fontWeight:700,color:C.heading}}>{p.locked?"🔒 ":""}{p.label}</span>
+                    <span className="mono" style={{fontSize:10.5,fontWeight:700,color:p.locked?C.light:v<.35?C.success:v<.6?C.primary:C.warn}}>T = {v.toFixed(2)} · {p.locked?"locked":tempWord(v)}</span>
+                  </div>
+                  <div style={{fontSize:10,color:C.muted,margin:"2px 0 5px"}}>{p.desc}</div>
+                  {p.locked?(
+                    <div style={{height:5,borderRadius:3,background:"#E2E8F0",position:"relative"}}><div style={{position:"absolute",left:0,top:-2,width:9,height:9,borderRadius:"50%",background:C.light,border:"2px solid #fff",boxShadow:"0 1px 3px rgba(0,0,0,.25)"}}/></div>
+                  ):(
+                    <input type="range" min="0" max="1" step="0.05" value={v}
+                      onChange={e=>{MODEL_STORE.temps[p.id]=parseFloat(e.target.value);persist("modelhub",MODEL_STORE);bump(x=>x+1)}}/>
+                  )}
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:8.5,color:C.light,marginTop:2}}><span>deterministic</span><span>creative</span></div>
+                </div>
+              );
+            })}
+          </div>
+        </SectionCard>
+        <SectionCard title="🧬 Pharma & Domain Specialists" sub="Task-specific models welded into the pipeline — they classify and gate; LLMs narrate" pad={16}>
+          <div style={{display:"grid",gap:10}}>
+            {MODEL_CATALOG.filter(m=>m.domain).map(m=>(
+              <div key={m.id} style={{padding:"11px 13px",borderRadius:10,border:`1px solid ${C.border}`,background:"#FAFBFC"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:12,fontWeight:800,color:C.heading}}>{m.icon} {m.name}</span>
+                  <Badge variant="success" small>ACTIVE</Badge>
+                </div>
+                <div style={{fontSize:10.5,color:C.text,marginTop:4,lineHeight:1.5}}>{m.task}</div>
+                <div style={{fontSize:9.5,color:C.muted,marginTop:4}} className="mono">{m.metric} · {m.provider}</div>
+                <div style={{fontSize:9.5,color:C.primary,marginTop:3}}>↳ {m.pipeline}</div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      </div>
+      <SectionCard title="Model Catalog" sub="Everything the platform can route to — swap by clicking chips in Tier Routing above"
+        right={<div style={{display:"flex",gap:6}}>{types.map(f=>(
+          <div key={f} onClick={()=>setTypeFilter(f)} style={{padding:"5px 12px",borderRadius:13,fontSize:10,fontWeight:700,cursor:"pointer",border:`1px solid ${typeFilter===f?C.primary:C.border}`,background:typeFilter===f?C.primaryBg:"#FAFBFC",color:typeFilter===f?C.primary:C.muted}}>{f==="all"?"All":f}</div>))}</div>} pad={0} style={{marginBottom:18}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+          <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>
+            {["Model","Provider","Type","Context","$/1M in · out","Latency","Hosting","Compliance","Status"].map(h=><th key={h} style={{padding:"9px 13px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.6,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {shown.map((m,i)=>{const st=statusOf(m);return (
+              <tr key={m.id} style={{borderBottom:`1px solid ${C.border}66`,animation:`fadeUp .25s ease-out ${i*.03}s both`}}>
+                <td style={{padding:"9px 13px",fontWeight:700,color:C.heading}}>{m.icon} {m.name}<div style={{fontSize:9.5,fontWeight:400,color:C.muted,marginTop:2}}>{m.blurb||m.task}</div></td>
+                <td style={{padding:"9px 13px",color:C.text,fontSize:11}}>{m.provider}</td>
+                <td style={{padding:"9px 13px",color:C.muted,fontSize:10.5}}>{m.type}</td>
+                <td style={{padding:"9px 13px",color:C.muted,fontSize:10.5}} className="mono">{m.ctx}</td>
+                <td style={{padding:"9px 13px",color:C.text,fontSize:10.5}} className="mono">${m.inCost} · ${m.outCost}</td>
+                <td style={{padding:"9px 13px",color:C.muted,fontSize:10.5}} className="mono">{m.latency}</td>
+                <td style={{padding:"9px 13px",color:C.muted,fontSize:10}}>{m.hosting}</td>
+                <td style={{padding:"9px 13px"}}>{(m.compliance||[]).map(c=><span key={c} style={{display:"inline-block",padding:"1px 7px",borderRadius:9,fontSize:8.5,fontWeight:700,background:"#EDF2F7",color:C.muted,margin:"1px 3px 1px 0"}}>{c}</span>)}</td>
+                <td style={{padding:"9px 13px"}}><Badge variant={st.v} small>{st.label}</Badge></td>
+              </tr>
+            );})}
+          </tbody>
+        </table>
+      </SectionCard>
+      <SectionCard title="Routing Change Log" sub="Every re-point is recorded here and in the Governance audit trail" pad={0}>
+        {MODEL_STORE.log.length===0?(
+          <div style={{padding:"26px 20px",textAlign:"center",fontSize:11.5,color:C.light,fontStyle:"italic"}}>No changes yet — re-point a tier above and the change lands here, in the bell, and in the audit trail.</div>
+        ):(
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+            <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>
+              {["When","Tier","Change","By"].map(h=><th key={h} style={{padding:"9px 13px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.6,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {MODEL_STORE.log.map((e,i)=>(
+                <tr key={i} style={{borderBottom:`1px solid ${C.border}66`}}>
+                  <td style={{padding:"9px 13px",color:C.muted,fontSize:10.5}}>{fmtAgo(Date.now()-e.at)}</td>
+                  <td style={{padding:"9px 13px",fontWeight:700,color:C.heading}}>{e.tier}</td>
+                  <td style={{padding:"9px 13px",color:C.text}} className="mono">{e.from} → {e.to}</td>
+                  <td style={{padding:"9px 13px",color:C.muted,fontSize:11}}>{e.by}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </SectionCard>
+    </div>
+  );
+};
+/* ▓▓ END:SCREEN-MODELS ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-WORKLIST ▓▓ */
 /* A1 — findings become tracked work. Seeded baseline per persona; live items from ➕ Action anywhere. */
@@ -3797,7 +3996,7 @@ const buildWorkbook=(persona,data)=>{
     [],
     ["BY MODEL TIER"],
     ["Tier","Purpose","Tokens","Est. cost ($)"],
-    ...tk.tiers.map(t=>[t.label,t.desc,Math.round(t.tok),Math.round(t.cost*100)/100]),
+    ...tk.tiers.map(t=>[t.label+" — "+t.model.name,t.desc,Math.round(t.tok),Math.round(t.cost*100)/100]),
     [],
     ["DAILY CONSUMPTION (tokens, millions) — day 10 = calc run"],
     ["Day","Tokens (M)"],
@@ -3834,7 +4033,7 @@ window.__izoBuildWorkbook=(pid)=>buildWorkbook(PERSONAS.find(x=>x.id===pid),getD
 /* ▓▓ END:EXPORT ▓▓ */
 
 /* ▓▓ SECTION:APP ▓▓ */
-const SCREENS={command:CommandCenter,health:HealthCheck,p4p:P4PLab,goals:GoalsFairness,studio:PlanStudio,sfe:TerritorySFE,pulse:FieldPulse,copilot:Copilot,registry:Registry,govern:Governance,tokens:TokenUsage,connectors:DataConnectors,worklist:Worklist,explorer:DataExplorer};
+const SCREENS={command:CommandCenter,health:HealthCheck,p4p:P4PLab,goals:GoalsFairness,studio:PlanStudio,sfe:TerritorySFE,pulse:FieldPulse,copilot:Copilot,registry:Registry,govern:Governance,models:ModelHub,tokens:TokenUsage,connectors:DataConnectors,worklist:Worklist,explorer:DataExplorer};
 function App(){
   const [personaId,setPersonaId]=useState("vertanis");
   const [view,setView]=useState("command");
