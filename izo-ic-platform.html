@@ -1091,7 +1091,44 @@ const PersonaSelector=({persona,onSelect})=>{
     </div>
   );
 };
-const TopBar=({crumbs,persona,onSelectPersona,onExport})=>(
+const NOTIF_KIND_STYLE={verdict:{c:"#B45309"},ack:{c:"#1E82BD"},due:{c:"#F59E0B"}};
+const NotifBell=({persona,onNav})=>{
+  const [open,setOpen]=useState(false);
+  const mine=NOTIF_STORE.filter(n=>n.persona===persona.id);
+  const unread=mine.filter(n=>!n.read).length;
+  const toggle=()=>{
+    if(!open&&unread>0){NOTIF_STORE.forEach(n=>{if(n.persona===persona.id)n.read=true});persist("notifs",NOTIF_STORE)}
+    setOpen(o=>!o);
+  };
+  return (
+    <div style={{position:"relative"}}>
+      <span onClick={toggle} style={{fontSize:17,cursor:"pointer"}} title="Platform responses — verdicts on your challenges, agent acks, due nudges">🔔</span>
+      {unread>0&&<span style={{position:"absolute",top:-4,right:-6,minWidth:15,height:15,padding:"0 3px",borderRadius:8,background:"#EA580C",color:"#fff",fontSize:8.5,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",animation:"breathe 2s infinite",pointerEvents:"none"}}>{unread}</span>}
+      {open&&<Fragment>
+        <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
+        <div style={{position:"absolute",top:"calc(100% + 8px)",right:-8,width:344,background:C.card,borderRadius:12,border:`1px solid ${C.border}`,boxShadow:"0 12px 40px rgba(10,80,129,.18)",zIndex:50,overflow:"hidden",animation:"fadeUp .2s ease-out"}}>
+          <div style={{padding:"10px 16px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1.2,borderBottom:`1px solid ${C.border}`,background:"#F8FAFC"}}>Platform responses — {persona.name}</div>
+          <div style={{maxHeight:340,overflowY:"auto"}}>
+            {mine.length===0?(
+              <div style={{padding:"26px 18px",textAlign:"center",fontSize:11,color:C.light,fontStyle:"italic"}}>Quiet for now — challenge a finding or flag 👎 feedback and the platform answers here.</div>
+            ):mine.map(n=>(
+              <div key={n.id} onClick={()=>{setOpen(false);onNav&&onNav(n.view)}} style={{display:"flex",gap:10,padding:"11px 16px",borderBottom:`1px solid ${C.border}55`,cursor:"pointer",borderLeft:`3px solid ${(NOTIF_KIND_STYLE[n.kind]||{c:C.border}).c}`,transition:"background .15s"}}
+                onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <span style={{fontSize:15,flexShrink:0}}>{n.icon}</span>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{fontSize:11.5,fontWeight:700,color:C.heading,lineHeight:1.3}}>{n.title}</div>
+                  <div style={{fontSize:10.5,color:C.muted,lineHeight:1.45,marginTop:2}}>{n.body}</div>
+                  <div style={{fontSize:9,color:C.light,marginTop:3}}>{fmtAgo(Date.now()-n.at)} · click to open</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Fragment>}
+    </div>
+  );
+};
+const TopBar=({crumbs,persona,onSelectPersona,onExport,onNav})=>(
   <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"11px 26px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:30}}>
     <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:C.muted}}>
       {crumbs.map((b,i)=><span key={i} style={{display:"flex",alignItems:"center",gap:8}}>{i>0&&<span style={{color:C.light}}>›</span>}<span style={{fontWeight:i===crumbs.length-1?600:400,color:i===crumbs.length-1?C.heading:C.muted}}>{b}</span></span>)}
@@ -1100,7 +1137,7 @@ const TopBar=({crumbs,persona,onSelectPersona,onExport})=>(
       <button onClick={onExport} title="Download raw data + every analysis as one Excel workbook" style={{display:"flex",alignItems:"center",gap:6,padding:"8px 15px",borderRadius:8,background:"linear-gradient(135deg,#107C41,#0E6B38)",color:"#fff",fontWeight:700,fontSize:11.5,boxShadow:"0 3px 10px rgba(16,124,65,.3)"}}>📥 Export Excel</button>
       <span onClick={()=>{if(window.confirm("Reset all demo state? Feedback, challenges, worklist actions and HITL decisions will be cleared."))resetDemoState()}} title="Reset demo state (feedback, worklist, decisions)" style={{fontSize:15,cursor:"pointer",color:C.light}}>↺</span>
       <PersonaSelector persona={persona} onSelect={onSelectPersona}/>
-      <div style={{position:"relative"}}><span style={{fontSize:17,cursor:"pointer"}}>🔔</span><span style={{position:"absolute",top:-4,right:-4,width:15,height:15,borderRadius:"50%",background:"#EA580C",color:"#fff",fontSize:8.5,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>2</span></div>
+      <NotifBell persona={persona} onNav={onNav}/>
       <div style={{width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:`linear-gradient(135deg,${C.primary},${C.heading})`,color:"#fff",fontSize:11,fontWeight:700}}>SO</div>
     </div>
   </div>
@@ -1202,9 +1239,12 @@ const TraceModal=({persona,spec,meta,onClose})=>{
 };
 const AnalysisActions=({persona,id,agent,title,method,datasets=[],query="SELECT * FROM ic_payouts -- scoped to current period",checks=[],computeNote,scope,compact,noTrace})=>{
   const key=persona.id+"::"+id;
-  const [fb,setFb]=useState(FEEDBACK_STORE[key]||null);
-  const [ch,setCh]=useState(CHALLENGE_STORE[key]||null);
-  const [onList,setOnList]=useState(ACTION_STORE.some(a=>a.srcId===key));
+  /* render-time store reads (not useState caches) — async verdicts/remediations from the App sweep
+     appear on the next tick re-render without a remount */
+  const [,bump]=useState(0);
+  const fb=FEEDBACK_STORE[key]||null;
+  const ch=CHALLENGE_STORE[key]||null;
+  const act=ACTION_STORE.find(a=>a.srcId===key)||null;
   const [pop,setPop]=useState(null);          /* "down" | "challenge" | "action" | null */
   const [tag,setTag]=useState(null);
   const [comment,setComment]=useState("");
@@ -1216,18 +1256,26 @@ const AnalysisActions=({persona,id,agent,title,method,datasets=[],query="SELECT 
   const [trace,setTrace]=useState(false);
   const meta=traceMeta(persona,id,agent);
   const fs=compact?9.5:10.5;
-  const saveFb=(rec)=>{FEEDBACK_STORE[key]={...rec,agent,title,persona:persona.name};persist("feedback",FEEDBACK_STORE);setFb(FEEDBACK_STORE[key]);setPop(null)};
-  const saveCh=()=>{CHALLENGE_STORE[key]={rationale,by:"S. Okafor",status:"Under review",agent,title,persona:persona.name};persist("challenges",CHALLENGE_STORE);setCh(CHALLENGE_STORE[key]);setPop(null)};
-  const saveAct=()=>{addAction({persona:persona.id,srcId:key,title:aTitle,src:title,agent,owner:aOwner,due:aDue,prio:aPrio});setOnList(true);setPop(null)};
+  const saveFb=(rec)=>{FEEDBACK_STORE[key]={...rec,at:Date.now(),agent,title,persona:persona.name};persist("feedback",FEEDBACK_STORE);setPop(null);bump(x=>x+1)};
+  const saveCh=()=>{CHALLENGE_STORE[key]={rationale,by:"S. Okafor",status:"Under review",submittedAt:Date.now(),agent,title,persona:persona.name};persist("challenges",CHALLENGE_STORE);setPop(null);bump(x=>x+1)};
+  const saveAct=()=>{addAction({persona:persona.id,srcId:key,title:aTitle,src:title,agent,owner:aOwner,due:aDue,prio:aPrio});setPop(null);bump(x=>x+1)};
   const chip=(txt,c)=><span style={{fontSize:fs-0.5,fontWeight:700,color:c,display:"flex",alignItems:"center",gap:4}}>{txt}</span>;
   return (
     <div style={{marginTop:compact?8:10,paddingTop:compact?7:9,borderTop:`1px dashed ${C.border}`}}>
       <div style={{display:"flex",alignItems:"center",gap:9,flexWrap:"wrap"}}>
         {!noTrace&&<span onClick={()=>setTrace(true)} style={{fontSize:fs,fontWeight:700,color:C.primary,cursor:"pointer"}}>🔬 How this was computed</span>}
-        {ch?chip("⚑ Challenged — "+ch.status.toLowerCase(),"#B45309"):
-          <span onClick={()=>setPop(pop==="challenge"?null:"challenge")} style={{fontSize:fs,fontWeight:700,color:pop==="challenge"?"#B45309":C.muted,cursor:"pointer"}}>⚑ Challenge</span>}
-        {onList?chip("✓ on worklist",C.success):
-          <span onClick={()=>setPop(pop==="action"?null:"action")} style={{fontSize:fs,fontWeight:700,color:pop==="action"?C.primary:C.muted,cursor:"pointer"}}>➕ Action</span>}
+        {ch?(
+          ch.verdict
+            ?chip(ch.verdict.outcome==="Overturned"?"⚖ Overturned — finding withdrawn":"⚖ Reviewed — finding stands",ch.verdict.outcome==="Overturned"?"#B45309":C.muted)
+            :chip(<Fragment>⚑ Challenged — IC Council reviewing<span style={{width:6,height:6,borderRadius:"50%",background:"#B45309",animation:"breathe 1.6s infinite",display:"inline-block"}}/></Fragment>,"#B45309")
+        ):(
+          <span onClick={()=>setPop(pop==="challenge"?null:"challenge")} style={{fontSize:fs,fontWeight:700,color:pop==="challenge"?"#B45309":C.muted,cursor:"pointer"}}>⚑ Challenge</span>)}
+        {act?(
+          act.outcome
+            ?chip("✓ Remediated — "+(act.outcome.note.length>46?act.outcome.note.slice(0,44)+"…":act.outcome.note)+" ("+act.id+")",C.success)
+            :chip("✓ on worklist",C.success)
+        ):(
+          <span onClick={()=>setPop(pop==="action"?null:"action")} style={{fontSize:fs,fontWeight:700,color:pop==="action"?C.primary:C.muted,cursor:"pointer"}}>➕ Action</span>)}
         <span style={{flex:1}}/>
         {fb&&pop!=="down"?(
           <span style={{fontSize:fs-0.5,fontWeight:700,color:fb.vote==="up"?C.success:"#EA580C",display:"flex",alignItems:"center",gap:5}}>
@@ -1240,6 +1288,14 @@ const AnalysisActions=({persona,id,agent,title,method,datasets=[],query="SELECT 
           </Fragment>
         )}
       </div>
+      {ch&&ch.verdict&&(
+        <div style={{marginTop:6,padding:"7px 11px",borderRadius:8,fontSize:10,lineHeight:1.5,
+          background:ch.verdict.outcome==="Overturned"?"#FFFBF5":"#F8FAFC",
+          border:ch.verdict.outcome==="Overturned"?"1px solid #FB923C55":`1px solid ${C.border}`,
+          color:ch.verdict.outcome==="Overturned"?"#9A3412":C.muted}}>
+          <strong>⚖ {ch.verdict.by} — {ch.verdict.outcome==="Overturned"?"challenge accepted, finding withdrawn":"finding stands"}:</strong> <span style={{fontStyle:"italic"}}>{ch.verdict.note}</span>
+        </div>
+      )}
       {pop==="down"&&(
         <div style={{marginTop:8,padding:"10px 12px",borderRadius:10,background:"#FDFDFE",border:`1px solid ${C.border}`,animation:"fadeUp .2s ease-out"}}>
           <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
@@ -1287,6 +1343,79 @@ const AnalysisActions=({persona,id,agent,title,method,datasets=[],query="SELECT 
   );
 };
 /* ▓▓ END:OBSERVE ▓▓ */
+
+/* ▓▓ SECTION:NOTIFY ▓▓ */
+/* Close-the-loop layer — the platform answers back. A 3s sweep in App (never remounts) resolves
+   due work: simulated IC Council verdicts on challenges, agent acks on 👎 feedback, due nudges.
+   Verdict outcome + note derive from hashStr (deterministic per rationale → repeatable demos);
+   Date.now() is used only for timestamps, never for analytic data. Notifications are per-persona. */
+const NOTIF_STORE=_P.notifs||[];               /* [{id,persona,at,kind,icon,title,body,view,read,srcKey}] */
+let _ntfSeq=0;
+const pushNotif=(n)=>{NOTIF_STORE.unshift({id:"NTF-"+Date.now()+"-"+(_ntfSeq++),at:Date.now(),read:false,...n});if(NOTIF_STORE.length>50)NOTIF_STORE.length=50;persist("notifs",NOTIF_STORE)};
+const fmtAgo=(ms)=>{const s=Math.max(0,Math.round(ms/1000));if(s<60)return s+"s ago";const m=Math.round(s/60);if(m<60)return m+"m ago";const h=Math.round(m/60);if(h<24)return h+"h ago";return Math.round(h/24)+"d ago"};
+const decOf=(v)=>typeof v==="string"?{d:v}:(v||{});   /* pulse decisions: legacy string → object */
+const VERDICT_NOTES={
+  Overturned:[
+    "Council agrees — the evidence supports the analyst's read. Finding withdrawn and the owning agent's eval set updated.",
+    "Rationale verified against source data; the original conclusion did not hold. Finding withdrawn pending re-run.",
+    "Override accepted — the analyst supplied context the model lacked. Finding withdrawn; methodology note filed."],
+  Upheld:[
+    "Council reviewed the rationale against the underlying data — the original finding stands as published.",
+    "The challenge raises a fair point but does not change the statistical picture. Finding stands; rationale archived with the run.",
+    "Reviewed jointly with the owning agent — the evidence supports the original conclusion. Finding stands."]};
+const ACK_NOTES=[
+  "Noted — “{tag}” flagged on “{title}”. Queued for the next prompt-revision pass; your comment goes into the eval set verbatim.",
+  "Thanks — “{tag}” on “{title}” logged against this run. The narrative template is flagged for review.",
+  "Received — “{tag}” on “{title}”. Added to the agent's correction queue; the methodology owner is notified."];
+const challengeVerdict=(key,ch)=>{
+  const h=hashStr("verdict::"+key+"::"+ch.rationale);
+  const outcome=h%5<2?"Overturned":"Upheld";
+  const notes=VERDICT_NOTES[outcome];
+  return {outcome,note:notes[h%notes.length],delay:12000+(h%9)*1000};
+};
+const processDueWork=(now)=>{
+  let hits=0;
+  /* 1 ── challenge adjudication: simulated IC Council verdict after a believable delay */
+  Object.entries(CHALLENGE_STORE).forEach(([key,ch])=>{
+    if(ch.status!=="Under review")return;
+    if(!ch.submittedAt){ch.submittedAt=now;persist("challenges",CHALLENGE_STORE);return}
+    const v=challengeVerdict(key,ch);
+    if(now-ch.submittedAt<v.delay)return;
+    ch.status=v.outcome;
+    ch.verdict={outcome:v.outcome,by:"IC Council",note:v.note,decidedAt:now};
+    persist("challenges",CHALLENGE_STORE);
+    pushNotif({persona:key.split("::")[0],kind:"verdict",icon:"⚖",
+      title:"IC Council "+(v.outcome==="Overturned"?"overturned the finding you challenged":"upheld the finding you challenged"),
+      body:"“"+ch.title+"” — "+v.note,view:"worklist",srcKey:key});
+    hits++;
+  });
+  /* 2 ── agent acknowledgment of 👎 feedback (~6s) */
+  Object.entries(FEEDBACK_STORE).forEach(([key,fb])=>{
+    if(fb.vote!=="down"||fb.acked)return;
+    if(!fb.at){fb.at=now;persist("feedback",FEEDBACK_STORE);return}
+    if(now-fb.at<6000)return;
+    fb.acked=true;persist("feedback",FEEDBACK_STORE);
+    const h=hashStr("ack::"+key);
+    pushNotif({persona:key.split("::")[0],kind:"ack",icon:"🤖",
+      title:(fb.agent||"Agent").replace(" Agent","")+" acknowledged your feedback",
+      body:ACK_NOTES[h%ACK_NOTES.length].replace("{tag}",fb.tag||"issue").replace("{title}",fb.title||"analysis"),
+      view:"govern",srcKey:key});
+    hits++;
+  });
+  /* 3 ── one-shot due-date nudge per persona */
+  const byPersona={};
+  ACTION_STORE.forEach(a=>{if(a.status==="Open"&&a.due==="This week")(byPersona[a.persona]=byPersona[a.persona]||[]).push(a)});
+  Object.entries(byPersona).forEach(([pid,acts])=>{
+    if(_P["nudged-"+pid])return;
+    persist("nudged-"+pid,true);
+    pushNotif({persona:pid,kind:"due",icon:"⏰",
+      title:acts.length+" worklist action"+(acts.length>1?"s":"")+" due this week",
+      body:acts.slice(0,2).map(a=>a.title).join(" · ")+(acts.length>2?" · +"+(acts.length-2)+" more":""),view:"worklist"});
+    hits++;
+  });
+  return hits;
+};
+/* ▓▓ END:NOTIFY ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-COMMAND ▓▓ */
 const SEV_STYLE={risk:{c:C.error,bg:C.errorBg,label:"RISK"},warn:{c:C.warn,bg:C.warnBg,label:"WATCH"},info:{c:C.info,bg:C.infoBg,label:"INFO"}};
@@ -1345,11 +1474,16 @@ const AgentFeed=({pool})=>{
 const CommandCenter=({persona,data,onNav})=>{
   const good=data.dims.filter(d=>d.status==="good").length,warn=data.dims.filter(d=>d.status==="warn").length,risk=data.dims.filter(d=>d.status==="risk").length;
   const [acted,setActed]=useState({});
+  const loopsClosed=ACTION_STORE.filter(a=>a.persona===persona.id&&a.outcome).length
+    +Object.entries(CHALLENGE_STORE).filter(([k,c])=>k.startsWith(persona.id+"::")&&c.verdict).length;
   return (
     <div style={{padding:26}}>
       <ScreenHeader title={"🛰️ Command Center — "+persona.name}
         sub={persona.type+" · "+persona.reps+" "+persona.roleLabel.toLowerCase()+" · "+persona.products.join(", ")+" · "+persona.plan.freq+" "+persona.plan.archetype.replace(/([A-Z])/g," $1").toLowerCase()+" plan"}
-        right={<Badge variant={data.overall>=80?"success":data.overall>=60?"warning":"error"}>IC Health {data.overall}/100</Badge>}/>
+        right={<div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {loopsClosed>0&&<Badge variant="success">🔁 {loopsClosed} loop{loopsClosed>1?"s":""} closed</Badge>}
+          <Badge variant={data.overall>=80?"success":data.overall>=60?"warning":"error"}>IC Health {data.overall}/100</Badge>
+        </div>}/>
       {data.launchStrip&&(
         <div style={{background:"linear-gradient(120deg,#0F766E,#0D9488 55%,#14B8A6)",borderRadius:14,padding:"16px 24px",marginBottom:18,display:"flex",alignItems:"center",gap:26,color:"#fff",animation:"fadeUp .4s ease-out",flexWrap:"wrap"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:26}}>🚀</span>
@@ -2083,6 +2217,7 @@ const FieldPulse=({persona,data,onNav})=>{
   const [decisions,setDecisionsRaw]=useState(_P["pulse-"+persona.id]||{});
   const setDecisions=(updater)=>{setDecisionsRaw(prev=>{const next=typeof updater==="function"?updater(prev):updater;persist("pulse-"+persona.id,next);return next})};
   const [scorecard,setScorecard]=useState(false);
+  const [pNote,setPNote]=useState("");
   const disputes=data.disputes;
   const cur=disputes.find(d=>d.id===sel);
   const curRow=cur?data.rows.find(r=>r.id===cur.terr):null;
@@ -2109,10 +2244,11 @@ const FieldPulse=({persona,data,onNav})=>{
             </tr></thead>
             <tbody>
               {disputes.map((d,i)=>{
-                const st=decisions[d.id]?{l:decisions[d.id],v:decisions[d.id]==="Approved"?"success":decisions[d.id]==="Denied"?"error":"warning"}:
+                const dec=decOf(decisions[d.id]);
+                const st=dec.d?{l:dec.d,v:dec.d==="Approved"?"success":dec.d==="Denied"?"error":"warning"}:
                   d.status==="auto-resolved"?{l:"AUTO-RESOLVED",v:"success"}:d.status==="needs-hitl"?{l:"NEEDS HUMAN",v:"hitl"}:{l:"IN REVIEW",v:"info"};
                 return (
-                  <tr key={d.id} onClick={()=>setSel(d.id===sel?null:d.id)} style={{borderBottom:`1px solid ${C.border}66`,cursor:"pointer",background:sel===d.id?C.primaryBg:"transparent",transition:"background .2s",animation:`fadeUp .3s ease-out ${i*.04}s both`}}>
+                  <tr key={d.id} onClick={()=>{setSel(d.id===sel?null:d.id);setPNote("")}} style={{borderBottom:`1px solid ${C.border}66`,cursor:"pointer",background:sel===d.id?C.primaryBg:"transparent",transition:"background .2s",animation:`fadeUp .3s ease-out ${i*.04}s both`}}>
                     <td style={{padding:"9px 13px",fontWeight:700,color:C.primary}} className="mono">{d.id}</td>
                     <td style={{padding:"9px 13px",fontWeight:600,color:C.heading}}>{d.rep}</td>
                     <td style={{padding:"9px 13px",color:C.text,fontSize:11}}>{d.type}</td>
@@ -2146,9 +2282,22 @@ const FieldPulse=({persona,data,onNav})=>{
             </div>
             {cur.status==="needs-hitl"&&!decisions[cur.id]&&(
               <HITLDecisionRow action={"Adjustment of "+fmt$(cur.amount)+" exceeds the $1,000 auto-resolve band"} detail="Field Inquiry Agent requests human adjudication — full evidence chain attached"
-                onDecide={(d)=>setDecisions(p=>({...p,[cur.id]:d}))}/>
+                onDecide={(d)=>setDecisions(p=>({...p,[cur.id]:{d,at:Date.now()}}))}/>
             )}
-            {decisions[cur.id]&&<div style={{textAlign:"center",padding:"8px 0"}}><Badge variant={decisions[cur.id]==="Approved"?"success":decisions[cur.id]==="Denied"?"error":"warning"}>👤 {decisions[cur.id]} — logged to audit trail</Badge></div>}
+            {decisions[cur.id]&&(()=>{const dec=decOf(decisions[cur.id]);return (
+              <div style={{padding:"8px 0"}}>
+                <div style={{textAlign:"center"}}><Badge variant={dec.d==="Approved"?"success":dec.d==="Denied"?"error":"warning"}>👤 {dec.d} — logged to audit trail</Badge></div>
+                {dec.d!=="Approved"&&!dec.note&&(
+                  <div style={{display:"flex",gap:7,marginTop:9}}>
+                    <input value={pNote} onChange={e=>setPNote(e.target.value)} placeholder="Add rationale for the audit trail (optional — the agent learns from this)"
+                      style={{flex:1,padding:"7px 11px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:11,outline:"none",fontFamily:"inherit"}}/>
+                    <button disabled={!pNote.trim()} onClick={()=>{setDecisions(p=>({...p,[cur.id]:{...decOf(p[cur.id]),note:pNote.trim()}}));setPNote("")}}
+                      style={{padding:"7px 14px",borderRadius:7,background:pNote.trim()?`linear-gradient(135deg,${C.primary},${C.primaryDark})`:"#E2E8F0",color:pNote.trim()?"#fff":C.light,fontWeight:700,fontSize:10.5}}>Save</button>
+                  </div>
+                )}
+                {dec.note&&<div style={{fontSize:10.5,color:C.muted,fontStyle:"italic",marginTop:6,textAlign:"center"}}>“{dec.note}” — recorded with the decision</div>}
+              </div>
+            )})()}
             <AnalysisActions compact noTrace persona={persona} id={"dispute-"+cur.id} agent="Field Inquiry Agent" title={"Triage "+cur.id+" — "+cur.type}/>
           </SectionCard>
         )}
@@ -2585,8 +2734,14 @@ const Governance=({persona,data,onNav})=>{
   const [policies,setPoliciesRaw]=useState(_P.policies||{autoLow:true,timeEsc:true,crossAgent:true,weekend:false});
   const setPolicies=(updater)=>{setPoliciesRaw(prev=>{const next=typeof updater==="function"?updater(prev):updater;persist("policies",next);return next})};
   const {cohorts,parity,trail}=buildGovData(persona);
-  const liveChallenges=Object.entries(CHALLENGE_STORE).filter(([k])=>k.startsWith(persona.id+"::")).map(([,v])=>({when:"Today (live)",agent:v.agent.replace(" Agent",""),what:"Finding challenged: "+v.title+" — “"+v.rationale+"”",who:v.by,hitl:true}));
-  const trailAll=[...liveChallenges,...trail];
+  const liveChallenges=Object.entries(CHALLENGE_STORE).filter(([k])=>k.startsWith(persona.id+"::")).flatMap(([,v])=>{
+    const rows=[];
+    if(v.verdict)rows.push({when:"Today (live)",agent:"IC Council",what:"Challenge adjudicated — "+v.verdict.outcome+": "+v.title+" — “"+v.verdict.note+"”",who:"IC Council",hitl:true});
+    rows.push({when:"Today (live)",agent:v.agent.replace(" Agent",""),what:"Finding challenged: "+v.title+" — “"+v.rationale+"”",who:v.by,hitl:true});
+    return rows;
+  });
+  const livePulse=Object.entries(_P["pulse-"+persona.id]||{}).map(([id,raw])=>{const d=decOf(raw);return {when:"Today (live)",agent:"Field Inquiry",what:"Dispute "+id+" — "+(d.d||"reviewed")+(d.note?" — “"+d.note+"”":""),who:"S. Okafor",hitl:true}});
+  const trailAll=[...liveChallenges,...livePulse,...trail];
   const filteredTrail=trailFilter==="all"?trailAll:trailAll.filter(t=>trailFilter==="hitl"?t.hitl:t.agent===trailFilter);
   return (
     <div style={{padding:26}}>
@@ -3198,15 +3353,31 @@ const ensureSeedActions=(persona,data)=>{
 const STATUS_FLOW={"Open":"In progress","In progress":"Done","Done":"Open"};
 const STATUS_STYLE={"Open":{v:"warning"},"In progress":{v:"info"},"Done":{v:"success"}};
 const PRIO_STYLE={High:{c:C.error,bg:"#FEF2F2"},Med:{c:C.primary,bg:C.primaryBg},Medium:{c:C.primary,bg:C.primaryBg},Low:{c:C.muted,bg:"#EDF2F7"}};
+const OUTCOME_RESULTS=["Fixed","No change needed","Escalated externally"];
 const Worklist=({persona,data,onNav})=>{
   const [,bump]=useState(0);
   const [filter,setFilter]=useState("all");
+  const [closing,setClosing]=useState(null);        /* action id with the outcome form open */
+  const [oResult,setOResult]=useState("Fixed");
+  const [oNote,setONote]=useState("");
+  const [oImpact,setOImpact]=useState("");
   const mine=ACTION_STORE.filter(a=>a.persona===persona.id);
   const shown=mine.filter(a=>filter==="all"?true:a.status===filter);
   const counts={Open:0,"In progress":0,Done:0};mine.forEach(a=>counts[a.status]=(counts[a.status]||0)+1);
-  const cycle=(a)=>{a.status=STATUS_FLOW[a.status];persist("actions",ACTION_STORE);bump(x=>x+1)};
+  const cycle=(a)=>{
+    if(a.status==="In progress"){setClosing(a.id);setOResult("Fixed");setONote("");setOImpact("");return}  /* Done requires an outcome — that's the report-back */
+    a.status=STATUS_FLOW[a.status];
+    if(a.status==="Open")delete a.outcome;          /* reopened — clear stale remediation */
+    persist("actions",ACTION_STORE);bump(x=>x+1);
+  };
+  const closeWithOutcome=(a)=>{
+    a.status="Done";
+    a.outcome={result:oResult,note:oNote.trim(),impact:oImpact.trim()||null,closedAt:Date.now(),closedBy:"S. Okafor"};
+    persist("actions",ACTION_STORE);setClosing(null);bump(x=>x+1);
+  };
   const remove=(a)=>{const i=ACTION_STORE.indexOf(a);if(i>=0)ACTION_STORE.splice(i,1);persist("actions",ACTION_STORE);bump(x=>x+1)};
   const challenges=Object.entries(CHALLENGE_STORE).filter(([k])=>k.startsWith(persona.id+"::")).map(([,v])=>v);
+  const underReview=challenges.filter(c=>!c.verdict).length;
   return (
     <div style={{padding:26}}>
       <ScreenHeader title="✅ Action Worklist" sub={"Every finding that became work — created from any analysis with ➕ Action, tracked here to closure. Survives reloads; this is "+persona.name+"'s open book."}
@@ -3215,7 +3386,7 @@ const Worklist=({persona,data,onNav})=>{
         <StatCard icon="📥" label="Open" value={counts.Open} sub="awaiting an owner to start" color={counts.Open>0?C.warn:C.heading} delay={0}/>
         <StatCard icon="🔄" label="In Progress" value={counts["In progress"]} sub="being worked" delay={.05}/>
         <StatCard icon="✅" label="Done" value={counts.Done} sub="closed with evidence" color={C.success} delay={.1}/>
-        <StatCard icon="⚑" label="Open Challenges" value={challenges.length} sub="findings contested by analysts" color={challenges.length>0?"#B45309":C.heading} delay={.15}/>
+        <StatCard icon="⚑" label="Open Challenges" value={underReview} sub={challenges.length-underReview>0?(challenges.length-underReview)+" adjudicated by IC Council":"findings contested by analysts"} color={underReview>0?"#B45309":C.heading} delay={.15}/>
       </div>
       <SectionCard title="Actions" sub="Click a status chip to advance it — Open → In progress → Done"
         right={<div style={{display:"flex",gap:6}}>{["all","Open","In progress","Done"].map(f=>(
@@ -3229,17 +3400,41 @@ const Worklist=({persona,data,onNav})=>{
             </tr></thead>
             <tbody>
               {shown.map((a,i)=>(
-                <tr key={a.id+i} style={{borderBottom:`1px solid ${C.border}66`,opacity:a.status==="Done"?.6:1,animation:`fadeUp .25s ease-out ${i*.03}s both`}}>
+                <Fragment key={a.id+i}>
+                <tr style={{borderBottom:closing===a.id?"none":`1px solid ${C.border}66`,opacity:a.status==="Done"?.6:1,animation:`fadeUp .25s ease-out ${i*.03}s both`}}>
                   <td style={{padding:"9px 13px",fontWeight:700,color:C.primary}} className="mono">{a.id}</td>
-                  <td style={{padding:"9px 13px",fontWeight:600,color:C.heading,textDecoration:a.status==="Done"?"line-through":"none"}}>{a.title}</td>
+                  <td style={{padding:"9px 13px",fontWeight:600,color:C.heading}}>
+                    <span style={{textDecoration:a.status==="Done"?"line-through":"none"}}>{a.title}</span>
+                    {a.outcome&&<div style={{fontSize:10,color:C.success,fontWeight:600,marginTop:3}}>✓ {a.outcome.result} — {a.outcome.note}{a.outcome.impact?" · "+a.outcome.impact:""}</div>}
+                  </td>
                   <td style={{padding:"9px 13px",color:C.muted,fontSize:11}}>{a.src}</td>
                   <td style={{padding:"9px 13px",color:C.muted,fontSize:11}}>{(a.agent||"").replace(" Agent","")}</td>
                   <td style={{padding:"9px 13px"}}><span style={{display:"inline-flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,borderRadius:"50%",background:`linear-gradient(135deg,${C.primary},${C.heading})`,color:"#fff",fontSize:8,fontWeight:800,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>{a.owner.split(" ").map(w=>w[0]).join("").slice(0,2)}</span><span style={{fontSize:11,color:C.text}}>{a.owner}</span></span></td>
                   <td style={{padding:"9px 13px",color:C.muted,fontSize:11}}>{a.due}</td>
                   <td style={{padding:"9px 13px"}}><span style={{padding:"2px 10px",borderRadius:11,fontSize:9.5,fontWeight:800,color:PRIO_STYLE[a.prio].c,background:PRIO_STYLE[a.prio].bg}}>{a.prio.toUpperCase()}</span></td>
-                  <td style={{padding:"9px 13px"}}><span onClick={()=>cycle(a)} style={{cursor:"pointer"}} title="Click to advance"><Badge variant={STATUS_STYLE[a.status].v} small>{a.status.toUpperCase()} ↻</Badge></span></td>
+                  <td style={{padding:"9px 13px"}}><span onClick={()=>cycle(a)} style={{cursor:"pointer"}} title={a.status==="In progress"?"Click to close with an outcome":"Click to advance"}><Badge variant={STATUS_STYLE[a.status].v} small>{a.status.toUpperCase()} ↻</Badge></span></td>
                   <td style={{padding:"9px 13px"}}><span onClick={()=>remove(a)} style={{cursor:"pointer",color:C.light,fontSize:12}} title="Remove">✕</span></td>
                 </tr>
+                {closing===a.id&&(
+                  <tr style={{borderBottom:`1px solid ${C.border}66`}}><td colSpan={9} style={{padding:"0 13px 12px"}}>
+                    <div style={{padding:"11px 14px",borderRadius:10,background:"#F0FDF6",border:`1px solid ${C.success}55`,animation:"fadeUp .2s ease-out"}}>
+                      <div style={{fontSize:10,color:"#065F46",fontWeight:600,marginBottom:8}}>✅ Close with an outcome — this reports back to the platform: the source analysis gets a remediation note, and the closed loop is logged.</div>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:5,alignItems:"center",marginBottom:8}}>
+                        <span style={{fontSize:9,fontWeight:700,color:C.muted}}>RESULT</span>
+                        {OUTCOME_RESULTS.map(r=><span key={r} onClick={()=>setOResult(r)} style={{padding:"3px 10px",borderRadius:11,fontSize:9.5,fontWeight:700,cursor:"pointer",border:`1px solid ${oResult===r?C.success:C.border}`,background:oResult===r?C.successBg:"#FAFBFC",color:oResult===r?"#065F46":C.muted}}>{r}</span>)}
+                      </div>
+                      <div style={{display:"flex",gap:7}}>
+                        <input value={oNote} onChange={e=>setONote(e.target.value)} placeholder="What was done? (required — becomes the remediation note on the source analysis)"
+                          style={{flex:1,padding:"7px 11px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:11,outline:"none",fontFamily:"inherit"}}/>
+                        <input value={oImpact} onChange={e=>setOImpact(e.target.value)} placeholder="$ impact (opt.)"
+                          style={{width:110,padding:"7px 11px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:11,outline:"none",fontFamily:"inherit"}}/>
+                        <button disabled={!oNote.trim()} onClick={()=>closeWithOutcome(a)} style={{padding:"7px 14px",borderRadius:7,background:oNote.trim()?`linear-gradient(135deg,${C.success},#059669)`:"#E2E8F0",color:oNote.trim()?"#fff":C.light,fontWeight:700,fontSize:10.5}}>Close action</button>
+                        <button onClick={()=>setClosing(null)} style={{padding:"7px 12px",borderRadius:7,background:"#EDF2F7",color:C.muted,fontWeight:700,fontSize:10.5}}>Cancel</button>
+                      </div>
+                    </div>
+                  </td></tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -3257,8 +3452,12 @@ const Worklist=({persona,data,onNav})=>{
                   <td style={{padding:"9px 13px",fontWeight:700,color:C.heading}}>{c.title}</td>
                   <td style={{padding:"9px 13px",color:C.muted,fontSize:11}}>{c.agent.replace(" Agent","")}</td>
                   <td style={{padding:"9px 13px",color:C.text,fontSize:11}}>{c.by}</td>
-                  <td style={{padding:"9px 13px",color:C.muted,fontSize:11,fontStyle:"italic"}}>“{c.rationale}”</td>
-                  <td style={{padding:"9px 13px"}}><Badge variant="hitl" small>⚑ {c.status.toUpperCase()}</Badge></td>
+                  <td style={{padding:"9px 13px",color:C.muted,fontSize:11,fontStyle:"italic"}}>“{c.rationale}”{c.verdict&&<div style={{marginTop:4,color:c.verdict.outcome==="Overturned"?"#9A3412":C.muted,fontStyle:"normal",fontSize:10.5}}><strong>⚖ IC Council:</strong> {c.verdict.note}</div>}</td>
+                  <td style={{padding:"9px 13px"}}>
+                    {c.verdict
+                      ?<Badge variant={c.verdict.outcome==="Overturned"?"success":"neutral"} small>⚖ {c.verdict.outcome==="Overturned"?"OVERTURNED — WITHDRAWN":"UPHELD — STANDS"}</Badge>
+                      :<Badge variant="hitl" small>⚑ UNDER REVIEW</Badge>}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -3639,9 +3838,18 @@ const SCREENS={command:CommandCenter,health:HealthCheck,p4p:P4PLab,goals:GoalsFa
 function App(){
   const [personaId,setPersonaId]=useState("vertanis");
   const [view,setView]=useState("command");
+  const [tick,setTick]=useState(0);
   const persona=PERSONAS.find(p=>p.id===personaId);
   const data=getData(personaId);
   useEffect(()=>{ensureSeedActions(persona,data)},[personaId]);
+  /* close-the-loop sweep — lives here (App never remounts) so it survives screen remounts & persona switches */
+  useEffect(()=>{
+    const sweep=()=>{if(processDueWork(Date.now()))setTick(t=>t+1)};
+    sweep();
+    const iv=setInterval(sweep,3000);
+    document.addEventListener("visibilitychange",sweep);   /* hidden tabs throttle timers — catch up the moment we're visible */
+    return()=>{clearInterval(iv);document.removeEventListener("visibilitychange",sweep)};
+  },[]);
   const Screen=SCREENS[view]||CommandCenter;
   const pendingHitl=data.disputes.filter(d=>d.status==="needs-hitl").length;
   return (
@@ -3649,8 +3857,8 @@ function App(){
       <Sidebar view={view} onNav={setView} persona={persona} pendingHitl={pendingHitl} openActions={ACTION_STORE.filter(a=>a.persona===personaId&&a.status==="Open").length}/>
       <div style={{flex:1,overflow:"auto",minWidth:0}}>
         <div style={{minWidth:1060}}>
-          <TopBar crumbs={["iZO IC Platform",VIEW_LABELS[view]]} persona={persona} onSelectPersona={setPersonaId} onExport={()=>downloadExcel(persona,data)}/>
-          <Screen key={personaId+view} persona={persona} data={data} onNav={setView}/>
+          <TopBar crumbs={["iZO IC Platform",VIEW_LABELS[view]]} persona={persona} onSelectPersona={setPersonaId} onExport={()=>downloadExcel(persona,data)} onNav={setView}/>
+          <Screen key={personaId+view} persona={persona} data={data} onNav={setView} tick={tick}/>
         </div>
       </div>
     </div>
