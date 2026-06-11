@@ -66,11 +66,19 @@ The left sidebar organizes all screens into six groups:
 
 ---
 
-### 2.2 Action Worklist
+### 2.2 Actions & Next Best
 
-**What it is:** A personal task board tracking every intervention you've created from any screen in the platform.
+**What it is:** Two things in one screen — the platform's ranked recommendations for field leadership (Next Best Actions), and a personal task board tracking every intervention you've created from any screen.
 
-**Key elements:**
+**Next Best Actions (hero panel):**
+- The agent stack synthesizes live P4P, goal-fairness, SFE, and dispute signals into ~5–6 ranked recommendations per company, each with a named field-leadership owner (e.g., "Regional Director — West"), urgency, expected impact, AI confidence, talking points, and the exact affected territories (same rows Data Explorer shows)
+- **✓ Endorse** — puts the recommendation in the downloadable brief and creates a linked, tracked worklist action automatically. **↩ undo** reverses both (the linked action is removed if untouched)
+- **✎ edit points** — rewrite the talking points in your own words; your edits ship in the brief, not the AI's draft
+- **✕ dismiss** — remove with an optional reason; logged to the Governance audit trail; restorable
+- **🔎 evidence link** — every recommendation deep-links to the screen it was derived from
+- **📥 Field Brief (.xlsx)** — downloads endorsed recommendations as a 3-sheet leadership-ready workbook (Briefing Summary, Recommendations with talking points, Affected Territories). Disabled until you endorse at least one — *nothing reaches leadership without analyst review*
+
+**Action worklist:**
 - **KPI strip** — count of Open / In Progress / Done actions for the current company
 - **Action table** — sortable list with title, source screen, owner, due date, priority, and status
 - **Status chips** — click any status chip to advance it: Open → In Progress → Done → Open

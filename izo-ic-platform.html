@@ -1018,7 +1018,7 @@ const ScreenHeader=({title,sub,right})=>(
 const NAV=[
   {group:"OVERVIEW",items:[
     {id:"command",icon:"🛰️",label:"Command Center"},
-    {id:"worklist",icon:"✅",label:"Action Worklist"}]},
+    {id:"worklist",icon:"✅",label:"Actions & Next Best"}]},
   {group:"DIAGNOSE",items:[
     {id:"health",icon:"🩺",label:"IC Health Check"},
     {id:"p4p",icon:"🎯",label:"Pay-for-Performance Lab"},
@@ -1483,6 +1483,8 @@ const CommandCenter=({persona,data,onNav})=>{
       <ScreenHeader title={"🛰️ Command Center — "+persona.name}
         sub={persona.type+" · "+persona.reps+" "+persona.roleLabel.toLowerCase()+" · "+persona.products.join(", ")+" · "+persona.plan.freq+" "+persona.plan.archetype.replace(/([A-Z])/g," $1").toLowerCase()+" plan"}
         right={<div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {(()=>{const nbp=getNBAs(persona,data).filter(n=>{const s=nbaState(persona.id,n.id);return !s||s.status==="suggested"}).length;
+            return nbp>0&&<span onClick={()=>onNav("worklist")} style={{cursor:"pointer"}} title="Open Actions & Next Best"><Badge variant="warning">⚡ {nbp} next-best await{nbp===1?"s":""} review</Badge></span>})()}
           {loopsClosed>0&&<Badge variant="success">🔁 {loopsClosed} loop{loopsClosed>1?"s":""} closed</Badge>}
           <Badge variant={data.overall>=80?"success":data.overall>=60?"warning":"error"}>IC Health {data.overall}/100</Badge>
         </div>}/>
@@ -2744,7 +2746,9 @@ const Governance=({persona,data,onNav})=>{
   });
   const livePulse=Object.entries(_P["pulse-"+persona.id]||{}).map(([id,raw])=>{const d=decOf(raw);return {when:"Today (live)",agent:"Field Inquiry",what:"Dispute "+id+" — "+(d.d||"reviewed")+(d.note?" — “"+d.note+"”":""),who:"S. Okafor",hitl:true}});
   const liveModel=MODEL_STORE.log.map(e=>({when:"Today (live)",agent:"Model Hub",what:"Model routing change (platform-wide) — "+e.tier+": "+e.from+" → "+e.to,who:e.by,hitl:true}));
-  const trailAll=[...liveModel,...liveChallenges,...livePulse,...trail];
+  const liveNBA=Object.entries(NBA_STORE).filter(([k,v])=>k.startsWith(persona.id+"::")&&v.status!=="suggested").map(([,v])=>({when:"Today (live)",agent:(v.agent||"NBA").replace(" Agent",""),
+    what:v.status==="endorsed"?"Next-best action endorsed for field leadership: "+v.title:"Next-best action dismissed: "+v.title+(v.note?" — “"+v.note+"”":""),who:"S. Okafor",hitl:true}));
+  const trailAll=[...liveNBA,...liveModel,...liveChallenges,...livePulse,...trail];
   const filteredTrail=trailFilter==="all"?trailAll:trailAll.filter(t=>trailFilter==="hitl"?t.hitl:t.agent===trailFilter);
   return (
     <div style={{padding:26}}>
@@ -3537,6 +3541,199 @@ const ModelHub=({persona,data,onNav})=>{
 };
 /* ▓▓ END:SCREEN-MODELS ▓▓ */
 
+/* ▓▓ SECTION:NBA ▓▓ */
+/* Next Best Actions — the agent stack synthesizes existing findings (P4P, goals, SFE, disputes) into
+   ranked, field-leadership-ready recommendations. The analyst is the editorial gate: endorse (spawns a
+   linked worklist action), edit the talking points, or dismiss with a reason. Endorsed items export as
+   the Field Leadership Brief (.xlsx). Territory lists are filtered live from the same seeded rows every
+   other screen renders — the brief's numbers match Data Explorer exactly. */
+const NBA_STORE=_P.nba||{};                  /* personaId::nbaId → {status,title,agent,note?,points?,actId?,at} */
+const nbaState=(pid,id)=>NBA_STORE[pid+"::"+id]||null;
+const NBA_DUE={"Before payroll lock":"This week","This week":"This week","This cycle":"This cycle","Next cycle":"Next cycle"};
+const buildNBAs=(persona,data)=>{
+  const ps=data.ps,rows=data.rows,curve=data.curve,perQ=data.perQ;
+  const scale=ps.reps/100;                                       /* 100 modeled territories represent the full field */
+  const perLbl=ps.plan.freq==="Quarterly"?"qtr":ps.plan.freq==="Monthly"?"mo":"half-yr";
+  const fld$=(pct)=>pct/100*ps.plan.ti/perQ*scale;               /* % of TI → field-level $ for one payout period */
+  const conf=(id)=>Math.round(80+hashStr(persona.id+id)%16)/100;
+  const list=[];
+  /* ── rank 1 · story lead — each persona's headline finding, made field-actionable ── */
+  if(persona.id==="vertanis"){
+    const low=rows.filter(r=>r.baselineVol<3900);
+    const supp=low.reduce((s,r)=>s+Math.max(0,fld$(Math.max(0,curve(r.attainment+6.5))-Math.max(0,curve(r.attainment)))),0);
+    list.push({id:"lead",icon:"📐",title:"Restate goals for "+low.length+" low-baseline territories before next cycle",
+      agent:"Goal Setting Agent",view:"goals",audience:"VP Sales + Regional Directors",urgency:"This cycle",effort:"M",
+      impact:"≈"+fmt$(supp)+"/"+perLbl+" suppressed payout released",
+      why:"Attainment correlates "+data.goals.fairCorr.toFixed(2)+" with baseline volume — goals are systematically harder where baselines are low. These territories under-attain for reasons the reps don't control.",
+      terr:low,terrLabel:low.length+" low-baseline territories",
+      points:["Goal difficulty, not effort, explains the attainment gap here — coaching conversations should not treat these as performance problems",
+        "IC is preparing an opportunity-weighted goal restatement for review; hold rating and PIP decisions on this group until it lands",
+        "Expected effect: ≈"+fmt$(supp)+" per "+perLbl+" in released payout suppression and a measurably fairer attainment curve"]});
+  }
+  if(persona.id==="oncovia"){
+    list.push({id:"lead",icon:"⚖️",title:"Run a second-rater MBO calibration before next scoring window opens",
+      agent:"Goal Setting Agent",view:"goals",audience:"KAM Directors (all regions)",urgency:"This cycle",effort:"M",
+      impact:"Protects 60% of plan weight from inflation",
+      why:"92% of KAMs scored ≥95 on MBOs — scoring inflation is compressing the differentiation the hybrid plan was designed to create. Volume metrics still differentiate; MBO scores no longer do.",
+      terr:[],terrLabel:"applies to all "+ps.reps+" KAMs",
+      points:["MBO inflation is a manager-behavior problem, not a KAM problem — calibrate the raters, not the field",
+        "Second-rater review on a 20% sample is enough to reset the curve without re-scoring everyone",
+        "Left uncorrected, the plan drifts toward a flat 60% annuity and volume carries all real differentiation"]});
+  }
+  if(persona.id==="neurelis"){
+    const zero=rows.slice().sort((a,b)=>a.attainment-b.attainment).slice(0,data.launchStrip?data.launchStrip.zeroTerr:9);
+    list.push({id:"lead",icon:"🚀",title:"Activation blitz on "+zero.length+" zero-NBRx territories — launch week "+(data.launchStrip?data.launchStrip.weeks:9),
+      agent:"SFE Intelligence Agent",view:"sfe",audience:"Launch Leadership + Regional Directors",urgency:"This week",effort:"L",
+      impact:"87% → 95%+ territory activation",
+      why:"Nine weeks in, "+zero.length+" territories show zero NBRx activation while the launch ramps +12% WoW elsewhere. Low-opportunity territories can't ramp on the same goal curve.",
+      terr:zero,terrLabel:zero.length+" zero-activation territories",
+      points:["Diagnose before coaching — speaker-program access and payer mix explain most zero-activation territories, not effort",
+        "Deploy the launch SWAT (MSL + market access) to these territories this week; the window to fix launch trajectory is closing",
+        "The rank-based plan already protects budget — activation, not payout, is the lever to pull"]});
+  }
+  if(persona.id==="auralys"){
+    const near=rows.filter(r=>ps.plan.milestones.some(m=>r.attainment>=m.at-3&&r.attainment<m.at));
+    list.push({id:"lead",icon:"⛰️",title:"Milestone near-miss review for "+near.length+" Account Directors",
+      agent:"Plan Simulator Agent",view:"studio",audience:"VP Accounts + IC Council",urgency:"This cycle",effort:"M",
+      impact:"Cliff exposure on "+near.length+" of "+ps.reps+" ADs",
+      why:near.length+" ADs landed within 3 points below a payout milestone — on a cliff-shaped plan that is the difference between earning and missing a 25-30% tranche of TI.",
+      terr:near,terrLabel:near.length+" ADs within 3 pts of a milestone",
+      points:["Review each near-miss for timing artifacts — semi-annual measurement turns a two-week slip into a missed milestone",
+        "Where the account outcome landed days late, a documented discretionary adjustment beats a demotivated AD",
+        "Bring a ramp/interpolation design option to IC Council — Plan Studio has the cliff-smoothing scenario cached"]});
+  }
+  if(persona.id==="genovex"){
+    const bottom=rows.filter(r=>r.decile===10);
+    list.push({id:"lead",icon:"💰",title:"Bottom-decile coaching plans before the commission floor phases out",
+      agent:"Plan Simulator Agent",view:"studio",audience:"Portfolio GM Leadership",urgency:"This cycle",effort:"M",
+      impact:"≈$310K/yr unearned floor payments",
+      why:"The 35% commission floor pays the bottom decile regardless of margin contribution — ≈$310K/yr in unearned payments. Phasing it out without warning invites attrition of fixable performers.",
+      terr:bottom,terrLabel:bottom.length+" bottom-decile territories on the floor",
+      points:["Pair the floor phase-out announcement with 90-day coaching plans — give the bottom decile a path before removing the net",
+        "Several floor territories are portfolio-mix problems, not effort problems — reassignment may outperform coaching",
+        "Model the phase-out in Plan Studio: stepping 35% → 25% → 15% over two quarters costs less in attrition than a cliff removal"]});
+  }
+  /* ── rank 2 · overpaid territories before payroll lock (the distorted rows) ── */
+  const over=rows.filter(r=>r.quadrant==="overpaid");
+  if(over.length){
+    const excess=over.reduce((s,r)=>s+Math.max(0,fld$(r.payoutPct-Math.max(0,curve(r.attainment)))),0);
+    list.push({id:"overpaid",icon:"🎯",title:"Review "+over.length+" overpaid territories with DMs before payroll lock",
+      agent:"P4P Analyst Agent",view:"p4p",audience:"District Managers — affected districts",urgency:"Before payroll lock",effort:"S",
+      impact:"≈"+fmt$(excess)+"/"+perLbl+" paying ahead of performance",
+      why:"Payout rank diverges ≥18 positions above performance rank on these territories — legacy guarantees and windfall accounts are paying ahead of contribution.",
+      terr:over,terrLabel:over.length+" territories paying ahead of performance",
+      points:["Validate each case with the DM before the payroll feed locks — guarantee, windfall and genuine effort tell three different stories",
+        "Where a windfall is confirmed, the clawback conversation lands better delivered by the DM with the evidence pack than by a statement line",
+        "Unchecked, these payouts cost ≈"+fmt$(excess)+" per "+perLbl+" and erode top-performer trust in the plan"]});
+  }
+  /* ── rank 3 · underpaid high performers — retention risk while corrections process ── */
+  const under=rows.filter(r=>r.quadrant==="underpaid");
+  if(under.length){
+    list.push({id:"underpaid",icon:"🛡️",title:"Retention check-ins for "+under.length+" underpaid high performers",
+      agent:"P4P Analyst Agent",view:"p4p",audience:"Regional Directors — affected regions",urgency:"This week",effort:"S",
+      impact:"Regrettable-attrition risk on "+under.length+" territories",
+      why:"These territories rank high on performance but low on payout — mostly stale-quota artifacts. They are the field's flight risks while corrections process.",
+      terr:under,terrLabel:under.length+" territories underpaid vs performance rank",
+      points:["IC has root-caused most cases to quota baseline errors — corrections are queued; reps should hear that from leadership before the next statement",
+        "A 15-minute RD check-in now is cheaper than a counter-offer later — these are top-decile performers",
+        "Do not let the affected reps discover the issue from their own statement math"]});
+  }
+  /* ── rank 4 · weakest SFE region — same numbers the Territory & SFE heatmap shows ── */
+  const wk=data.sfe.weakRegion,wkAdh=(data.sfe.heat.find(h=>h.region===wk)||{vals:[data.sfe.kpi.adherence]}).vals[0];
+  const wkRows=rows.filter(r=>r.region===wk&&r.callPlanAdherence<data.sfe.kpi.adherence);
+  if(wkRows.length>=3){
+    list.push({id:"sfe-region",icon:"📞",title:"Call-plan reset in "+wk+" ("+wkAdh+"% adherence vs "+data.sfe.kpi.adherence+"% field)",
+      agent:"SFE Intelligence Agent",view:"sfe",audience:"Regional Director — "+wk,urgency:"This cycle",effort:"M",
+      impact:"+"+Math.max(4,data.sfe.kpi.adherence-wkAdh)+" pts adherence headroom",
+      why:wk+" trails the field on every effort metric in the region heatmap. "+wkRows.length+" territories sit below field-average call-plan adherence.",
+      terr:wkRows,terrLabel:wkRows.length+" below-average territories in "+wk,
+      points:["Re-anchor the "+wk+" call plan on Tier-A targets — effort is going to the wrong accounts, not missing entirely",
+        "Pair the bottom "+Math.min(5,wkRows.length)+" territories with in-region high performers for ride-alongs this cycle",
+        "Lifting adherence to field average is worth roughly "+Math.max(4,data.sfe.kpi.adherence-wkAdh)+" points of reach in "+wk]});
+  }
+  /* ── rank 5 · President's Club near-misses — recognition save ── */
+  if(data.club.nearMiss.length){
+    const nm=data.club.nearMiss;
+    list.push({id:"club",icon:"🏆",title:"Recognition save for "+nm.length+" President's Club near-misses",
+      agent:"P4P Analyst Agent",view:"p4p",audience:"VP Sales",urgency:"Next cycle",effort:"S",
+      impact:"Motivation retention on the cutline cohort",
+      why:data.club.insight,
+      terr:nm,terrLabel:nm.length+" "+ps.roleLabel.toLowerCase()+" within reach of the cutline",
+      points:["The gap between the last seat and first miss is noise-level — treat the near-miss cohort as Club-calibre in comms and development",
+        "Consider one growth-axis wildcard seat: it converts the cutline from a cliff into a race",
+        "A personal note from the VP to each near-miss costs nothing and is remembered all year"]});
+  }
+  /* ── rank 6 · uncovered white-space clusters ── */
+  const ws=data.sfe.whitespace.filter(w=>!w.covered);
+  if(ws.length>=2){
+    const opp=ws.reduce((s,w)=>s+w.opportunity,0);
+    list.push({id:"whitespace",icon:"🗺️",title:"Assign named coverage to "+ws.length+" white-space clusters (≈$"+opp.toFixed(1)+"M)",
+      agent:"Territory Alignment Agent",view:"sfe",audience:"Regional Directors — "+[...new Set(ws.map(w=>w.region))].join(", "),urgency:"Next cycle",effort:"M",
+      impact:"$"+opp.toFixed(1)+"M uncovered opportunity",
+      why:ws.length+" account clusters carry meaningful opportunity with no named owner: "+ws.map(w=>w.cluster+" ("+w.region+")").join(" · ")+".",
+      terr:[],terrLabel:ws.length+" uncovered clusters (account-level, not territory)",
+      points:["Each cluster needs one named owner before next cycle — shared coverage is no coverage",
+        "Start with the highest-opportunity cluster: "+ws.slice().sort((a,b)=>b.opportunity-a.opportunity)[0].cluster,
+        "Re-run the alignment scenario in Plan Studio before committing quota changes"]});
+  }
+  list.forEach((n,i)=>{n.rank=i+1;n.confidence=conf(n.id);n.due=NBA_DUE[n.urgency]||"This cycle"});
+  return list;
+};
+const _nbaCache={};
+const getNBAs=(persona,data)=>_nbaCache[persona.id]||(_nbaCache[persona.id]=buildNBAs(persona,data));
+/* ── Field Leadership Brief — endorsed recommendations only, leadership-ready workbook ── */
+const buildFieldBrief=(persona,data,nbas)=>{
+  const endorsed=nbas.filter(n=>(nbaState(persona.id,n.id)||{}).status==="endorsed");
+  if(!endorsed.length)return null;
+  const pts=(n)=>{const st=nbaState(persona.id,n.id);return (st&&st.points)||n.points};
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,xlsSheet([
+    ["FIELD LEADERSHIP BRIEF — "+persona.name],
+    [],
+    ["Prepared by","S. Okafor, IC Analyst — curated from iZO agent recommendations"],
+    ["Period",data.cycle.period],
+    ["Generated",new Date().toLocaleString()],
+    ["Endorsed",endorsed.length+" of "+nbas.length+" suggested recommendations"],
+    [],
+    ["#","Recommendation","Owner (field role)","Urgency","Expected impact","Effort","AI confidence","Linked action","Scope"],
+    ...endorsed.map(n=>{const st=nbaState(persona.id,n.id)||{};return [n.rank,n.title,n.audience,n.urgency,n.impact,n.effort,Math.round(n.confidence*100)+"%",st.actId||"—",n.terrLabel]}),
+    [],
+    ["Note","Synthesized by the iZO agent stack from live P4P, goal-fairness, SFE and dispute analyses; reviewed and endorsed by the IC analyst before export. Full evidence lineage available in-platform."],
+  ],[4,64,36,18,38,8,13,11,40]),"Briefing Summary");
+  XLSX.utils.book_append_sheet(wb,xlsSheet([
+    ["RECOMMENDATIONS — DETAIL"],
+    ...endorsed.flatMap(n=>{const st=nbaState(persona.id,n.id)||{};return [
+      [],
+      ["#"+n.rank+" — "+n.title],
+      ["Owner",n.audience],
+      ["Urgency",n.urgency],
+      ["Expected impact",n.impact],
+      ["Why now",n.why],
+      ["Source",n.agent+" · "+VIEW_LABELS[n.view]+" screen"],
+      ["Scope",n.terrLabel],
+      ...(st.actId?[["Linked worklist action",st.actId]]:[]),
+      ["Talking points",""],
+      ...pts(n).map((p,i)=>["  "+(i+1)+".",p]),
+    ]}),
+  ],[28,112]),"Recommendations");
+  XLSX.utils.book_append_sheet(wb,xlsSheet([
+    ["AFFECTED TERRITORIES — endorsed recommendations"],
+    [],
+    ["NBA #","Recommendation","Territory","Rep","Region","District","Attainment %","Payout % of TI","Calls","Call Plan Adherence %","Flags"],
+    ...endorsed.flatMap(n=>n.terr.length
+      ?n.terr.map(r=>[n.rank,n.title,r.id,r.rep,r.region,r.district,r.attainment,r.payoutPct,r.calls,r.callPlanAdherence,r.flags.join("; ")])
+      :[[n.rank,n.title,"—","—","—","—","","","","",n.terrLabel]]),
+  ],[7,50,10,17,13,13,13,14,7,21,20]),"Affected Territories");
+  return wb;
+};
+const downloadFieldBrief=(persona,data,nbas)=>{
+  if(!window.XLSX){alert("Excel engine is still loading — try again in a moment.");return}
+  const wb=buildFieldBrief(persona,data,nbas);
+  if(wb)XLSX.writeFile(wb,"iZO-Field-Brief-"+persona.name.replace(/\s+/g,"-")+"-"+data.cycle.period.replace(/\s+/g,"")+".xlsx");
+};
+window.__izoBuildFieldBrief=(pid)=>{const p=PERSONAS.find(x=>x.id===pid);const d=getData(pid);return buildFieldBrief(p,d,getNBAs(p,d))}; /* verification hook */
+/* ▓▓ END:NBA ▓▓ */
+
 /* ▓▓ SECTION:SCREEN-WORKLIST ▓▓ */
 /* A1 — findings become tracked work. Seeded baseline per persona; live items from ➕ Action anywhere. */
 const ensureSeedActions=(persona,data)=>{
@@ -3560,6 +3757,47 @@ const Worklist=({persona,data,onNav})=>{
   const [oResult,setOResult]=useState("Fixed");
   const [oNote,setONote]=useState("");
   const [oImpact,setOImpact]=useState("");
+  /* ── Next Best Actions — curation state ── */
+  const nbas=getNBAs(persona,data);
+  const [expanded,setExpanded]=useState(null);      /* nba id with the territory drawer open */
+  const [dismissing,setDismissing]=useState(null);  /* nba id with the dismiss-reason form open */
+  const [dNote,setDNote]=useState("");
+  const [editing,setEditing]=useState(null);        /* nba id with the talking-points editor open */
+  const [eText,setEText]=useState("");
+  const stOf=(n)=>nbaState(persona.id,n.id);
+  const effPoints=(n)=>{const st=stOf(n);return (st&&st.points)||n.points};
+  const endorsedN=nbas.filter(n=>(stOf(n)||{}).status==="endorsed").length;
+  const activeNbas=nbas.filter(n=>(stOf(n)||{}).status!=="dismissed");
+  const dismissedNbas=nbas.filter(n=>(stOf(n)||{}).status==="dismissed");
+  const endorse=(n)=>{
+    addAction({persona:persona.id,title:n.title,src:"Next Best Action #"+n.rank,agent:n.agent,owner:"S. Okafor",due:n.due,prio:n.rank<=2?"High":"Medium",srcId:"nba::"+persona.id+"::"+n.id});
+    const prev=stOf(n)||{};
+    NBA_STORE[persona.id+"::"+n.id]={status:"endorsed",title:n.title,agent:n.agent,points:prev.points,actId:ACTION_STORE[0].id,at:Date.now()};
+    persist("nba",NBA_STORE);bump(x=>x+1);
+  };
+  const undoEndorse=(n)=>{
+    const k=persona.id+"::"+n.id,st=NBA_STORE[k];
+    if(st&&st.actId){const a=ACTION_STORE.find(x=>x.id===st.actId);
+      if(a&&a.status==="Open"&&!a.outcome){ACTION_STORE.splice(ACTION_STORE.indexOf(a),1);persist("actions",ACTION_STORE)}}
+    if(st&&st.points)NBA_STORE[k]={status:"suggested",title:n.title,agent:n.agent,points:st.points};else delete NBA_STORE[k];
+    persist("nba",NBA_STORE);bump(x=>x+1);
+  };
+  const dismissNba=(n)=>{
+    const prev=stOf(n)||{};
+    NBA_STORE[persona.id+"::"+n.id]={status:"dismissed",title:n.title,agent:n.agent,points:prev.points,note:dNote.trim()||null,at:Date.now()};
+    persist("nba",NBA_STORE);setDismissing(null);setDNote("");bump(x=>x+1);
+  };
+  const restoreNba=(n)=>{
+    const k=persona.id+"::"+n.id,st=NBA_STORE[k];
+    if(st&&st.points)NBA_STORE[k]={status:"suggested",title:n.title,agent:n.agent,points:st.points};else delete NBA_STORE[k];
+    persist("nba",NBA_STORE);bump(x=>x+1);
+  };
+  const saveEdit=(n)=>{
+    const k=persona.id+"::"+n.id,cur=NBA_STORE[k]||{status:"suggested",title:n.title,agent:n.agent};
+    cur.points=eText.split("\n").map(s=>s.trim().replace(/^[-•\d.]+\s*/,"")).filter(Boolean).slice(0,5);
+    if(!cur.points.length)delete cur.points;
+    NBA_STORE[k]=cur;persist("nba",NBA_STORE);setEditing(null);bump(x=>x+1);
+  };
   const mine=ACTION_STORE.filter(a=>a.persona===persona.id);
   const shown=mine.filter(a=>filter==="all"?true:a.status===filter);
   const counts={Open:0,"In progress":0,Done:0};mine.forEach(a=>counts[a.status]=(counts[a.status]||0)+1);
@@ -3579,8 +3817,114 @@ const Worklist=({persona,data,onNav})=>{
   const underReview=challenges.filter(c=>!c.verdict).length;
   return (
     <div style={{padding:26}}>
-      <ScreenHeader title="✅ Action Worklist" sub={"Every finding that became work — created from any analysis with ➕ Action, tracked here to closure. Survives reloads; this is "+persona.name+"'s open book."}
+      <ScreenHeader title="✅ Actions & Next Best" sub={"What the platform recommends next for "+persona.name+"'s field leadership — and every finding that became tracked work. You are the editorial gate: endorse, refine or dismiss, then ship the brief."}
         right={<Badge variant={counts.Open>0?"warning":"success"}>{counts.Open} open · {counts["In progress"]} in progress</Badge>}/>
+      <SectionCard title="⚡ Next Best Actions — for field leadership"
+        sub="Synthesized by the agent stack from live P4P, goal, SFE and dispute signals. Endorse to include in the brief (creates a tracked action), edit the talking points, or dismiss with a reason."
+        right={<div style={{display:"flex",gap:9,alignItems:"center"}}>
+          <Badge variant={endorsedN>0?"success":"neutral"}>{endorsedN}/{nbas.length} endorsed</Badge>
+          <button disabled={endorsedN===0} onClick={()=>downloadFieldBrief(persona,data,nbas)}
+            title={endorsedN===0?"Endorse at least one recommendation to build the brief":"Download the endorsed recommendations as a leadership-ready workbook"}
+            style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:endorsedN>0?"linear-gradient(135deg,#107C41,#0E6B38)":"#E2E8F0",color:endorsedN>0?"#fff":C.light,fontWeight:700,fontSize:11,cursor:endorsedN>0?"pointer":"default",boxShadow:endorsedN>0?"0 3px 10px rgba(16,124,65,.3)":"none"}}>📥 Field Brief (.xlsx)</button>
+        </div>} pad={0} style={{marginBottom:18,border:"1.5px solid #BFDBF0",boxShadow:"0 4px 18px rgba(30,130,189,.08)"}}>
+        {activeNbas.map((n,i)=>{
+          const st=stOf(n),endorsed=st&&st.status==="endorsed";
+          return (
+          <div key={n.id} style={{padding:"13px 18px",borderBottom:`1px solid ${C.border}66`,borderLeft:endorsed?`3px solid ${C.success}`:"3px solid transparent",background:endorsed?"#F7FDF9":"transparent",animation:`fadeUp .25s ease-out ${i*.04}s both`}}>
+            <div style={{display:"flex",gap:13,alignItems:"flex-start"}}>
+              <div style={{width:30,height:30,borderRadius:9,flexShrink:0,background:endorsed?C.successBg:"linear-gradient(135deg,#E8F4FD,#F0F7FF)",border:`1.5px solid ${endorsed?C.success:"#BFDBF0"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:endorsed?"#065F46":C.primary}}>#{n.rank}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontSize:14}}>{n.icon}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:C.heading}}>{n.title}</span>
+                  <span style={{padding:"2px 9px",borderRadius:10,fontSize:9,fontWeight:700,background:"#F4F8FB",border:`1px solid ${C.border}`,color:C.heading}}>👤 {n.audience}</span>
+                  <span style={{padding:"2px 9px",borderRadius:10,fontSize:9,fontWeight:700,background:n.urgency==="Before payroll lock"||n.urgency==="This week"?"#FEF2F2":"#FFFBEB",color:n.urgency==="Before payroll lock"||n.urgency==="This week"?C.error:"#B45309"}}>⏱ {n.urgency}</span>
+                  <span style={{padding:"2px 9px",borderRadius:10,fontSize:9,fontWeight:700,background:C.primaryBg,color:C.primary}}>📈 {n.impact}</span>
+                </div>
+                <div style={{fontSize:11,color:C.muted,lineHeight:1.5,marginTop:4}}>{n.why}</div>
+                <div style={{marginTop:7,display:"grid",gap:3}}>
+                  {effPoints(n).map((p,j)=>(
+                    <div key={j} style={{fontSize:10.5,color:C.text,lineHeight:1.45,display:"flex",gap:6}}><span style={{color:C.primary,fontWeight:800,flexShrink:0}}>›</span><span>{p}</span></div>
+                  ))}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginTop:7,fontSize:9.5,color:C.light,flexWrap:"wrap"}}>
+                  <span>{n.agent.replace(" Agent","")} · confidence {Math.round(n.confidence*100)}%</span>
+                  <span onClick={()=>onNav(n.view)} style={{color:C.primary,fontWeight:700,cursor:"pointer"}}>🔎 evidence: {VIEW_LABELS[n.view]} →</span>
+                  {n.terr.length>0&&<span onClick={()=>setExpanded(expanded===n.id?null:n.id)} style={{color:C.heading,fontWeight:700,cursor:"pointer"}}>{n.terrLabel} {expanded===n.id?"▴":"▾"}</span>}
+                  {n.terr.length===0&&<span>{n.terrLabel}</span>}
+                  <span onClick={()=>{setEditing(editing===n.id?null:n.id);setEText(effPoints(n).join("\n"));setDismissing(null)}} style={{color:C.muted,fontWeight:700,cursor:"pointer"}}>✎ edit points{st&&st.points?" (edited)":""}</span>
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end",flexShrink:0}}>
+                {endorsed?(
+                  <Fragment>
+                    <span style={{padding:"4px 11px",borderRadius:11,fontSize:9.5,fontWeight:800,background:C.successBg,color:"#065F46",border:`1px solid ${C.success}55`}}>✓ ENDORSED — IN BRIEF</span>
+                    <span style={{fontSize:9,color:C.muted}} className="mono">→ {st.actId}</span>
+                    <span onClick={()=>undoEndorse(n)} style={{fontSize:9,color:C.light,cursor:"pointer",fontWeight:700}} title="Remove from brief (deletes the linked action if untouched)">↩ undo</span>
+                  </Fragment>
+                ):(
+                  <Fragment>
+                    <button onClick={()=>endorse(n)} style={{padding:"6px 13px",borderRadius:7,background:`linear-gradient(135deg,${C.success},#059669)`,color:"#fff",fontWeight:700,fontSize:10}}>✓ Endorse</button>
+                    <span onClick={()=>{setDismissing(dismissing===n.id?null:n.id);setDNote("");setEditing(null)}} style={{fontSize:9.5,color:C.light,cursor:"pointer",fontWeight:700}}>✕ dismiss</span>
+                  </Fragment>
+                )}
+              </div>
+            </div>
+            {expanded===n.id&&n.terr.length>0&&(
+              <div style={{marginTop:10,marginLeft:43,borderRadius:9,border:`1px solid ${C.border}`,overflow:"hidden",animation:"fadeUp .2s ease-out"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:10.5}}>
+                  <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>
+                    {["Territory","Rep","Region","District","Attainment %","Payout % TI","Flags"].map(h=><th key={h} style={{padding:"6px 11px",fontSize:8.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.5,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {n.terr.slice(0,8).map(r=>(
+                      <tr key={r.id} style={{borderBottom:`1px solid ${C.border}44`}}>
+                        <td style={{padding:"5px 11px",fontWeight:700,color:C.primary}} className="mono">{r.id}</td>
+                        <td style={{padding:"5px 11px",color:C.heading}}>{r.rep}</td>
+                        <td style={{padding:"5px 11px",color:C.muted}}>{r.region}</td>
+                        <td style={{padding:"5px 11px",color:C.muted}}>{r.district}</td>
+                        <td style={{padding:"5px 11px",color:C.text}} className="mono">{r.attainment}</td>
+                        <td style={{padding:"5px 11px",color:C.text}} className="mono">{r.payoutPct}</td>
+                        <td style={{padding:"5px 11px",color:C.warn,fontSize:9.5}}>{r.flags.join(", ")}</td>
+                      </tr>
+                    ))}
+                    {n.terr.length>8&&<tr><td colSpan={7} style={{padding:"6px 11px",fontSize:9.5,color:C.light,fontStyle:"italic"}}>+ {n.terr.length-8} more — full list ships in the brief's Affected Territories sheet</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {dismissing===n.id&&(
+              <div style={{marginTop:10,marginLeft:43,display:"flex",gap:7,animation:"fadeUp .2s ease-out"}}>
+                <input value={dNote} onChange={e=>setDNote(e.target.value)} placeholder="Why is this not right for leadership? (optional — logged to the audit trail)"
+                  style={{flex:1,padding:"7px 11px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:11,outline:"none",fontFamily:"inherit"}} autoFocus/>
+                <button onClick={()=>dismissNba(n)} style={{padding:"7px 14px",borderRadius:7,background:"#EDF2F7",color:C.heading,fontWeight:700,fontSize:10.5}}>Dismiss</button>
+                <button onClick={()=>setDismissing(null)} style={{padding:"7px 12px",borderRadius:7,background:"transparent",color:C.muted,fontWeight:700,fontSize:10.5}}>Cancel</button>
+              </div>
+            )}
+            {editing===n.id&&(
+              <div style={{marginTop:10,marginLeft:43,animation:"fadeUp .2s ease-out"}}>
+                <textarea value={eText} onChange={e=>setEText(e.target.value)} rows={4}
+                  style={{width:"100%",padding:"8px 11px",borderRadius:7,border:`1px solid ${C.primary}66`,fontSize:11,outline:"none",fontFamily:"inherit",lineHeight:1.5,resize:"vertical",boxSizing:"border-box"}}/>
+                <div style={{display:"flex",gap:7,marginTop:6,alignItems:"center"}}>
+                  <button onClick={()=>saveEdit(n)} style={{padding:"6px 14px",borderRadius:7,background:`linear-gradient(135deg,${C.primary},#1668A0)`,color:"#fff",fontWeight:700,fontSize:10.5}}>Save talking points</button>
+                  <button onClick={()=>setEditing(null)} style={{padding:"6px 12px",borderRadius:7,background:"#EDF2F7",color:C.muted,fontWeight:700,fontSize:10.5}}>Cancel</button>
+                  <span style={{fontSize:9.5,color:C.light}}>one point per line — your edits ship in the brief, not the AI's draft</span>
+                </div>
+              </div>
+            )}
+          </div>);
+        })}
+        {dismissedNbas.length>0&&(
+          <div style={{padding:"9px 18px",background:"#FAFBFC"}}>
+            {dismissedNbas.map(n=>{const st=stOf(n);return (
+              <div key={n.id} style={{display:"flex",alignItems:"center",gap:9,fontSize:10,color:C.light,padding:"3px 0"}}>
+                <span style={{textDecoration:"line-through"}}>#{n.rank} {n.title}</span>
+                {st.note&&<span style={{fontStyle:"italic"}}>— “{st.note}”</span>}
+                <span onClick={()=>restoreNba(n)} style={{color:C.primary,fontWeight:700,cursor:"pointer"}}>↩ restore</span>
+              </div>);})}
+          </div>
+        )}
+      </SectionCard>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:18}}>
         <StatCard icon="📥" label="Open" value={counts.Open} sub="awaiting an owner to start" color={counts.Open>0?C.warn:C.heading} delay={0}/>
         <StatCard icon="🔄" label="In Progress" value={counts["In progress"]} sub="being worked" delay={.05}/>

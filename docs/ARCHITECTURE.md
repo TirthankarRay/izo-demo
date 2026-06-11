@@ -1,7 +1,7 @@
 # iZO IC & SFE Intelligence Platform — Architecture Reference
 
 > **Audience:** Developers extending or maintaining the platform  
-> **File:** `izo-ic-platform.html` (~315KB)  
+> **File:** `izo-ic-platform.html` (~370KB)  
 > **Version:** June 2026
 
 ---
@@ -40,7 +40,7 @@ The HTML `<head>` loads all four CDN scripts before the babel block. SheetJS is 
 
 ## 3. File Structure
 
-The entire application is one file. Code is organized into 27 **sentinel-delimited sections**:
+The entire application is one file. Code is organized into 30 **sentinel-delimited sections**:
 
 ```
 /* ▓▓ SECTION:NAME ▓▓ */
@@ -77,7 +77,9 @@ Sentinels serve as navigational landmarks — jump to `SECTION:SCREEN-P4P` to fi
 | `SCREEN-GOVERN` | Governance & Compliance screen |
 | `SCREEN-TOKENS` | Token Usage screen |
 | `SCREEN-CONNECTORS` | Data Connectors screen |
-| `SCREEN-WORKLIST` | Action Worklist screen |
+| `SCREEN-MODELS` | Model Hub — foundation-model catalog, tier routing (`tierEff`), temperature paths |
+| `NBA` | Next Best Actions — `buildNBAs(persona,data)` generator, `NBA_STORE` curation state, `buildFieldBrief` (.xlsx) |
+| `SCREEN-WORKLIST` | Actions & Next Best screen (NBA hero panel + worklist + contested findings) |
 | `SCREEN-EXPLORER` | Data Explorer screen |
 | `EXPORT` | `buildWorkbook(persona, data)` → SheetJS workbook |
 | `APP` | Root `App` component + `ReactDOM.createRoot` mount |
@@ -450,7 +452,7 @@ node C:\Users\TirthankarRay\izo-verify\gen-excel.js
 | React + ReactDOM CDN | ~50KB (gzip) |
 | babel-standalone CDN | ~400KB (gzip) |
 | SheetJS CDN | ~400KB (gzip) |
-| **izo-ic-platform.html** | **~315KB** |
+| **izo-ic-platform.html** | **~370KB** |
 | Babel block (JSX source) | ~304KB |
 | Compiled output (in-browser) | ~900KB |
 

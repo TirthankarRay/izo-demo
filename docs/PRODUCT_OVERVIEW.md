@@ -33,12 +33,12 @@ A typical enterprise pharmaceutical company runs IC on a quarterly cycle. The pr
 
 ## Platform Capabilities
 
-### 14 Screens
+### 15 Screens
 
 | Screen | Group | Purpose |
 |---|---|---|
 | Command Center | OVERVIEW | Always-on IC dashboard: health score, cycle stage, top findings, KPI strip |
-| Action Worklist | OVERVIEW | Personal task board for all analyst interventions; contested findings table |
+| Actions & Next Best | OVERVIEW | AI-ranked Next Best Actions for field leadership (endorse / edit / dismiss → downloadable Field Brief) + personal task board + contested findings |
 | IC Health Check | DIAGNOSE | 8-dimension plan health scoring with findings and recommendations |
 | Pay-for-Performance Lab | DIAGNOSE | Spearman ρ, quadrant analysis, decile curve, Club cutline diagnostics |
 | Goal Setting & Fairness | DIAGNOSE | Bias correlations, attainment histogram, Monte Carlo attainability |
@@ -47,6 +47,7 @@ A typical enterprise pharmaceutical company runs IC on a quarterly cycle. The pr
 | Plan Design Studio | DESIGN | Live payout curve simulator with cost, ρ, and cap impact tiles |
 | Field Pulse & Disputes | EXECUTE | Dispute feed, HITL approval queue, auto-resolution theater |
 | Ask iZO Copilot | ASK iZO | Conversational IC Q&A with animated agent reasoning traces |
+| Model Hub | PLATFORM | Platform-wide foundation-model control plane: 13-model catalog, tier routing, temperature paths |
 | Token Usage | PLATFORM | Per-agent LLM cost metering by model tier and flow type |
 | Data Connectors | PLATFORM | Data source health, freshness, and manual upload zone |
 | Agent Registry | GOVERN | Full directory of all 11 agents: steps, tools, HITL config, recent reviews |
@@ -90,7 +91,8 @@ The platform is built around a closed-loop intervention model. Every analysis fi
 |---|---|
 | **🔬 How this was computed** | Opens a 5-stage pipeline trace (INPUTS → QUERY → COMPUTE → VALIDATE → NARRATE) showing the full AI reasoning chain |
 | **⚑ Challenge** | Formal override request with mandatory rationale; logged to Governance Audit Trail as a HITL event; card shows "⚑ Challenged — under review" |
-| **➕ Action** | Creates a worklist item with owner, due date, priority; lands on Action Worklist with orange indicator; survives page reload |
+| **➕ Action** | Creates a worklist item with owner, due date, priority; lands on Actions & Next Best with orange indicator; survives page reload |
+| **⚡ Endorse / dismiss NBA** | The platform proposes ranked Next Best Actions for field leadership; the analyst endorses (auto-creates a linked action), edits the talking points, or dismisses with a reason — only endorsed items reach the downloadable Field Leadership Brief |
 | **👍 / 👎** | Sentiment feedback with tag chips (e.g., "wrong data", "good catch") and free-text comment; feeds model improvement logging |
 
 This model means an analyst who disagrees with an AI conclusion has a structured path to contest it, not just a note in a spreadsheet.
@@ -101,10 +103,13 @@ This model means an analyst who disagrees with an AI conclusion has a structured
 
 Analyst interventions survive browser reloads and persona switches via localStorage (`izo-ic-state-v1`):
 
-- Worklist actions (all companies)
-- Challenges with rationale (all companies)  
+- Worklist actions and close-out outcomes (all companies)
+- Next Best Action curation — endorsements, dismissal reasons, edited talking points (all companies)
+- Challenges with rationale and IC Council verdicts (all companies)
 - Feedback with tags and comments (all companies)
+- Notification feed
 - HITL dispute decisions
+- Model Hub routing and temperature settings
 - Governance policy toggles
 
 The **↺ Reset demo** button in the header wipes all state (with a confirmation prompt) for a clean demo start.
@@ -131,6 +136,8 @@ The **Export Excel** button in the header generates an 11-sheet workbook in the 
 
 The Data Explorer also exports a filtered .xlsx containing only the rows matching active filters — useful for focused manager reviews or QBR prep.
 
+**Field Leadership Brief:** Actions & Next Best has its own download — a 3-sheet workbook (Briefing Summary, Recommendations with talking points, Affected Territories) containing only the recommendations the analyst has endorsed. It is the artifact an analyst walks into a leadership meeting with; territory rows match Data Explorer exactly.
+
 ---
 
 ## Technical Stack (for IT / Procurement)
@@ -144,7 +151,7 @@ The Data Explorer also exports a filtered .xlsx containing only the rows matchin
 | **External calls** | Google Fonts CDN only (for Inter and JetBrains Mono fonts) |
 | **Browser support** | Chrome 90+, Edge 90+, Firefox 90+, Safari 15+ |
 | **Offline capable** | Partial — works offline after first load (fonts may not load) |
-| **File size** | 315KB single file |
+| **File size** | ~370KB single file |
 | **Mobile** | Minimum viewport 1060px; optimized for laptop/desktop |
 
 ---
