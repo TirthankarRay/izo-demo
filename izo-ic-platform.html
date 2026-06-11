@@ -1103,6 +1103,137 @@ const TopBar=({crumbs,persona,onSelectPersona,onExport})=>(
 );
 /* ▓▓ END:SHELL ▓▓ */
 
+/* ▓▓ SECTION:OBSERVE ▓▓ */
+/* Feedback + observability layer — every analysis carries a "how this was computed" trace
+   and a feedback control that routes to the owning agent's eval set. Session-scoped store. */
+const FEEDBACK_TAGS=["Wrong data","Unclear","Not actionable","Missing context","Too conservative"];
+const FEEDBACK_STORE={};            /* personaId+analysisId → {vote,tag,comment,agent,title} */
+const STAGE_COLORS={INPUTS:"#8B5CF6",QUERY:"#1E82BD",COMPUTE:"#0D9488",VALIDATE:"#F59E0B",NARRATE:"#10B981"};
+const traceMeta=(persona,id,agentName)=>{
+  const rng=mulberry32(hashStr("trace-"+persona.id+"-"+id));
+  const agent=AGENTS.find(x=>x.name===agentName)||AGENTS[0];
+  const prof=TOKEN_PROFILE[agent.id]||[20,.2,.2];
+  return {agent,runId:"RUN-"+(31200+hashStr(persona.id+id)%900),
+    tier:prof[1]>.35?MODEL_TIERS[2]:prof[1]>.12?MODEL_TIERS[1]:MODEL_TIERS[0],
+    durData:(0.4+rng()*2.2).toFixed(1),durReason:(2+rng()*9).toFixed(0),
+    tokens:Math.round(prof[0]*1000*(.85+rng()*.3)),
+    confidence:Math.round(86+rng()*11)};
+};
+const TraceModal=({persona,spec,meta,onClose})=>{
+  const conns=buildConnectorData(persona).rows;
+  const srcFor=(d)=>conns.find(c=>c.datasets.includes(d));
+  const lineage=[...new Set(spec.datasets.map(d=>(srcFor(d)||{}).name).filter(Boolean))];
+  const steps=[
+    {ph:"INPUTS",icon:"📥",label:"Source datasets",body:(
+      <div style={{display:"grid",gap:5}}>
+        {spec.datasets.map(d=>{const c=srcFor(d);return (
+          <div key={d} style={{display:"flex",alignItems:"center",gap:8,fontSize:11}}>
+            <span className="mono" style={{padding:"2px 8px",borderRadius:5,background:"#F4F8FB",border:`1px solid ${C.border}`,color:C.heading,fontWeight:600}}>{d}</span>
+            {c&&<span style={{color:C.muted,fontSize:10}}>via {c.icon} {c.name} · synced {fmtSync(c.lastSyncMin)} · {c.status==="healthy"?"✓ fresh":"⚠ degraded feed"}</span>}
+          </div>);})}
+        <div style={{fontSize:10,color:C.light,marginTop:2}}>{spec.scope||persona.reps+" "+persona.roleLabel.toLowerCase()+" · 100 modeled territories · "+getData(persona.id).cycle.period}</div>
+      </div>)},
+    {ph:"QUERY",icon:"🧮",label:"Data pull & transforms",body:(
+      <pre className="mono" style={{margin:0,padding:"10px 13px",borderRadius:8,background:C.codeBg,color:C.codeText,fontSize:10.5,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{spec.query}</pre>)},
+    {ph:"COMPUTE",icon:"📐",label:spec.method,body:(
+      <div style={{fontSize:11.5,color:C.text,lineHeight:1.55}}>{spec.computeNote||"Deterministic statistical computation — the model never touches this step, so the numbers are exactly reproducible."}</div>)},
+    {ph:"VALIDATE",icon:"✅",label:"Cross-checks before anything is shown",body:(
+      <div style={{display:"grid",gap:4}}>{spec.checks.map(c=><div key={c} style={{fontSize:11,color:C.text,display:"flex",gap:6}}><span style={{color:C.success,fontWeight:800}}>✓</span>{c}</div>)}</div>)},
+    {ph:"NARRATE",icon:"🤖",label:"Narrative generation",body:(
+      <div style={{fontSize:11.5,color:C.text,lineHeight:1.55}}>Finding and recommendation drafted by <strong>{spec.agent}</strong> on <strong>{meta.tier.label}</strong> ({meta.tokens.toLocaleString()} tokens) — grounded only in the computed values above, then compliance-scanned for promissory language.</div>)},
+  ];
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(8,40,70,.5)",zIndex:130,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .2s ease-out"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.card,borderRadius:16,width:680,maxWidth:"94vw",maxHeight:"88vh",overflowY:"auto",boxShadow:"0 30px 80px rgba(8,40,70,.45)",animation:"fadeUp .25s ease-out"}}>
+        <div style={{padding:"15px 24px",borderBottom:`1px solid ${C.border}`,background:"linear-gradient(135deg,#E8F4FD,#F0F7FF)",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+          <div>
+            <div style={{fontWeight:800,fontSize:14.5,color:C.heading}}>🔬 Analysis trace — {spec.title}</div>
+            <div style={{fontSize:10.5,color:C.muted,marginTop:2}}>{spec.agent} · run <span className="mono">{meta.runId}</span> · logged to audit trail</div>
+          </div>
+          <button onClick={onClose} style={{padding:"5px 12px",borderRadius:6,background:"#EDF2F7",color:C.muted,fontWeight:700,fontSize:11}}>✕</button>
+        </div>
+        <div style={{display:"flex",gap:10,padding:"13px 24px",borderBottom:`1px solid ${C.border}`,flexWrap:"wrap",alignItems:"center"}}>
+          {[["Model tier",meta.tier.label],["Data pull",meta.durData+"s"],["Reasoning",meta.durReason+"s"],["Tokens",meta.tokens.toLocaleString()]].map(([l,v])=>(
+            <div key={l} style={{padding:"6px 13px",borderRadius:8,background:"#F6F9FC",border:`1px solid ${C.border}`}}><div style={{fontSize:8.5,color:C.muted,textTransform:"uppercase",letterSpacing:.5}}>{l}</div><div style={{fontSize:12,fontWeight:800,color:C.heading}} className="mono">{v}</div></div>
+          ))}
+          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
+            <Gauge value={meta.confidence} size={56} color={meta.confidence>=90?C.success:C.warn}/>
+            <div style={{fontSize:10,color:C.muted,lineHeight:1.4}}>confidence<br/><strong style={{color:C.heading}}>{meta.confidence}/100</strong></div>
+          </div>
+        </div>
+        <div style={{padding:"16px 24px"}}>
+          {steps.map((s,i)=>(
+            <div key={s.ph} style={{display:"flex",gap:13,animation:`fadeUp .3s ease-out ${i*.07}s both`}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+                <div style={{width:30,height:30,borderRadius:9,background:`${STAGE_COLORS[s.ph]}16`,border:`1.5px solid ${STAGE_COLORS[s.ph]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}>{s.icon}</div>
+                {i<steps.length-1&&<div style={{width:2,flex:1,background:`linear-gradient(${STAGE_COLORS[s.ph]},${STAGE_COLORS[steps[i+1].ph]})`,opacity:.4,margin:"3px 0"}}/>}
+              </div>
+              <div style={{flex:1,paddingBottom:i<steps.length-1?14:0,minWidth:0}}>
+                <div style={{fontSize:9.5,fontWeight:800,color:STAGE_COLORS[s.ph],letterSpacing:1}}>{s.ph}</div>
+                <div style={{fontSize:12.5,fontWeight:700,color:C.heading,margin:"2px 0 6px"}}>{s.label}</div>
+                {s.body}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{padding:"12px 24px",borderTop:`1px solid ${C.border}`,background:"#FAFBFC",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <span style={{fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1}}>Lineage</span>
+          {lineage.map((n,i)=>(<Fragment key={n}><span style={{fontSize:10.5,fontWeight:600,color:C.heading,padding:"3px 10px",borderRadius:11,background:C.card,border:`1px solid ${C.border}`}}>{n}</span>{i<lineage.length-1?<span style={{color:C.light}}>+</span>:<span style={{color:C.light}}>→</span>}</Fragment>))}
+          <span style={{fontSize:10.5,fontWeight:600,color:C.primary,padding:"3px 10px",borderRadius:11,background:C.primaryBg,border:`1px solid ${C.primary}44`}}>{spec.method}</span>
+          <span style={{color:C.light}}>→</span>
+          <span style={{fontSize:10.5,fontWeight:600,color:C.success,padding:"3px 10px",borderRadius:11,background:C.successBg,border:`1px solid ${C.success}44`}}>{spec.title}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+const AnalysisActions=({persona,id,agent,title,method,datasets=[],query="SELECT * FROM ic_payouts -- scoped to current period",checks=[],computeNote,scope,compact,noTrace})=>{
+  const key=persona.id+"::"+id;
+  const [fb,setFb]=useState(FEEDBACK_STORE[key]||null);
+  const [pop,setPop]=useState(false);
+  const [tag,setTag]=useState(null);
+  const [comment,setComment]=useState("");
+  const [trace,setTrace]=useState(false);
+  const meta=traceMeta(persona,id,agent);
+  const save=(rec)=>{FEEDBACK_STORE[key]={...rec,agent,title,persona:persona.name};setFb(FEEDBACK_STORE[key]);setPop(false)};
+  const fs=compact?9.5:10.5;
+  return (
+    <div style={{marginTop:compact?8:10,paddingTop:compact?7:9,borderTop:`1px dashed ${C.border}`}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        {!noTrace&&<span onClick={()=>setTrace(true)} style={{fontSize:fs,fontWeight:700,color:C.primary,cursor:"pointer"}}>🔬 How this was computed</span>}
+        {noTrace&&<span style={{fontSize:fs,color:C.light}}>Was this analysis useful?</span>}
+        <span style={{flex:1}}/>
+        {fb&&!pop?(
+          <span style={{fontSize:fs-0.5,fontWeight:700,color:fb.vote==="up"?C.success:"#EA580C",display:"flex",alignItems:"center",gap:5}}>
+            {fb.vote==="up"?"👍":"👎"} ✓ routed to {agent.replace(" Agent","")} eval set
+          </span>
+        ):(
+          <Fragment>
+            <button onClick={()=>save({vote:"up"})} title="Helpful — reinforce this analysis" style={{padding:compact?"3px 9px":"4px 11px",borderRadius:7,background:"#F6F9FC",border:`1px solid ${C.border}`,fontSize:fs+1}}>👍</button>
+            <button onClick={()=>{setPop(p=>!p)}} title="Flag an issue — routes to the agent eval set" style={{padding:compact?"3px 9px":"4px 11px",borderRadius:7,background:pop?"#FEF2F2":"#F6F9FC",border:`1px solid ${pop?C.error:C.border}`,fontSize:fs+1}}>👎</button>
+          </Fragment>
+        )}
+      </div>
+      {pop&&(
+        <div style={{marginTop:8,padding:"10px 12px",borderRadius:10,background:"#FDFDFE",border:`1px solid ${C.border}`,animation:"fadeUp .2s ease-out"}}>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
+            {FEEDBACK_TAGS.map(t=>(
+              <span key={t} onClick={()=>setTag(t)} style={{padding:"3px 10px",borderRadius:12,fontSize:9.5,fontWeight:700,cursor:"pointer",border:`1px solid ${tag===t?C.error:C.border}`,background:tag===t?"#FEF2F2":"#FAFBFC",color:tag===t?C.error:C.muted}}>{t}</span>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:7}}>
+            <input value={comment} onChange={e=>setComment(e.target.value)} placeholder="What's off? (optional — goes verbatim into the eval set)"
+              style={{flex:1,padding:"7px 11px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:11,outline:"none",fontFamily:"inherit"}}/>
+            <button onClick={()=>save({vote:"down",tag,comment})} style={{padding:"7px 14px",borderRadius:7,background:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:700,fontSize:10.5}}>Submit</button>
+          </div>
+        </div>
+      )}
+      {trace&&<TraceModal persona={persona} spec={{id,agent,title,method,datasets,query,checks,computeNote,scope}} meta={meta} onClose={()=>setTrace(false)}/>}
+    </div>
+  );
+};
+/* ▓▓ END:OBSERVE ▓▓ */
+
 /* ▓▓ SECTION:SCREEN-COMMAND ▓▓ */
 const SEV_STYLE={risk:{c:C.error,bg:C.errorBg,label:"RISK"},warn:{c:C.warn,bg:C.warnBg,label:"WATCH"},info:{c:C.info,bg:C.infoBg,label:"INFO"}};
 const CycleTimeline=({cycle})=>(
@@ -1323,6 +1454,12 @@ const HealthCheck=({persona,data,onNav})=>{
               </div>
             </div>
           )}
+          {phase==="done"&&(
+            <AnalysisActions persona={persona} id="health-narrative" agent="IC Health Check Agent" title="Executive health summary"
+              method="8-dimension composite + narrative synthesis" datasets={["ic_payouts","quota_master","calc_traces"]}
+              query={"SELECT dimension, score, evidence_ref\nFROM health_ledger WHERE period = current_period()\nORDER BY business_impact DESC"}
+              checks={["Every claim traces to a scored dimension below","Misallocation $ bounded with flag-registry rows only","Narrative regenerated — numbers held constant"]}/>
+          )}
         </SectionCard>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
@@ -1347,6 +1484,11 @@ const HealthCheck=({persona,data,onNav})=>{
                   <div style={{fontSize:10.5,color:C.muted,lineHeight:1.5,marginTop:8,flex:1}}>{txt.finding}</div>
                   <div style={{fontSize:10.5,color:C.heading,lineHeight:1.45,marginTop:7,padding:"7px 10px",background:"#F4F8FB",borderRadius:7,borderLeft:`3px solid ${col}`}}><strong>Rec:</strong> {txt.rec}</div>
                   <div onClick={()=>onNav(dim.link)} style={{fontSize:10.5,color:C.primary,fontWeight:700,marginTop:9,cursor:"pointer"}}>Open {VIEW_LABELS[dim.link]} →</div>
+                  <AnalysisActions compact persona={persona} id={"health-"+dim.id} agent="IC Health Check Agent" title={dim.label}
+                    method={{p4p:"Spearman ρ on perf vs payout ranks",dist:"Payout distribution vs design envelope",curve:"Curve-shape kink scan",diff:"P90:P50 payout spread",fair:"Pearson r vs baseline / size / tenure",budget:"Spend projection vs budget",cmplx:"Plan parameter census",comp:"Shadow-recalc parity"}[dim.id]}
+                    datasets={{fair:["quota_master","rx_panel"],budget:["ic_payouts","ic_budget"],comp:["calc_traces","statements"],curve:["rate_tables","ic_payouts"]}[dim.id]||["ic_payouts","quota_master"]}
+                    query={"SELECT terr_id, attainment, payout_pct\nFROM ic_payouts JOIN quota_master USING (terr_id)\nWHERE period = current_period()  -- dimension: "+dim.label}
+                    checks={["Re-scored against prior period (drift check)","Outlier rows cross-referenced with flag registry","Score reproduced on shadow data rail"]}/>
                 </Fragment>
               )}
             </div>
@@ -1382,6 +1524,10 @@ const P4PLab=({persona,data,onNav})=>{
       <div style={{display:"grid",gridTemplateColumns:"1.55fr 1fr",gap:18,marginBottom:18}}>
         <SectionCard title="Performance Rank vs Payout Rank" sub="Each dot = one territory · diagonal = perfect alignment · shaded bands = misalignment zones" pad={14}>
           <ScatterPlot pts={pts} w={620} h={330} diagonal quadrants xDom={[0,100]} yDom={[0,100]} xLabel="Performance percentile →" yLabel="Payout percentile →"/>
+          <AnalysisActions persona={persona} id="p4p-quadrant" agent="P4P Analyst Agent" title="Rank alignment quadrants"
+            method="Spearman ρ + rank-gap banding (±18 positions)" datasets={["ic_payouts","quota_master","calc_traces"]}
+            query={"WITH ranks AS (\n  SELECT terr_id,\n    RANK() OVER (ORDER BY attainment DESC) AS perf_rank,\n    RANK() OVER (ORDER BY payout_pct DESC) AS payout_rank\n  FROM ic_payouts WHERE period = current_period())\nSELECT *, payout_rank - perf_rank AS gap FROM ranks"}
+            checks={["Tie handling verified on rank assignment","Flagged rows matched to Varicent calc traces","ρ reproduced excluding distorted rows (sensitivity ±0.03)"]}/>
         </SectionCard>
         <div style={{display:"grid",gap:14,alignContent:"start"}}>
           <SectionCard title="Spearman Verdict" pad={16}>
@@ -1434,6 +1580,10 @@ const P4PLab=({persona,data,onNav})=>{
       <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:18}}>
         <SectionCard title="Average Payout by Performance Decile" sub="D1 = top performers. Bars should fall monotonically — a rise is a curve kink the Plan Simulator should fix" pad={14}>
           <BarChart data={deciles} w={580} h={250} vFmt={v=>v+"%"} flagLabel="⚑ kink"/>
+          <AnalysisActions compact persona={persona} id="p4p-deciles" agent="P4P Analyst Agent" title="Decile payout curve"
+            method="Decile means + monotonicity scan" datasets={["ic_payouts"]}
+            query={"SELECT NTILE(10) OVER (ORDER BY perf_rank) AS decile,\n  AVG(payout_pct) AS avg_payout\nFROM ic_payouts GROUP BY 1 ORDER BY 1"}
+            checks={["Monotonic decrease expected D1→D10","Kinks re-tested net of capped rows"]}/>
         </SectionCard>
         <SectionCard title="🏆 President's Club" sub={"Top "+club.cutRank+" qualify · "+persona.plan.freq.toLowerCase()+" standings"} pad={14}>
           <div style={{maxHeight:178,overflowY:"auto",marginBottom:10}}>
@@ -1457,6 +1607,10 @@ const P4PLab=({persona,data,onNav})=>{
           <div style={{marginTop:10,padding:"10px 13px",borderRadius:9,background:C.infoBg,border:`1px solid ${C.primary}33`,fontSize:11,color:C.heading,lineHeight:1.55}}>
             <strong>💡 Near-miss insight:</strong> {club.insight}
           </div>
+          <AnalysisActions compact persona={persona} id="p4p-club" agent="P4P Analyst Agent" title="President's Club cutline"
+            method="Top-N ranking + near-miss scan" datasets={["ic_payouts","quota_master"]}
+            query={"SELECT rep, attainment FROM ic_payouts\nORDER BY perf_rank LIMIT "+club.cutRank+"\n-- + near-miss window (next 4) on growth axis"}
+            checks={["Cutline ties resolved per plan doc §4.2","Growth-axis alternate ranking computed"]}/>
         </SectionCard>
       </div>
     </div>
@@ -1511,6 +1665,10 @@ const GoalsFairness=({persona,data,onNav})=>{
             markers={[{x:persona.plan.threshold||60,label:"THRESHOLD",color:C.warn},{x:100,label:"GOAL",color:"#64748B"}]}
             highlight={persona.bias!=="none"?(b)=>b.x1<=92:null}/>
           {persona.bias!=="none"&&<div style={{fontSize:10.5,color:C.warn,fontWeight:600,marginTop:6}}>⚠ Amber bars: the sub-92% mass is dominated by {persona.bias==="lowBaseline"?"low-baseline":"low-opportunity"} territories — that's a goal problem, not a talent problem.</div>}
+          <AnalysisActions persona={persona} id="goals-dist" agent="Goal Setting Agent" title="Attainment distribution vs design"
+            method={"Histogram vs N(100, "+Math.round(persona.sigma*100)+") design envelope"} datasets={["quota_master","ic_payouts"]}
+            query={"SELECT FLOOR(attainment/5)*5 AS bin, COUNT(*) AS territories\nFROM ic_payouts WHERE period = current_period()\nGROUP BY 1 ORDER BY 1"}
+            checks={["σ compared against plan design intent","Sub-92% mass decomposed by baseline cohort","Bell overlay uses design parameters, not fitted ones"]}/>
         </SectionCard>
         <div style={{display:"grid",gap:12,alignContent:"start"}}>
           <div style={{fontSize:10.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1.2,padding:"2px 2px 0"}}>Bias detectors — attainment correlated against…</div>
@@ -1520,6 +1678,12 @@ const GoalsFairness=({persona,data,onNav})=>{
             desc={Math.abs(data.goals.sizeCorr)>=.3?"Big territories attain differently than small ones — size normalization is off.":"No size effect — large and small territories attain alike."}/>
           <BiasCard title="Rep Tenure" icon="🎓" r={data.goals.tenCorr} delay={.16}
             desc={Math.abs(data.goals.tenCorr)>=.3?"Tenure predicts attainment — goals may be protecting veterans.":"New hires and veterans face equally achievable goals."}/>
+          <div style={{background:C.card,borderRadius:11,border:`1px solid ${C.border}`,padding:"2px 14px 12px"}}>
+            <AnalysisActions compact persona={persona} id="goals-bias" agent="Goal Setting Agent" title="Goal bias detectors"
+              method="Pearson r per attribute + cohort gap test" datasets={["quota_master","rx_panel","roster"]}
+              query={"SELECT corr(attainment, baseline_vol) AS r_baseline,\n  corr(attainment, quota) AS r_size,\n  corr(attainment, tenure_yrs) AS r_tenure\nFROM territory_period"}
+              checks={["Correlations re-run net of flagged rows","Cohort minimums enforced (n ≥ 20)","Opportunity index used as control variable"]}/>
+          </div>
         </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:18}}>
@@ -1555,6 +1719,10 @@ const GoalsFairness=({persona,data,onNav})=>{
               <div style={{fontSize:10.5,color:C.muted,marginTop:8,lineHeight:1.5}}>
                 {mc.pTarget<.35?"⚠ Fewer than 35% of scenarios reach goal — the field will read these goals as unwinnable.":mc.pTarget>.7?"⚠ Goals are too easy — "+Math.round(mc.pTarget*100)+"% of scenarios clear target, which overpays the middle.":"✓ Goal difficulty sits in the motivational sweet spot (40–65% of scenarios reach target)."} Mean simulated payout: {Math.round(mc.meanPayout)}% of TI.
               </div>
+              <AnalysisActions compact persona={persona} id="goals-mc" agent="Goal Setting Agent" title="Monte Carlo attainability"
+                method={"500 draws from N(100, "+Math.round(persona.sigma*100)+"²) through the payout curve"} datasets={["quota_master","rate_tables"]}
+                query={"-- simulation engine, not SQL:\nfor i in 1..500:\n  draw[i] ~ Normal(100, "+Math.round(persona.sigma*100)+"²)\n  payout[i] = curve_"+persona.plan.archetype+"(draw[i])"}
+                checks={["Seeded RNG — rerun reproduces identical bands","Curve matches Varicent rate table v2.4","Tail scenarios sanity-checked vs worst historical period"]}/>
             </Fragment>
           )}
         </SectionCard>
@@ -1666,6 +1834,10 @@ const PlanStudio=({persona,data,onNav})=>{
         </SectionCard>
         <SectionCard title="Payout Curve — Proposed vs Current" sub={"Shaded underlay = where "+persona.name+"'s field actually lands on attainment"+(scen.shock||scen.stretch?" (scenario-shifted)":"")} pad={14}>
           <CurveBuilder plan={effPlan} base={persona.plan} hist={data.goals.hist} w={660} h={318}/>
+          <AnalysisActions compact persona={persona} id="studio-impact" agent="Plan Simulator Agent" title="Plan scenario impact"
+            method="Field re-pricing through the candidate curve" datasets={["ic_payouts","rate_tables","ic_budget"]}
+            query={"-- scenario engine:\napply curve(threshold, accel, excellence, cap, TI)\n  to all 100 territory attainments\nrecompute cost · ρ · %capped · %below vs current plan"}
+            checks={["Cost reconciled against SAP budget line","ρ recomputed on the identical attainment sample","Cap census verified at curve discontinuities"]}/>
         </SectionCard>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
@@ -1736,10 +1908,18 @@ const TerritorySFE=({persona,data,onNav})=>{
         <SectionCard title="Region × Metric Heatmap" sub="Red-ringed cells = weakest quintile — one region is consistently soft" pad={14}>
           <Heatmap rows={s.heat} cols={s.metrics.map(m=>m.split(" ")[0])} w={540} h={224}/>
           <div style={{fontSize:10.5,color:C.muted,marginTop:8}}>⚠ <strong>{s.weakRegion}</strong> trails on every metric. SFE Agent root-cause: 2 open territories + workload imbalance — not a coaching problem.</div>
+          <AnalysisActions compact persona={persona} id="sfe-heat" agent="SFE / Call Plan Agent" title="Region × metric heatmap"
+            method="Regional means vs field benchmarks + weak-quintile flag" datasets={["calls","hcp_interactions","sfe_activity"]}
+            query={"SELECT region, AVG(adherence), AVG(reach),\n  AVG(freq), AVG(tier_a_share)\nFROM sfe_activity GROUP BY region"}
+            checks={["Open territories excluded from regional means","Weak-quintile threshold applied per metric","Root cause cross-checked with Veeva Align rosters"]}/>
         </SectionCard>
         <SectionCard title="Targeting Effectiveness by HCP Value Decile" sub="Share of HCPs receiving calls — called vs uncalled, D1 = highest value" pad={14}>
           <BarChart grouped={targetGrouped} w={540} h={236} vFmt={v=>v+"%"}/>
           <div style={{fontSize:10.5,color:C.muted,marginTop:6}}>{s.targeting[0].uncalled>20?"⚠ "+s.targeting[0].uncalled+"% of decile-1 HCPs are getting no calls — the single biggest free lift available.":"✓ Top-decile coverage is strong; effort decays correctly with value."}</div>
+          <AnalysisActions compact persona={persona} id="sfe-target" agent="SFE / Call Plan Agent" title="Targeting effectiveness"
+            method="Called vs uncalled share by HCP value decile" datasets={["rx_panel","calls","hcp_universe"]}
+            query={"SELECT hcp_decile, called_flag, COUNT(*)\nFROM hcp_universe LEFT JOIN calls USING (hcp_id)\nGROUP BY 1, 2"}
+            checks={["HCP deciles refreshed with latest IQVIA panel","No-see HCPs excluded from the uncalled denominator"]}/>
         </SectionCard>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1.35fr 1fr",gap:18}}>
@@ -1908,6 +2088,7 @@ const FieldPulse=({persona,data,onNav})=>{
                 onDecide={(d)=>setDecisions(p=>({...p,[cur.id]:d}))}/>
             )}
             {decisions[cur.id]&&<div style={{textAlign:"center",padding:"8px 0"}}><Badge variant={decisions[cur.id]==="Approved"?"success":decisions[cur.id]==="Denied"?"error":"warning"}>👤 {decisions[cur.id]} — logged to audit trail</Badge></div>}
+            <AnalysisActions compact noTrace persona={persona} id={"dispute-"+cur.id} agent="Field Inquiry Agent" title={"Triage "+cur.id+" — "+cur.type}/>
           </SectionCard>
         )}
       </div>
@@ -2033,6 +2214,11 @@ const AiMessage=({script,data,persona,onFollowup,live})=>{
               <div key={f} onClick={()=>onFollowup(f)} style={{padding:"6px 13px",borderRadius:15,fontSize:11,fontWeight:600,cursor:"pointer",border:`1px solid ${C.primary}44`,background:C.primaryBg,color:C.primary}}>{f}</div>
             ))}
           </div>
+        )}
+        {stage==="done"&&(
+          <AnalysisActions compact noTrace persona={persona} id={"copilot-"+script.id}
+            agent={({spike:"P4P Analyst Agent",overpaid:"P4P Analyst Agent",bias:"Goal Setting Agent",cap:"Plan Simulator Agent",comms:"IC Communications Agent",launch:"Launch Readiness Agent"})[script.id]||"IC Health Check Agent"}
+            title={"Copilot: "+(script.prompt||"free-form answer")}/>
         )}
       </div>
     </div>
@@ -2342,7 +2528,7 @@ const Governance=({persona,data,onNav})=>{
     <div style={{padding:26}}>
       <ScreenHeader title="🛡️ Governance & Compliance" sub={"Every payout, goal and agent decision at "+persona.name+" is evidenced, audited and regulator-ready — by construction, not by quarterly scramble."}
         right={<Badge variant="success">99.97% shadow parity</Badge>}/>
-      <TabBar tabs={[{id:"fairness",icon:"⚖️",label:"Fairness Audit"},{id:"audit",icon:"🧮",label:"Payout Audit"},{id:"trail",icon:"📜",label:"Audit Trail"},{id:"models",icon:"🧠",label:"Model Cards & HITL Policy"}]} active={tab} onChange={setTab}/>
+      <TabBar tabs={[{id:"fairness",icon:"⚖️",label:"Fairness Audit"},{id:"audit",icon:"🧮",label:"Payout Audit"},{id:"trail",icon:"📜",label:"Audit Trail"},{id:"models",icon:"🧠",label:"Model Cards & HITL Policy"},{id:"observe",icon:"🔬",label:"Observability & Feedback"}]} active={tab} onChange={setTab}/>
       {tab==="fairness"&&(
         <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:18,animation:"fadeUp .3s ease-out"}}>
           <SectionCard title="Disparate-Impact Screen — Payout Rate by Cohort" sub="Indexed to reference group = 100. Any cohort below the 80% line fails the four-fifths rule." pad={14}>
@@ -2394,6 +2580,12 @@ const Governance=({persona,data,onNav})=>{
             </table>
             <div style={{padding:"12px 18px",borderTop:`1px solid ${C.border}`,fontSize:11,color:C.muted,background:"#FAFBFC"}}>
               🧮 <strong>Payout Auditor:</strong> both discrepancies are reproduced, root-caused, and held from the payroll feed. Fix + recalc queued behind controller approval — nothing ships unbalanced.
+            </div>
+            <div style={{padding:"0 18px 12px"}}>
+              <AnalysisActions compact persona={persona} id="gov-parity" agent="Payout Auditor Agent" title="Shadow-recalc parity"
+                method="Independent recalculation + bps-level diff" datasets={["calc_traces","statements","rate_tables"]}
+                query={"SELECT region,\n  MAX(ABS(shadow_amt - varicent_amt)/varicent_amt)*10000 AS max_bps\nFROM shadow_calc JOIN statements USING (stmt_id)\nGROUP BY region"}
+                checks={["Input snapshots hash-verified (tamper evidence)","Both deltas reproduced twice on clean reruns","Payroll feed blocked pending controller sign-off"]}/>
             </div>
           </SectionCard>
         </div>
@@ -2470,6 +2662,102 @@ const Governance=({persona,data,onNav})=>{
           </div>
         </div>
       )}
+      {tab==="observe"&&(()=>{
+        const og=mulberry32(hashStr("obs-"+persona.id));
+        const reg=[["Executive health summary","IC Health Check Agent"],["Rank alignment quadrants","P4P Analyst Agent"],["Monte Carlo attainability","Goal Setting Agent"],["Shadow-recalc parity","Payout Auditor Agent"],["Targeting effectiveness","SFE / Call Plan Agent"],["Plan scenario — cap 250%","Plan Simulator Agent"],["Dispute triage DSP-1041","Field Inquiry Agent"],["80%-rule cohort screen","Fairness & Compliance Agent"],["Decile payout curve","P4P Analyst Agent"],["Workload rebalance proposal","Territory Alignment Agent"]]
+          .map(([t,ag],i)=>({t,ag,m:traceMeta(persona,"reg-"+i,ag),fb:og()>.55?(og()>.25?"up":"down"):null}));
+        const fbStats=AGENTS.map(a=>({a,n:Math.round(8+og()*46),pos:Math.min(.97,.68+og()*.27)})).sort((x,y)=>y.n-x.n).slice(0,6);
+        const session=Object.entries(FEEDBACK_STORE).filter(([k])=>k.startsWith(persona.id+"::")).map(([,v])=>v);
+        const baseN=fbStats.reduce((s,x)=>s+x.n,0);
+        const posPct=Math.round(fbStats.reduce((s,x)=>s+x.n*x.pos,0)/Math.max(1,baseN)*100);
+        return (
+          <div style={{animation:"fadeUp .3s ease-out"}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:14,marginBottom:18}}>
+              <StatCard icon="🔬" label="Analysis Runs Logged" value={(1100+hashStr(persona.id)%500).toLocaleString()} sub="this period · all traced" delay={0}/>
+              <StatCard icon="🧾" label="Trace Coverage" value="100%" sub="inputs → query → compute → narrative" color={C.success} delay={.05}/>
+              <StatCard icon="🎯" label="Avg Confidence" value={Math.round(reg.reduce((s,r)=>s+r.m.confidence,0)/reg.length)+"/100"} sub="self-reported, eval-calibrated" delay={.1}/>
+              <StatCard icon="💬" label="Feedback Received" value={baseN+session.length} sub={session.length+" from this session"} delay={.15}/>
+              <StatCard icon="👍" label="Rated Helpful" value={fmtPct(posPct,0)} sub="target ≥ 85%" good={posPct>=85} color={posPct>=85?C.heading:C.warn} delay={.2}/>
+            </div>
+            <div style={{background:`linear-gradient(135deg,${C.sidebar},${C.sidebarDark})`,borderRadius:14,padding:"16px 26px",marginBottom:18,display:"flex",alignItems:"center",justifyContent:"space-between",gap:0}}>
+              {[["👍👎","USER FEEDBACK","on every analysis"],["🧪","LABELED EVAL SET","tagged + verbatim comments"],["🌙","NIGHTLY EVALS","regression + drift gates"],["🚀","AGENT RELEASE","v3.2 → v3.3-rc in canary"]].map(([ic,t,s],i)=>(
+                <Fragment key={t}>
+                  <div style={{textAlign:"center",minWidth:130}}>
+                    <div style={{fontSize:20}}>{ic}</div>
+                    <div style={{fontSize:10,fontWeight:800,color:"#7DD3FC",letterSpacing:1,marginTop:3}}>{t}</div>
+                    <div style={{fontSize:9.5,color:"#7BA3C9"}}>{s}</div>
+                  </div>
+                  {i<3&&<div style={{flex:1,height:2,background:"linear-gradient(90deg,#1E82BD,#3A9BD5)",margin:"0 12px",position:"relative",overflow:"hidden",maxWidth:110}}>
+                    <div style={{position:"absolute",inset:0,background:"rgba(255,255,255,.55)",animation:`flowPulse 2s ease-in-out ${i*.4}s infinite`}}/>
+                  </div>}
+                </Fragment>
+              ))}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1.45fr 1fr",gap:18}}>
+              <SectionCard title="Analysis Run Registry" sub="Every analysis run is traced end-to-end — click 🔬 on any card in the app to see its full pipeline" pad={0}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+                  <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>
+                    {["Run","Analysis","Agent","Tier","Tokens","Confidence","Feedback"].map(h=><th key={h} style={{padding:"9px 13px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.6,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {reg.map((r,i)=>(
+                      <tr key={i} style={{borderBottom:`1px solid ${C.border}66`,animation:`fadeUp .25s ease-out ${i*.03}s both`}}>
+                        <td style={{padding:"8px 13px",fontWeight:700,color:C.primary}} className="mono">{r.m.runId}</td>
+                        <td style={{padding:"8px 13px",fontWeight:600,color:C.heading,fontSize:11}}>{r.t}</td>
+                        <td style={{padding:"8px 13px",color:C.muted,fontSize:11}}>{r.ag.replace(" Agent","")}</td>
+                        <td style={{padding:"8px 13px"}}><span style={{padding:"2px 8px",borderRadius:9,fontSize:9,fontWeight:700,background:r.m.tier.color+"18",color:r.m.tier.color}}>{r.m.tier.label}</span></td>
+                        <td style={{padding:"8px 13px",color:C.muted}} className="mono">{fmtTok(r.m.tokens)}</td>
+                        <td style={{padding:"8px 13px"}}><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:44}}><ProgressBar value={r.m.confidence} color={r.m.confidence>=90?C.success:C.warn} height={5}/></div><span style={{fontSize:10.5,fontWeight:700,color:C.heading}}>{r.m.confidence}</span></div></td>
+                        <td style={{padding:"8px 13px",fontSize:13}}>{r.fb==="up"?"👍":r.fb==="down"?"👎":<span style={{color:C.light,fontSize:10}}>—</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </SectionCard>
+              <div style={{display:"grid",gap:14,alignContent:"start"}}>
+                <SectionCard title="Helpfulness by Agent" sub="Rolling 90 days of analyst + field feedback" pad={16}>
+                  <div style={{display:"grid",gap:8}}>
+                    {fbStats.map(s=>(
+                      <div key={s.a.id} style={{display:"flex",alignItems:"center",gap:9}}>
+                        <span style={{width:118,fontSize:10.5,fontWeight:600,color:C.heading,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.a.icon} {s.a.name.replace(" Agent","")}</span>
+                        <div style={{flex:1}}><ProgressBar value={s.pos*100} color={s.pos>=.85?C.success:C.warn} height={7}/></div>
+                        <span style={{width:74,fontSize:10,fontWeight:700,color:s.pos>=.85?C.success:C.warn,textAlign:"right"}} className="mono">{Math.round(s.pos*100)}% · n={s.n}</span>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+                <SectionCard title="Your Feedback This Session" sub="Live — flows straight into the eval sets above" pad={16}>
+                  {session.length===0?(
+                    <div style={{fontSize:11.5,color:C.light,fontStyle:"italic",lineHeight:1.6}}>Nothing yet — react 👍/👎 under any analysis card (Health Check, P4P, Goals, SFE, Copilot…) and it lands here instantly.</div>
+                  ):(
+                    <div style={{display:"grid",gap:8}}>
+                      {session.map((f,i)=>(
+                        <div key={i} style={{display:"flex",gap:9,padding:"8px 11px",borderRadius:9,background:f.vote==="up"?C.successBg:"#FEF2F2",border:`1px solid ${f.vote==="up"?C.success:C.error}33`,animation:"fadeUp .25s ease-out"}}>
+                          <span style={{fontSize:14}}>{f.vote==="up"?"👍":"👎"}</span>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontSize:11,fontWeight:700,color:C.heading}}>{f.title}</div>
+                            <div style={{fontSize:10,color:C.muted}}>{f.agent}{f.tag?" · "+f.tag:""}{f.comment?" · “"+f.comment+"”":""}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </SectionCard>
+                <SectionCard title="Recent Calibrations" pad={16}>
+                  <div style={{display:"grid",gap:8}}>
+                    {[["Goal Setting v3.2","Fairness-finding phrasing rewritten after 7× “Unclear” tags — helpfulness 71% → 89%"],["P4P Analyst v3.1 → 3.2","Windfall detection threshold recalibrated from field feedback on false clawback flags"]].map(([t,d])=>(
+                      <div key={t} style={{padding:"9px 12px",borderRadius:9,background:"#F8FAFC",border:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:11,fontWeight:700,color:C.heading}}>🔁 {t}</div>
+                        <div style={{fontSize:10.5,color:C.muted,marginTop:2,lineHeight:1.5}}>{d}</div>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
