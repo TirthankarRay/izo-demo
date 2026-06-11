@@ -3561,11 +3561,17 @@ const buildNBAs=(persona,data)=>{
   if(persona.id==="vertanis"){
     const low=rows.filter(r=>r.baselineVol<3900);
     const supp=low.reduce((s,r)=>s+Math.max(0,fld$(Math.max(0,curve(r.attainment+6.5))-Math.max(0,curve(r.attainment)))),0);
+    const attGap=(mean(rows.filter(r=>r.baselineVol>=3900).map(r=>r.attainment))-mean(low.map(r=>r.attainment))).toFixed(1);
     list.push({id:"lead",icon:"📐",title:"Restate goals for "+low.length+" low-baseline territories before next cycle",
       agent:"Goal Setting Agent",view:"goals",audience:"VP Sales + Regional Directors",urgency:"This cycle",effort:"M",
       impact:"≈"+fmt$(supp)+"/"+perLbl+" suppressed payout released",
       why:"Attainment correlates "+data.goals.fairCorr.toFixed(2)+" with baseline volume — goals are systematically harder where baselines are low. These territories under-attain for reasons the reps don't control.",
       terr:low,terrLabel:low.length+" low-baseline territories",
+      tri:[
+        {agent:"Goal Setting",icon:"📐",view:"goals",finding:"Bias screen — attainment regressed against baseline volume across all 100 territories",value:"r = "+data.goals.fairCorr.toFixed(2),ds:["quota_master","territory_roster"]},
+        {agent:"P4P Analyst",icon:"🎯",view:"p4p",finding:"Cohort gap — the low-baseline cohort under-attains the rest of the field on the same plan",value:attGap+" pts mean gap",ds:["ic_payouts","statements"]},
+        {agent:"Field Inquiry",icon:"💬",view:"pulse",finding:"Field corroboration — quota-baseline error claims arriving in the dispute queue",value:"live disputes",ds:["hitl_queue","quota_adjustments"]}],
+      method:"Impact = Σ[curve(att + 6.5) − curve(att)] × TI/"+perLbl+" × field scale ("+ps.reps+" reps / 100 modeled) = ≈"+fmt$(supp)+"/"+perLbl,
       points:["Goal difficulty, not effort, explains the attainment gap here — coaching conversations should not treat these as performance problems",
         "IC is preparing an opportunity-weighted goal restatement for review; hold rating and PIP decisions on this group until it lands",
         "Expected effect: ≈"+fmt$(supp)+" per "+perLbl+" in released payout suppression and a measurably fairer attainment curve"]});
@@ -3576,6 +3582,11 @@ const buildNBAs=(persona,data)=>{
       impact:"Protects 60% of plan weight from inflation",
       why:"92% of KAMs scored ≥95 on MBOs — scoring inflation is compressing the differentiation the hybrid plan was designed to create. Volume metrics still differentiate; MBO scores no longer do.",
       terr:[],terrLabel:"applies to all "+ps.reps+" KAMs",
+      tri:[
+        {agent:"Goal Setting",icon:"📐",view:"goals",finding:"Score distribution — share of KAMs scoring ≥95 on the MBO component",value:"92% at ceiling",ds:["quota_master","cohorts"]},
+        {agent:"P4P Analyst",icon:"🎯",view:"p4p",finding:"Differentiation split — the volume metric still separates deciles; MBO scores no longer do",value:"60% weight flat",ds:["ic_payouts","statements"]},
+        {agent:"Health Check",icon:"🩺",view:"health",finding:"Plan-health watch item — Differentiation & Motivation dimension trending toward compression",value:data.dims[3].score+" /100",ds:["health_scores"]}],
+      method:"Exposure = 60% MBO plan weight × TI pool drifting toward a flat annuity if scoring stays at ceiling",
       points:["MBO inflation is a manager-behavior problem, not a KAM problem — calibrate the raters, not the field",
         "Second-rater review on a 20% sample is enough to reset the curve without re-scoring everyone",
         "Left uncorrected, the plan drifts toward a flat 60% annuity and volume carries all real differentiation"]});
@@ -3587,6 +3598,11 @@ const buildNBAs=(persona,data)=>{
       impact:"87% → 95%+ territory activation",
       why:"Nine weeks in, "+zero.length+" territories show zero NBRx activation while the launch ramps +12% WoW elsewhere. Low-opportunity territories can't ramp on the same goal curve.",
       terr:zero,terrLabel:zero.length+" zero-activation territories",
+      tri:[
+        {agent:"SFE Intelligence",icon:"📞",view:"sfe",finding:"Activity scan — territories with zero NBRx activation since launch start",value:zero.length+" territories",ds:["rx_panel","sfe_activity"]},
+        {agent:"Launch Readiness",icon:"🚀",view:"command",finding:"Ramp divergence — the rest of the field activates +12% WoW while this cohort stays flat",value:"87% activated",ds:["rx_panel","market_opportunity"]},
+        {agent:"Goal Setting",icon:"📐",view:"goals",finding:"Opportunity screen — cohort skews to low market-opportunity territories that can't ramp on the same curve",value:"opp idx < 52",ds:["market_opportunity"]}],
+      method:"Impact = activation lift 87% → 95%+ ("+zero.length+" territories × launch SWAT deployment within the ramp window)",
       points:["Diagnose before coaching — speaker-program access and payer mix explain most zero-activation territories, not effort",
         "Deploy the launch SWAT (MSL + market access) to these territories this week; the window to fix launch trajectory is closing",
         "The rank-based plan already protects budget — activation, not payout, is the lever to pull"]});
@@ -3598,6 +3614,11 @@ const buildNBAs=(persona,data)=>{
       impact:"Cliff exposure on "+near.length+" of "+ps.reps+" ADs",
       why:near.length+" ADs landed within 3 points below a payout milestone — on a cliff-shaped plan that is the difference between earning and missing a 25-30% tranche of TI.",
       terr:near,terrLabel:near.length+" ADs within 3 pts of a milestone",
+      tri:[
+        {agent:"Plan Simulator",icon:"🧪",view:"studio",finding:"Cliff map — payout tranches concentrated at milestone boundaries 70 / 90 / 100 / 115",value:"25-30% TI per tranche",ds:["rate_tables","calc_traces"]},
+        {agent:"P4P Analyst",icon:"🎯",view:"p4p",finding:"Proximity scan — ADs landing inside the 3-point band just below a milestone",value:near.length+" ADs flagged",ds:["ic_payouts","statements"]},
+        {agent:"Field Inquiry",icon:"💬",view:"pulse",finding:"Sentiment corroboration — milestone-miss disputes carry the queue's strongest negative sentiment",value:"dispute queue",ds:["hitl_queue"]}],
+      method:"Exposure = "+near.length+" ADs × one missed tranche (25-30% of "+fmt$(ps.plan.ti)+" TI each) on semi-annual measurement",
       points:["Review each near-miss for timing artifacts — semi-annual measurement turns a two-week slip into a missed milestone",
         "Where the account outcome landed days late, a documented discretionary adjustment beats a demotivated AD",
         "Bring a ramp/interpolation design option to IC Council — Plan Studio has the cliff-smoothing scenario cached"]});
@@ -3609,6 +3630,11 @@ const buildNBAs=(persona,data)=>{
       impact:"≈$310K/yr unearned floor payments",
       why:"The 35% commission floor pays the bottom decile regardless of margin contribution — ≈$310K/yr in unearned payments. Phasing it out without warning invites attrition of fixable performers.",
       terr:bottom,terrLabel:bottom.length+" bottom-decile territories on the floor",
+      tri:[
+        {agent:"Plan Simulator",icon:"🧪",view:"studio",finding:"Floor analysis — commission floor pays 35% of TI regardless of gross-margin contribution",value:"≈$310K/yr",ds:["rate_tables","gl_actuals"]},
+        {agent:"P4P Analyst",icon:"🎯",view:"p4p",finding:"Decile curve — bottom-decile payout is decoupled from margin rank (D10 pays ≈ floor)",value:"D10 ≈ 35% TI",ds:["ic_payouts"]},
+        {agent:"SFE Intelligence",icon:"📞",view:"sfe",finding:"Effort scan — floor cohort also trails on calls and call-plan adherence (effort gap, not just mix)",value:"below-avg effort",ds:["sfe_activity","calls"]}],
+      method:"Impact = floor payments to the bottom decile ≈ $310K/yr (per shadow-audit of GM-commission calc)",
       points:["Pair the floor phase-out announcement with 90-day coaching plans — give the bottom decile a path before removing the net",
         "Several floor territories are portfolio-mix problems, not effort problems — reassignment may outperform coaching",
         "Model the phase-out in Plan Studio: stepping 35% → 25% → 15% over two quarters costs less in attrition than a cliff removal"]});
@@ -3622,6 +3648,11 @@ const buildNBAs=(persona,data)=>{
       impact:"≈"+fmt$(excess)+"/"+perLbl+" paying ahead of performance",
       why:"Payout rank diverges ≥18 positions above performance rank on these territories — legacy guarantees and windfall accounts are paying ahead of contribution.",
       terr:over,terrLabel:over.length+" territories paying ahead of performance",
+      tri:[
+        {agent:"P4P Analyst",icon:"🎯",view:"p4p",finding:"Rank-gap screen — payout rank diverges ≥18 positions above performance rank",value:over.length+" territories",ds:["ic_payouts","statements"]},
+        {agent:"Payout Auditor",icon:"🧮",view:"govern",finding:"Shadow recalc — paid % of TI exceeds the curve-implied % on every flagged row",value:"Δ vs curve > 0",ds:["calc_traces","rate_tables"]},
+        {agent:"Data flags",icon:"🔎",view:"explorer",finding:"Root-cause tags — legacy guarantees ("+over.filter(r=>r.flags.includes("Legacy guarantee")).length+") and windfall accounts ("+over.filter(r=>r.flags.includes("Windfall account")).length+") on the exception list",value:"tagged rows",ds:["exception_lists"]}],
+      method:"Impact = Σ[paid % − curve(att) %] × TI/"+perLbl+" × field scale = ≈"+fmt$(excess)+"/"+perLbl,
       points:["Validate each case with the DM before the payroll feed locks — guarantee, windfall and genuine effort tell three different stories",
         "Where a windfall is confirmed, the clawback conversation lands better delivered by the DM with the evidence pack than by a statement line",
         "Unchecked, these payouts cost ≈"+fmt$(excess)+" per "+perLbl+" and erode top-performer trust in the plan"]});
@@ -3634,6 +3665,11 @@ const buildNBAs=(persona,data)=>{
       impact:"Regrettable-attrition risk on "+under.length+" territories",
       why:"These territories rank high on performance but low on payout — mostly stale-quota artifacts. They are the field's flight risks while corrections process.",
       terr:under,terrLabel:under.length+" territories underpaid vs performance rank",
+      tri:[
+        {agent:"P4P Analyst",icon:"🎯",view:"p4p",finding:"Rank-gap screen — payout rank diverges ≥18 positions below performance rank",value:under.length+" territories",ds:["ic_payouts","statements"]},
+        {agent:"Payout Auditor",icon:"🧮",view:"govern",finding:"Root cause — quotas set on stale pre-alignment baselines; account moves never flowed into goals",value:"quota-error flags",ds:["alignments","quota_master"]},
+        {agent:"Fairness & Compliance",icon:"⚖️",view:"govern",finding:"Retention screen — cohort overlaps the top performance deciles; flight risk while corrections queue",value:"top-decile overlap",ds:["tenure","cohorts"]}],
+      method:"Risk model = top-decile performers × visible payout shortfall × correction lag — attrition cost dwarfs the payout delta",
       points:["IC has root-caused most cases to quota baseline errors — corrections are queued; reps should hear that from leadership before the next statement",
         "A 15-minute RD check-in now is cheaper than a counter-offer later — these are top-decile performers",
         "Do not let the affected reps discover the issue from their own statement math"]});
@@ -3647,6 +3683,11 @@ const buildNBAs=(persona,data)=>{
       impact:"+"+Math.max(4,data.sfe.kpi.adherence-wkAdh)+" pts adherence headroom",
       why:wk+" trails the field on every effort metric in the region heatmap. "+wkRows.length+" territories sit below field-average call-plan adherence.",
       terr:wkRows,terrLabel:wkRows.length+" below-average territories in "+wk,
+      tri:[
+        {agent:"SFE Intelligence",icon:"📞",view:"sfe",finding:"Region heatmap — "+wk+" trails the field on all four effort metrics simultaneously",value:wkAdh+"% adherence",ds:["sfe_activity","calls"]},
+        {agent:"SFE Intelligence",icon:"🗺️",view:"sfe",finding:"Territory scan — individual territories below field-average call-plan adherence in "+wk,value:wkRows.length+" territories",ds:["calls","hcp_interactions"]},
+        {agent:"Health Check",icon:"🩺",view:"health",finding:"Isolation check — no payout or goal anomaly in "+wk+"; the gap is effort-side, not plan-side",value:"plan healthy",ds:["ic_payouts","health_scores"]}],
+      method:"Headroom = (field-avg "+data.sfe.kpi.adherence+"% − region "+wkAdh+"%) adherence gap × reach conversion in "+wk,
       points:["Re-anchor the "+wk+" call plan on Tier-A targets — effort is going to the wrong accounts, not missing entirely",
         "Pair the bottom "+Math.min(5,wkRows.length)+" territories with in-region high performers for ride-alongs this cycle",
         "Lifting adherence to field average is worth roughly "+Math.max(4,data.sfe.kpi.adherence-wkAdh)+" points of reach in "+wk]});
@@ -3659,6 +3700,11 @@ const buildNBAs=(persona,data)=>{
       impact:"Motivation retention on the cutline cohort",
       why:data.club.insight,
       terr:nm,terrLabel:nm.length+" "+ps.roleLabel.toLowerCase()+" within reach of the cutline",
+      tri:[
+        {agent:"P4P Analyst",icon:"🎯",view:"p4p",finding:"Cutline analysis — attainment gap between the last Club seat and the first miss is within measurement noise",value:(data.club.qualifiers[9].attainment-data.club.nearMiss[0].attainment).toFixed(1)+" pts gap",ds:["ic_payouts","statements"]},
+        {agent:"P4P Analyst",icon:"📈",view:"p4p",finding:"Growth axis — the first near-miss ranks top-3 on "+ps.metric+" growth %, a dimension the cutline ignores",value:"#3 on growth",ds:["rx_panel"]},
+        {agent:"Data Connectors",icon:"📊",view:"connectors",finding:"Wildcard precedent — a manually maintained Club wildcard list already exists in the upload zone",value:"club_wildcards",ds:["club_wildcards"]}],
+      method:"Value = motivation retention on the cutline cohort; incremental cost ≈ $0 (recognition, not payout)",
       points:["The gap between the last seat and first miss is noise-level — treat the near-miss cohort as Club-calibre in comms and development",
         "Consider one growth-axis wildcard seat: it converts the cutline from a cliff into a race",
         "A personal note from the VP to each near-miss costs nothing and is remembered all year"]});
@@ -3672,6 +3718,10 @@ const buildNBAs=(persona,data)=>{
       impact:"$"+opp.toFixed(1)+"M uncovered opportunity",
       why:ws.length+" account clusters carry meaningful opportunity with no named owner: "+ws.map(w=>w.cluster+" ("+w.region+")").join(" · ")+".",
       terr:[],terrLabel:ws.length+" uncovered clusters (account-level, not territory)",
+      tri:[
+        {agent:"Territory Alignment",icon:"🗺️",view:"sfe",finding:"Coverage scan — account clusters with no named owner in the current alignment",value:ws.length+" clusters",ds:["alignments","accounts"]},
+        {agent:"SFE Intelligence",icon:"📞",view:"sfe",finding:"Opportunity sizing — uncovered clusters carry quantified unworked potential",value:"$"+opp.toFixed(1)+"M",ds:["market_opportunity","hcp_universe"]}],
+      method:"Impact = Σ cluster opportunity across uncovered clusters = $"+opp.toFixed(1)+"M currently unworked",
       points:["Each cluster needs one named owner before next cycle — shared coverage is no coverage",
         "Start with the highest-opportunity cluster: "+ws.slice().sort((a,b)=>b.opportunity-a.opportunity)[0].cluster,
         "Re-run the alignment scenario in Plan Studio before committing quota changes"]});
@@ -3681,6 +3731,71 @@ const buildNBAs=(persona,data)=>{
 };
 const _nbaCache={};
 const getNBAs=(persona,data)=>_nbaCache[persona.id]||(_nbaCache[persona.id]=buildNBAs(persona,data));
+/* ── triangulation modal — how independent signals converged into one recommendation ── */
+const NbaTriModal=({persona,nba:n,onClose,onNav})=>{
+  const conns=buildConnectorData(persona).rows;
+  const srcFor=(d)=>conns.find(c=>c.datasets.includes(d));
+  const allDs=[...new Set(n.tri.flatMap(s=>s.ds))];
+  const lineage=[...new Set(allDs.map(d=>(srcFor(d)||{}).name).filter(Boolean))];
+  const SIG_COLORS=["#8B5CF6","#1E82BD","#0D9488"];
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(8,40,70,.5)",zIndex:130,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .2s ease-out"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.card,borderRadius:16,width:660,maxWidth:"94vw",maxHeight:"88vh",overflowY:"auto",boxShadow:"0 30px 80px rgba(8,40,70,.45)",animation:"fadeUp .25s ease-out"}}>
+        <div style={{padding:"15px 24px",borderBottom:`1px solid ${C.border}`,background:"linear-gradient(135deg,#F3EEFB,#EDF4FB)",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+          <div>
+            <div style={{fontWeight:800,fontSize:14.5,color:C.heading}}>🔺 Triangulation — {n.title}</div>
+            <div style={{fontSize:10.5,color:C.muted,marginTop:2}}>{n.tri.length} independent signals · synthesized into recommendation #{n.rank} · logged to audit trail</div>
+          </div>
+          <button onClick={onClose} style={{padding:"5px 12px",borderRadius:6,background:"#EDF2F7",color:C.muted,fontWeight:700,fontSize:11}}>✕</button>
+        </div>
+        <div style={{padding:"16px 24px"}}>
+          {n.tri.map((s,i)=>(
+            <div key={i} style={{display:"flex",gap:13,animation:`fadeUp .3s ease-out ${i*.08}s both`}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+                <div style={{width:30,height:30,borderRadius:9,background:`${SIG_COLORS[i%3]}16`,border:`1.5px solid ${SIG_COLORS[i%3]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}>{s.icon}</div>
+                <div style={{width:2,flex:1,background:`linear-gradient(${SIG_COLORS[i%3]},${SIG_COLORS[(i+1)%3]})`,opacity:.4,margin:"3px 0"}}/>
+              </div>
+              <div style={{flex:1,paddingBottom:14,minWidth:0}}>
+                <div style={{fontSize:9.5,fontWeight:800,color:SIG_COLORS[i%3],letterSpacing:1}}>SIGNAL {i+1} — {s.agent.toUpperCase()}</div>
+                <div style={{fontSize:12,color:C.text,lineHeight:1.5,margin:"3px 0 6px"}}>{s.finding}</div>
+                <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+                  <span className="mono" style={{padding:"3px 10px",borderRadius:7,background:`${SIG_COLORS[i%3]}12`,border:`1px solid ${SIG_COLORS[i%3]}55`,color:C.heading,fontWeight:800,fontSize:11}}>{s.value}</span>
+                  {s.ds.map(d=>{const c=srcFor(d);return <span key={d} className="mono" style={{padding:"2px 8px",borderRadius:5,background:"#F4F8FB",border:`1px solid ${C.border}`,color:C.muted,fontSize:9.5}} title={c?"via "+c.name+" ("+c.freq+")":""}>{c?c.icon+" ":""}{d}</span>})}
+                  <span onClick={()=>{onClose();onNav&&onNav(s.view)}} style={{fontSize:10,color:C.primary,fontWeight:700,cursor:"pointer"}}>view source analysis →</span>
+                </div>
+              </div>
+            </div>
+          ))}
+          <div style={{display:"flex",gap:13}}>
+            <div style={{width:30,display:"flex",justifyContent:"center"}}><span style={{fontSize:14,color:C.primary}}>▼</span></div>
+            <div style={{flex:1}}>
+              <div style={{padding:"11px 15px",borderRadius:10,background:"linear-gradient(135deg,#F0F7FF,#F3EEFB)",border:`1px solid ${C.primary}33`,marginBottom:10}}>
+                <div style={{fontSize:9.5,fontWeight:800,color:C.primary,letterSpacing:1,marginBottom:4}}>WHY THESE CONVERGE</div>
+                <div style={{fontSize:11.5,color:C.text,lineHeight:1.55}}>Each signal arrives from a <strong>different agent and dataset family</strong> — statistical screen, payout/finance recalculation, and field or effort corroboration. No single stream is decisive on its own; it's their <strong>independent convergence</strong> that elevates this from an observation to recommendation #{n.rank}. Remove any one signal and the others still stand on separate data.</div>
+              </div>
+              <div style={{padding:"11px 15px",borderRadius:10,background:C.codeBg,marginBottom:10}}>
+                <div style={{fontSize:9.5,fontWeight:800,color:"#7DD3FC",letterSpacing:1,marginBottom:4}}>IMPACT DERIVATION</div>
+                <div className="mono" style={{fontSize:10.5,color:C.codeText,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{n.method}</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:10,padding:"9px 15px",borderRadius:10,background:C.successBg,border:`1px solid ${C.success}44`}}>
+                <span style={{fontSize:15}}>🛡️</span>
+                <div style={{fontSize:10.5,color:"#065F46",lineHeight:1.5}}><strong>Confidence {Math.round(n.confidence*100)}%</strong> — {n.tri.length}/{n.tri.length} signals corroborate · every number above is deterministic computation on governed data · the model wrote only the words, and you can rewrite them (✎ edit points).</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={{padding:"12px 24px",borderTop:`1px solid ${C.border}`,background:"#FAFBFC",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <span style={{fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1}}>Lineage</span>
+          {lineage.map((nm,i)=>(<Fragment key={nm}><span style={{fontSize:10.5,fontWeight:600,color:C.heading,padding:"3px 10px",borderRadius:11,background:C.card,border:`1px solid ${C.border}`}}>{nm}</span>{i<lineage.length-1&&<span style={{color:C.light}}>+</span>}</Fragment>))}
+          <span style={{color:C.light}}>→</span>
+          <span style={{fontSize:10.5,fontWeight:600,color:C.primary,padding:"3px 10px",borderRadius:11,background:C.primaryBg,border:`1px solid ${C.primary}44`}}>{n.agent.replace(" Agent","")} synthesis</span>
+          <span style={{color:C.light}}>→</span>
+          <span style={{fontSize:10.5,fontWeight:600,color:"#065F46",padding:"3px 10px",borderRadius:11,background:C.successBg,border:`1px solid ${C.success}44`}}>NBA #{n.rank}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 /* ── Field Leadership Brief — endorsed recommendations only, leadership-ready workbook ── */
 const buildFieldBrief=(persona,data,nbas)=>{
   const endorsed=nbas.filter(n=>(nbaState(persona.id,n.id)||{}).status==="endorsed");
@@ -3711,6 +3826,8 @@ const buildFieldBrief=(persona,data,nbas)=>{
       ["Why now",n.why],
       ["Source",n.agent+" · "+VIEW_LABELS[n.view]+" screen"],
       ["Scope",n.terrLabel],
+      ...n.tri.map((s,k)=>["Signal "+(k+1)+" — "+s.agent,s.finding+" ["+s.value+"] · data: "+s.ds.join(", ")]),
+      ["Derivation",n.method],
       ...(st.actId?[["Linked worklist action",st.actId]]:[]),
       ["Talking points",""],
       ...pts(n).map((p,i)=>["  "+(i+1)+".",p]),
@@ -3764,6 +3881,7 @@ const Worklist=({persona,data,onNav})=>{
   const [dNote,setDNote]=useState("");
   const [editing,setEditing]=useState(null);        /* nba id with the talking-points editor open */
   const [eText,setEText]=useState("");
+  const [triFor,setTriFor]=useState(null);          /* nba shown in the triangulation modal */
   const stOf=(n)=>nbaState(persona.id,n.id);
   const effPoints=(n)=>{const st=stOf(n);return (st&&st.points)||n.points};
   const endorsedN=nbas.filter(n=>(stOf(n)||{}).status==="endorsed").length;
@@ -3849,6 +3967,7 @@ const Worklist=({persona,data,onNav})=>{
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:12,marginTop:7,fontSize:9.5,color:C.light,flexWrap:"wrap"}}>
                   <span>{n.agent.replace(" Agent","")} · confidence {Math.round(n.confidence*100)}%</span>
+                  <span onClick={()=>setTriFor(n)} style={{color:"#7C3AED",fontWeight:700,cursor:"pointer"}} title="See the independent signals that converged into this recommendation">🔺 how this was triangulated</span>
                   <span onClick={()=>onNav(n.view)} style={{color:C.primary,fontWeight:700,cursor:"pointer"}}>🔎 evidence: {VIEW_LABELS[n.view]} →</span>
                   {n.terr.length>0&&<span onClick={()=>setExpanded(expanded===n.id?null:n.id)} style={{color:C.heading,fontWeight:700,cursor:"pointer"}}>{n.terrLabel} {expanded===n.id?"▴":"▾"}</span>}
                   {n.terr.length===0&&<span>{n.terrLabel}</span>}
@@ -3925,6 +4044,7 @@ const Worklist=({persona,data,onNav})=>{
           </div>
         )}
       </SectionCard>
+      {triFor&&<NbaTriModal persona={persona} nba={triFor} onClose={()=>setTriFor(null)} onNav={onNav}/>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:18}}>
         <StatCard icon="📥" label="Open" value={counts.Open} sub="awaiting an owner to start" color={counts.Open>0?C.warn:C.heading} delay={0}/>
         <StatCard icon="🔄" label="In Progress" value={counts["In progress"]} sub="being worked" delay={.05}/>

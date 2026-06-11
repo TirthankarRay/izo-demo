@@ -75,6 +75,7 @@ The left sidebar organizes all screens into six groups:
 - **✓ Endorse** — puts the recommendation in the downloadable brief and creates a linked, tracked worklist action automatically. **↩ undo** reverses both (the linked action is removed if untouched)
 - **✎ edit points** — rewrite the talking points in your own words; your edits ship in the brief, not the AI's draft
 - **✕ dismiss** — remove with an optional reason; logged to the Governance audit trail; restorable
+- **🔺 how this was triangulated** — opens a modal showing the 2–3 independent signals (agent, finding, computed value, source datasets) that converged into the recommendation, the convergence rationale, the impact-derivation formula, and the full data lineage. Each signal deep-links to its source analysis. The same signal detail ships in the Field Brief
 - **🔎 evidence link** — every recommendation deep-links to the screen it was derived from
 - **📥 Field Brief (.xlsx)** — downloads endorsed recommendations as a 3-sheet leadership-ready workbook (Briefing Summary, Recommendations with talking points, Affected Territories). Disabled until you endorse at least one — *nothing reaches leadership without analyst review*
 
