@@ -1016,12 +1016,15 @@ const ScreenHeader=({title,sub,right})=>(
 
 /* ▓▓ SECTION:SHELL ▓▓ */
 const NAV=[
-  {group:"OVERVIEW",items:[{id:"command",icon:"🛰️",label:"Command Center"}]},
+  {group:"OVERVIEW",items:[
+    {id:"command",icon:"🛰️",label:"Command Center"},
+    {id:"worklist",icon:"✅",label:"Action Worklist"}]},
   {group:"DIAGNOSE",items:[
     {id:"health",icon:"🩺",label:"IC Health Check"},
     {id:"p4p",icon:"🎯",label:"Pay-for-Performance Lab"},
     {id:"goals",icon:"📐",label:"Goal Setting & Fairness"},
-    {id:"sfe",icon:"🗺️",label:"Territory & SFE"}]},
+    {id:"sfe",icon:"🗺️",label:"Territory & SFE"},
+    {id:"explorer",icon:"🔎",label:"Data Explorer"}]},
   {group:"DESIGN",items:[{id:"studio",icon:"🧪",label:"Plan Design Studio"}]},
   {group:"EXECUTE",items:[{id:"pulse",icon:"💬",label:"Field Pulse & Disputes"}]},
   {group:"ASK iZO",items:[{id:"copilot",icon:"✨",label:"Ask iZO Copilot"}]},
@@ -1040,7 +1043,7 @@ const SidebarItem=({icon,label,active,onClick,isHitl})=>(
     {isHitl&&<span style={{width:8,height:8,borderRadius:"50%",background:"#EA580C",animation:"breathe 2s infinite"}}/>}
   </div>
 );
-const Sidebar=({view,onNav,persona,pendingHitl})=>(
+const Sidebar=({view,onNav,persona,pendingHitl,openActions})=>(
   <div style={{width:248,minWidth:248,background:`linear-gradient(180deg,${C.sidebar},${C.sidebarDark})`,display:"flex",flexDirection:"column",height:"100vh"}}>
     <div style={{padding:"20px 18px 16px",borderBottom:"1px solid rgba(255,255,255,.1)"}}>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -1052,7 +1055,7 @@ const Sidebar=({view,onNav,persona,pendingHitl})=>(
       {NAV.map(g=>(
         <div key={g.group}>
           <div style={{padding:"12px 18px 4px",fontSize:9.5,fontWeight:700,color:"#7BA3C9",textTransform:"uppercase",letterSpacing:1.6}}>{g.group}</div>
-          {g.items.map(it=><SidebarItem key={it.id} icon={it.icon} label={it.label} active={view===it.id} onClick={()=>onNav(it.id)} isHitl={it.id==="pulse"&&pendingHitl>0}/>)}
+          {g.items.map(it=><SidebarItem key={it.id} icon={it.icon} label={it.label} active={view===it.id} onClick={()=>onNav(it.id)} isHitl={(it.id==="pulse"&&pendingHitl>0)||(it.id==="worklist"&&openActions>0)}/>)}
         </div>
       ))}
     </div>
@@ -1095,6 +1098,7 @@ const TopBar=({crumbs,persona,onSelectPersona,onExport})=>(
     </div>
     <div style={{display:"flex",alignItems:"center",gap:14}}>
       <button onClick={onExport} title="Download raw data + every analysis as one Excel workbook" style={{display:"flex",alignItems:"center",gap:6,padding:"8px 15px",borderRadius:8,background:"linear-gradient(135deg,#107C41,#0E6B38)",color:"#fff",fontWeight:700,fontSize:11.5,boxShadow:"0 3px 10px rgba(16,124,65,.3)"}}>📥 Export Excel</button>
+      <span onClick={()=>{if(window.confirm("Reset all demo state? Feedback, challenges, worklist actions and HITL decisions will be cleared."))resetDemoState()}} title="Reset demo state (feedback, worklist, decisions)" style={{fontSize:15,cursor:"pointer",color:C.light}}>↺</span>
       <PersonaSelector persona={persona} onSelect={onSelectPersona}/>
       <div style={{position:"relative"}}><span style={{fontSize:17,cursor:"pointer"}}>🔔</span><span style={{position:"absolute",top:-4,right:-4,width:15,height:15,borderRadius:"50%",background:"#EA580C",color:"#fff",fontSize:8.5,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>2</span></div>
       <div style={{width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:`linear-gradient(135deg,${C.primary},${C.heading})`,color:"#fff",fontSize:11,fontWeight:700}}>SO</div>
@@ -1107,7 +1111,16 @@ const TopBar=({crumbs,persona,onSelectPersona,onExport})=>(
 /* Feedback + observability layer — every analysis carries a "how this was computed" trace
    and a feedback control that routes to the owning agent's eval set. Session-scoped store. */
 const FEEDBACK_TAGS=["Wrong data","Unclear","Not actionable","Missing context","Too conservative"];
-const FEEDBACK_STORE={};            /* personaId+analysisId → {vote,tag,comment,agent,title} */
+/* ── persistence: analyst state survives reload & persona switches (demo-resettable) ── */
+const PERSIST_KEY="izo-ic-state-v1";
+const _P=(()=>{try{return JSON.parse(localStorage.getItem(PERSIST_KEY))||{}}catch(e){return{}}})();
+const persist=(k,v)=>{_P[k]=v;try{localStorage.setItem(PERSIST_KEY,JSON.stringify(_P))}catch(e){}};
+const resetDemoState=()=>{try{localStorage.removeItem(PERSIST_KEY)}catch(e){}window.location.reload()};
+const FEEDBACK_STORE=_P.feedback||{};      /* personaId::analysisId → {vote,tag,comment,agent,title} */
+const CHALLENGE_STORE=_P.challenges||{};   /* personaId::analysisId → {rationale,by,status,agent,title} */
+const ACTION_STORE=_P.actions||[];         /* [{id,persona,title,src,agent,owner,due,prio,status}] */
+const OWNERS=["S. Okafor","M. Torres","J. Lindqvist","IC Council"];
+const addAction=(rec)=>{ACTION_STORE.unshift({id:"ACT-"+(900+ACTION_STORE.length+Math.floor(Math.random()*90)),status:"Open",...rec});persist("actions",ACTION_STORE)};
 const STAGE_COLORS={INPUTS:"#8B5CF6",QUERY:"#1E82BD",COMPUTE:"#0D9488",VALIDATE:"#F59E0B",NARRATE:"#10B981"};
 const traceMeta=(persona,id,agentName)=>{
   const rng=mulberry32(hashStr("trace-"+persona.id+"-"+id));
@@ -1190,31 +1203,44 @@ const TraceModal=({persona,spec,meta,onClose})=>{
 const AnalysisActions=({persona,id,agent,title,method,datasets=[],query="SELECT * FROM ic_payouts -- scoped to current period",checks=[],computeNote,scope,compact,noTrace})=>{
   const key=persona.id+"::"+id;
   const [fb,setFb]=useState(FEEDBACK_STORE[key]||null);
-  const [pop,setPop]=useState(false);
+  const [ch,setCh]=useState(CHALLENGE_STORE[key]||null);
+  const [onList,setOnList]=useState(ACTION_STORE.some(a=>a.srcId===key));
+  const [pop,setPop]=useState(null);          /* "down" | "challenge" | "action" | null */
   const [tag,setTag]=useState(null);
   const [comment,setComment]=useState("");
+  const [rationale,setRationale]=useState("");
+  const [aTitle,setATitle]=useState("Follow up: "+title);
+  const [aOwner,setAOwner]=useState(OWNERS[0]);
+  const [aDue,setADue]=useState("This week");
+  const [aPrio,setAPrio]=useState("High");
   const [trace,setTrace]=useState(false);
   const meta=traceMeta(persona,id,agent);
-  const save=(rec)=>{FEEDBACK_STORE[key]={...rec,agent,title,persona:persona.name};setFb(FEEDBACK_STORE[key]);setPop(false)};
   const fs=compact?9.5:10.5;
+  const saveFb=(rec)=>{FEEDBACK_STORE[key]={...rec,agent,title,persona:persona.name};persist("feedback",FEEDBACK_STORE);setFb(FEEDBACK_STORE[key]);setPop(null)};
+  const saveCh=()=>{CHALLENGE_STORE[key]={rationale,by:"S. Okafor",status:"Under review",agent,title,persona:persona.name};persist("challenges",CHALLENGE_STORE);setCh(CHALLENGE_STORE[key]);setPop(null)};
+  const saveAct=()=>{addAction({persona:persona.id,srcId:key,title:aTitle,src:title,agent,owner:aOwner,due:aDue,prio:aPrio});setOnList(true);setPop(null)};
+  const chip=(txt,c)=><span style={{fontSize:fs-0.5,fontWeight:700,color:c,display:"flex",alignItems:"center",gap:4}}>{txt}</span>;
   return (
     <div style={{marginTop:compact?8:10,paddingTop:compact?7:9,borderTop:`1px dashed ${C.border}`}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:9,flexWrap:"wrap"}}>
         {!noTrace&&<span onClick={()=>setTrace(true)} style={{fontSize:fs,fontWeight:700,color:C.primary,cursor:"pointer"}}>🔬 How this was computed</span>}
-        {noTrace&&<span style={{fontSize:fs,color:C.light}}>Was this analysis useful?</span>}
+        {ch?chip("⚑ Challenged — "+ch.status.toLowerCase(),"#B45309"):
+          <span onClick={()=>setPop(pop==="challenge"?null:"challenge")} style={{fontSize:fs,fontWeight:700,color:pop==="challenge"?"#B45309":C.muted,cursor:"pointer"}}>⚑ Challenge</span>}
+        {onList?chip("✓ on worklist",C.success):
+          <span onClick={()=>setPop(pop==="action"?null:"action")} style={{fontSize:fs,fontWeight:700,color:pop==="action"?C.primary:C.muted,cursor:"pointer"}}>➕ Action</span>}
         <span style={{flex:1}}/>
-        {fb&&!pop?(
+        {fb&&pop!=="down"?(
           <span style={{fontSize:fs-0.5,fontWeight:700,color:fb.vote==="up"?C.success:"#EA580C",display:"flex",alignItems:"center",gap:5}}>
             {fb.vote==="up"?"👍":"👎"} ✓ routed to {agent.replace(" Agent","")} eval set
           </span>
         ):(
           <Fragment>
-            <button onClick={()=>save({vote:"up"})} title="Helpful — reinforce this analysis" style={{padding:compact?"3px 9px":"4px 11px",borderRadius:7,background:"#F6F9FC",border:`1px solid ${C.border}`,fontSize:fs+1}}>👍</button>
-            <button onClick={()=>{setPop(p=>!p)}} title="Flag an issue — routes to the agent eval set" style={{padding:compact?"3px 9px":"4px 11px",borderRadius:7,background:pop?"#FEF2F2":"#F6F9FC",border:`1px solid ${pop?C.error:C.border}`,fontSize:fs+1}}>👎</button>
+            <button onClick={()=>saveFb({vote:"up"})} title="Helpful — reinforce this analysis" style={{padding:compact?"3px 9px":"4px 11px",borderRadius:7,background:"#F6F9FC",border:`1px solid ${C.border}`,fontSize:fs+1}}>👍</button>
+            <button onClick={()=>setPop(pop==="down"?null:"down")} title="Flag an issue — routes to the agent eval set" style={{padding:compact?"3px 9px":"4px 11px",borderRadius:7,background:pop==="down"?"#FEF2F2":"#F6F9FC",border:`1px solid ${pop==="down"?C.error:C.border}`,fontSize:fs+1}}>👎</button>
           </Fragment>
         )}
       </div>
-      {pop&&(
+      {pop==="down"&&(
         <div style={{marginTop:8,padding:"10px 12px",borderRadius:10,background:"#FDFDFE",border:`1px solid ${C.border}`,animation:"fadeUp .2s ease-out"}}>
           <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
             {FEEDBACK_TAGS.map(t=>(
@@ -1224,7 +1250,35 @@ const AnalysisActions=({persona,id,agent,title,method,datasets=[],query="SELECT 
           <div style={{display:"flex",gap:7}}>
             <input value={comment} onChange={e=>setComment(e.target.value)} placeholder="What's off? (optional — goes verbatim into the eval set)"
               style={{flex:1,padding:"7px 11px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:11,outline:"none",fontFamily:"inherit"}}/>
-            <button onClick={()=>save({vote:"down",tag,comment})} style={{padding:"7px 14px",borderRadius:7,background:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:700,fontSize:10.5}}>Submit</button>
+            <button onClick={()=>saveFb({vote:"down",tag,comment})} style={{padding:"7px 14px",borderRadius:7,background:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:700,fontSize:10.5}}>Submit</button>
+          </div>
+        </div>
+      )}
+      {pop==="challenge"&&(
+        <div style={{marginTop:8,padding:"10px 12px",borderRadius:10,background:"#FFFBF5",border:"1px solid #FB923C55",animation:"fadeUp .2s ease-out"}}>
+          <div style={{fontSize:10,color:"#9A3412",fontWeight:600,marginBottom:7}}>⚑ Formal override request — recorded in the audit trail and routed to {agent.replace(" Agent","")} + IC Ops for human review. The finding stays visible but marked as contested.</div>
+          <div style={{display:"flex",gap:7}}>
+            <input value={rationale} onChange={e=>setRationale(e.target.value)} placeholder="Why is this conclusion wrong? (required — becomes the override rationale)"
+              style={{flex:1,padding:"7px 11px",borderRadius:7,border:"1px solid #FB923C55",fontSize:11,outline:"none",fontFamily:"inherit"}}/>
+            <button disabled={!rationale.trim()} onClick={saveCh} style={{padding:"7px 14px",borderRadius:7,background:rationale.trim()?"linear-gradient(135deg,#EA580C,#C2410C)":"#E2E8F0",color:rationale.trim()?"#fff":C.light,fontWeight:700,fontSize:10.5}}>Submit challenge</button>
+          </div>
+        </div>
+      )}
+      {pop==="action"&&(
+        <div style={{marginTop:8,padding:"10px 12px",borderRadius:10,background:"#F5FAFE",border:`1px solid ${C.primary}44`,animation:"fadeUp .2s ease-out"}}>
+          <input value={aTitle} onChange={e=>setATitle(e.target.value)}
+            style={{width:"100%",padding:"7px 11px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:11,outline:"none",fontFamily:"inherit",marginBottom:8}}/>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5,alignItems:"center",marginBottom:8}}>
+            <span style={{fontSize:9,fontWeight:700,color:C.muted}}>OWNER</span>
+            {OWNERS.map(o=><span key={o} onClick={()=>setAOwner(o)} style={{padding:"3px 9px",borderRadius:11,fontSize:9.5,fontWeight:700,cursor:"pointer",border:`1px solid ${aOwner===o?C.primary:C.border}`,background:aOwner===o?C.primaryBg:"#FAFBFC",color:aOwner===o?C.primary:C.muted}}>{o}</span>)}
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5,alignItems:"center"}}>
+            <span style={{fontSize:9,fontWeight:700,color:C.muted}}>DUE</span>
+            {["This week","Next week","This cycle"].map(d=><span key={d} onClick={()=>setADue(d)} style={{padding:"3px 9px",borderRadius:11,fontSize:9.5,fontWeight:700,cursor:"pointer",border:`1px solid ${aDue===d?C.primary:C.border}`,background:aDue===d?C.primaryBg:"#FAFBFC",color:aDue===d?C.primary:C.muted}}>{d}</span>)}
+            <span style={{fontSize:9,fontWeight:700,color:C.muted,marginLeft:6}}>PRIORITY</span>
+            {["High","Med","Low"].map(p=><span key={p} onClick={()=>setAPrio(p)} style={{padding:"3px 9px",borderRadius:11,fontSize:9.5,fontWeight:700,cursor:"pointer",border:`1px solid ${aPrio===p?(p==="High"?C.error:C.primary):C.border}`,background:aPrio===p?(p==="High"?"#FEF2F2":C.primaryBg):"#FAFBFC",color:aPrio===p?(p==="High"?C.error:C.primary):C.muted}}>{p}</span>)}
+            <span style={{flex:1}}/>
+            <button onClick={saveAct} style={{padding:"7px 14px",borderRadius:7,background:`linear-gradient(135deg,${C.success},#059669)`,color:"#fff",fontWeight:700,fontSize:10.5}}>Add to worklist</button>
           </div>
         </div>
       )}
@@ -1290,6 +1344,7 @@ const AgentFeed=({pool})=>{
 };
 const CommandCenter=({persona,data,onNav})=>{
   const good=data.dims.filter(d=>d.status==="good").length,warn=data.dims.filter(d=>d.status==="warn").length,risk=data.dims.filter(d=>d.status==="risk").length;
+  const [acted,setActed]=useState({});
   return (
     <div style={{padding:26}}>
       <ScreenHeader title={"🛰️ Command Center — "+persona.name}
@@ -1341,7 +1396,12 @@ const CommandCenter=({persona,data,onNav})=>{
                       <Badge variant={f.sev==="risk"?"error":f.sev==="warn"?"warning":"info"} small>{sv.label}</Badge>
                     </div>
                     <div style={{fontSize:11.5,color:C.muted,marginTop:4,lineHeight:1.5}}>{f.text}</div>
-                    <div style={{fontSize:10,color:C.primary,fontWeight:600,marginTop:6}}>{f.agent} · open {VIEW_LABELS[f.view]} →</div>
+                    <div style={{fontSize:10,color:C.primary,fontWeight:600,marginTop:6,display:"flex",alignItems:"center",gap:10}}>
+                      <span>{f.agent} · open {VIEW_LABELS[f.view]} →</span>
+                      {acted[i]?<Badge variant="success" small>✓ on worklist</Badge>:
+                        <span onClick={e=>{e.stopPropagation();addAction({persona:persona.id,srcId:"finding-"+i,title:f.title,src:"Command Center finding",agent:f.agent,owner:OWNERS[0],due:"This week",prio:f.sev==="risk"?"High":"Med"});setActed(p=>({...p,[i]:true}))}}
+                          style={{padding:"2px 10px",borderRadius:10,background:"#F0FDF4",border:`1px solid ${C.success}44`,color:C.success,fontWeight:700,fontSize:9.5,cursor:"pointer"}}>➕ Action</span>}
+                    </div>
                   </div>
                 </div>
               );
@@ -2020,7 +2080,8 @@ resolution     ${dispute.resolution}
 const data_perQ_stub=(persona)=>persona.plan.freq==="Quarterly"?4:persona.plan.freq==="Monthly"?12:2;
 const FieldPulse=({persona,data,onNav})=>{
   const [sel,setSel]=useState(null);
-  const [decisions,setDecisions]=useState({});
+  const [decisions,setDecisionsRaw]=useState(_P["pulse-"+persona.id]||{});
+  const setDecisions=(updater)=>{setDecisionsRaw(prev=>{const next=typeof updater==="function"?updater(prev):updater;persist("pulse-"+persona.id,next);return next})};
   const [scorecard,setScorecard]=useState(false);
   const disputes=data.disputes;
   const cur=disputes.find(d=>d.id===sel);
@@ -2521,9 +2582,12 @@ const buildGovData=(persona)=>{
 const Governance=({persona,data,onNav})=>{
   const [tab,setTab]=useState("fairness");
   const [trailFilter,setTrailFilter]=useState("all");
-  const [policies,setPolicies]=useState({autoLow:true,timeEsc:true,crossAgent:true,weekend:false});
+  const [policies,setPoliciesRaw]=useState(_P.policies||{autoLow:true,timeEsc:true,crossAgent:true,weekend:false});
+  const setPolicies=(updater)=>{setPoliciesRaw(prev=>{const next=typeof updater==="function"?updater(prev):updater;persist("policies",next);return next})};
   const {cohorts,parity,trail}=buildGovData(persona);
-  const filteredTrail=trailFilter==="all"?trail:trail.filter(t=>trailFilter==="hitl"?t.hitl:t.agent===trailFilter);
+  const liveChallenges=Object.entries(CHALLENGE_STORE).filter(([k])=>k.startsWith(persona.id+"::")).map(([,v])=>({when:"Today (live)",agent:v.agent.replace(" Agent",""),what:"Finding challenged: "+v.title+" — “"+v.rationale+"”",who:v.by,hitl:true}));
+  const trailAll=[...liveChallenges,...trail];
+  const filteredTrail=trailFilter==="all"?trailAll:trailAll.filter(t=>trailFilter==="hitl"?t.hitl:t.agent===trailFilter);
   return (
     <div style={{padding:26}}>
       <ScreenHeader title="🛡️ Governance & Compliance" sub={"Every payout, goal and agent decision at "+persona.name+" is evidenced, audited and regulator-ready — by construction, not by quarterly scramble."}
@@ -3119,6 +3183,201 @@ const DataConnectors=({persona,data,onNav})=>{
 };
 /* ▓▓ END:SCREEN-CONNECTORS ▓▓ */
 
+/* ▓▓ SECTION:SCREEN-WORKLIST ▓▓ */
+/* A1 — findings become tracked work. Seeded baseline per persona; live items from ➕ Action anywhere. */
+const ensureSeedActions=(persona,data)=>{
+  if(_P["seeded-"+persona.id])return;
+  const ov=data.rows.filter(r=>r.quadrant==="overpaid").length;
+  [{title:persona.bias!=="none"?"Re-weight goals for "+(persona.bias==="lowBaseline"?"low-baseline":"low-opportunity")+" territories":"Document goal-allocation methodology for audit",src:"Goal fairness finding",agent:"Goal Setting Agent",owner:"S. Okafor",due:"This cycle",prio:"High",status:"In progress"},
+   {title:"Review "+ov+" overpaid territories before payroll lock",src:"P4P rank-gap analysis",agent:"P4P Analyst Agent",owner:"M. Torres",due:"This week",prio:"High",status:"Open"},
+   {title:"Close 2 shadow-audit deltas (stale rate table)",src:"Payout shadow audit",agent:"Payout Auditor Agent",owner:"J. Lindqvist",due:"This week",prio:"Medium",status:"Done"},
+  ].forEach((s,i)=>ACTION_STORE.push({...s,id:"ACT-"+(101+(hashStr(persona.id)%40)+i),persona:persona.id,srcId:"seed-"+i}));
+  persist("actions",ACTION_STORE);
+  persist("seeded-"+persona.id,true);
+};
+const STATUS_FLOW={"Open":"In progress","In progress":"Done","Done":"Open"};
+const STATUS_STYLE={"Open":{v:"warning"},"In progress":{v:"info"},"Done":{v:"success"}};
+const PRIO_STYLE={High:{c:C.error,bg:"#FEF2F2"},Med:{c:C.primary,bg:C.primaryBg},Medium:{c:C.primary,bg:C.primaryBg},Low:{c:C.muted,bg:"#EDF2F7"}};
+const Worklist=({persona,data,onNav})=>{
+  const [,bump]=useState(0);
+  const [filter,setFilter]=useState("all");
+  const mine=ACTION_STORE.filter(a=>a.persona===persona.id);
+  const shown=mine.filter(a=>filter==="all"?true:a.status===filter);
+  const counts={Open:0,"In progress":0,Done:0};mine.forEach(a=>counts[a.status]=(counts[a.status]||0)+1);
+  const cycle=(a)=>{a.status=STATUS_FLOW[a.status];persist("actions",ACTION_STORE);bump(x=>x+1)};
+  const remove=(a)=>{const i=ACTION_STORE.indexOf(a);if(i>=0)ACTION_STORE.splice(i,1);persist("actions",ACTION_STORE);bump(x=>x+1)};
+  const challenges=Object.entries(CHALLENGE_STORE).filter(([k])=>k.startsWith(persona.id+"::")).map(([,v])=>v);
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="✅ Action Worklist" sub={"Every finding that became work — created from any analysis with ➕ Action, tracked here to closure. Survives reloads; this is "+persona.name+"'s open book."}
+        right={<Badge variant={counts.Open>0?"warning":"success"}>{counts.Open} open · {counts["In progress"]} in progress</Badge>}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:18}}>
+        <StatCard icon="📥" label="Open" value={counts.Open} sub="awaiting an owner to start" color={counts.Open>0?C.warn:C.heading} delay={0}/>
+        <StatCard icon="🔄" label="In Progress" value={counts["In progress"]} sub="being worked" delay={.05}/>
+        <StatCard icon="✅" label="Done" value={counts.Done} sub="closed with evidence" color={C.success} delay={.1}/>
+        <StatCard icon="⚑" label="Open Challenges" value={challenges.length} sub="findings contested by analysts" color={challenges.length>0?"#B45309":C.heading} delay={.15}/>
+      </div>
+      <SectionCard title="Actions" sub="Click a status chip to advance it — Open → In progress → Done"
+        right={<div style={{display:"flex",gap:6}}>{["all","Open","In progress","Done"].map(f=>(
+          <div key={f} onClick={()=>setFilter(f)} style={{padding:"5px 13px",borderRadius:13,fontSize:10,fontWeight:700,cursor:"pointer",border:`1px solid ${filter===f?C.primary:C.border}`,background:filter===f?C.primaryBg:"#FAFBFC",color:filter===f?C.primary:C.muted}}>{f==="all"?"All":f}</div>))}</div>} pad={0} style={{marginBottom:18}}>
+        {shown.length===0?(
+          <div style={{padding:"34px 20px",textAlign:"center",fontSize:12,color:C.light,fontStyle:"italic"}}>Nothing here — hit ➕ Action under any analysis (Health Check, P4P, Goals, SFE…) and it lands on this list.</div>
+        ):(
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+            <thead><tr style={{background:"#F6F9FC",textAlign:"left"}}>
+              {["ID","Action","Source analysis","Agent","Owner","Due","Priority","Status",""].map(h=><th key={h} style={{padding:"9px 13px",fontSize:9.5,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.6,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {shown.map((a,i)=>(
+                <tr key={a.id+i} style={{borderBottom:`1px solid ${C.border}66`,opacity:a.status==="Done"?.6:1,animation:`fadeUp .25s ease-out ${i*.03}s both`}}>
+                  <td style={{padding:"9px 13px",fontWeight:700,color:C.primary}} className="mono">{a.id}</td>
+                  <td style={{padding:"9px 13px",fontWeight:600,color:C.heading,textDecoration:a.status==="Done"?"line-through":"none"}}>{a.title}</td>
+                  <td style={{padding:"9px 13px",color:C.muted,fontSize:11}}>{a.src}</td>
+                  <td style={{padding:"9px 13px",color:C.muted,fontSize:11}}>{(a.agent||"").replace(" Agent","")}</td>
+                  <td style={{padding:"9px 13px"}}><span style={{display:"inline-flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,borderRadius:"50%",background:`linear-gradient(135deg,${C.primary},${C.heading})`,color:"#fff",fontSize:8,fontWeight:800,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>{a.owner.split(" ").map(w=>w[0]).join("").slice(0,2)}</span><span style={{fontSize:11,color:C.text}}>{a.owner}</span></span></td>
+                  <td style={{padding:"9px 13px",color:C.muted,fontSize:11}}>{a.due}</td>
+                  <td style={{padding:"9px 13px"}}><span style={{padding:"2px 10px",borderRadius:11,fontSize:9.5,fontWeight:800,color:PRIO_STYLE[a.prio].c,background:PRIO_STYLE[a.prio].bg}}>{a.prio.toUpperCase()}</span></td>
+                  <td style={{padding:"9px 13px"}}><span onClick={()=>cycle(a)} style={{cursor:"pointer"}} title="Click to advance"><Badge variant={STATUS_STYLE[a.status].v} small>{a.status.toUpperCase()} ↻</Badge></span></td>
+                  <td style={{padding:"9px 13px"}}><span onClick={()=>remove(a)} style={{cursor:"pointer",color:C.light,fontSize:12}} title="Remove">✕</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </SectionCard>
+      {challenges.length>0&&(
+        <SectionCard title="⚑ Contested Findings" sub="Analyst override requests — under human review, recorded in the audit trail" pad={0}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+            <thead><tr style={{background:"#FFFBF5",textAlign:"left"}}>
+              {["Finding","Agent","Challenged by","Rationale","Status"].map(h=><th key={h} style={{padding:"9px 13px",fontSize:9.5,fontWeight:700,color:"#9A3412",textTransform:"uppercase",letterSpacing:.6,borderBottom:"1px solid #FB923C44"}}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {challenges.map((c,i)=>(
+                <tr key={i} style={{borderBottom:`1px solid ${C.border}66`}}>
+                  <td style={{padding:"9px 13px",fontWeight:700,color:C.heading}}>{c.title}</td>
+                  <td style={{padding:"9px 13px",color:C.muted,fontSize:11}}>{c.agent.replace(" Agent","")}</td>
+                  <td style={{padding:"9px 13px",color:C.text,fontSize:11}}>{c.by}</td>
+                  <td style={{padding:"9px 13px",color:C.muted,fontSize:11,fontStyle:"italic"}}>“{c.rationale}”</td>
+                  <td style={{padding:"9px 13px"}}><Badge variant="hitl" small>⚑ {c.status.toUpperCase()}</Badge></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </SectionCard>
+      )}
+    </div>
+  );
+};
+/* ▓▓ END:SCREEN-WORKLIST ▓▓ */
+
+/* ▓▓ SECTION:SCREEN-EXPLORER ▓▓ */
+/* C1 — the raw-data workbench: filter, sort, inspect, act. */
+const EXPLORER_COLS={
+  ic:[["id","Territory"],["rep","Rep"],["region","Region"],["attainment","Attain %"],["payoutPct","Payout %"],["payout","Payout $"],["perfRank","Perf #"],["payoutRank","Payout #"],["quadrant","Quadrant"],["flags","Flags"]],
+  sfe:[["id","Territory"],["rep","Rep"],["region","Region"],["calls","Calls"],["callPlanAdherence","Adherence %"],["reach","Reach %"],["freq","Freq"],["tierAShare","Tier-A %"],["workloadIdx","Workload"]],
+  goals:[["id","Territory"],["rep","Rep"],["region","Region"],["baselineVol","Baseline"],["marketOpportunity","Opportunity"],["quota","Quota"],["actual","Actual"],["attainment","Attain %"],["tenureYrs","Tenure"]],
+};
+const DataExplorer=({persona,data,onNav})=>{
+  const [view,setView]=useState("ic");
+  const [q,setQ]=useState("");
+  const [region,setRegion]=useState("all");
+  const [quad,setQuad]=useState("all");
+  const [flaggedOnly,setFlaggedOnly]=useState(false);
+  const [sortCol,setSortCol]=useState("perfRank");
+  const [sortDir,setSortDir]=useState(1);
+  const [sel,setSel]=useState(null);
+  const [acted,setActed]=useState({});
+  const cols=EXPLORER_COLS[view];
+  const rows=data.rows.filter(r=>
+    (q===""||r.rep.toLowerCase().includes(q.toLowerCase())||r.id.toLowerCase().includes(q.toLowerCase()))&&
+    (region==="all"||r.region===region)&&(quad==="all"||r.quadrant===quad)&&(!flaggedOnly||r.flags.length>0)
+  ).sort((a,b)=>{const va=a[sortCol],vb=b[sortCol];return (typeof va==="string"?va.localeCompare(vb):va-vb)*sortDir});
+  const cur=data.rows.find(r=>r.id===sel);
+  const sortBy=(c)=>{if(c==="flags"||c==="quadrant")return;if(sortCol===c)setSortDir(d=>-d);else{setSortCol(c);setSortDir(1)}};
+  const exportFiltered=()=>{
+    if(!window.XLSX)return;
+    const aoa=[cols.map(([,l])=>l),...rows.map(r=>cols.map(([k])=>k==="flags"?r.flags.join("; "):r[k]))];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,xlsSheet(aoa,cols.map(()=>14)),"Filtered Territories");
+    XLSX.writeFile(wb,"iZO-explorer-"+persona.id+"-"+rows.length+"rows.xlsx");
+  };
+  const fmtCell=(r,k)=>{
+    if(k==="flags")return r.flags.length?r.flags.map(f=><span key={f} style={{display:"inline-block",padding:"1px 7px",borderRadius:10,fontSize:9,fontWeight:700,background:"#FEF2F2",color:C.error,border:`1px solid ${C.error}33`,marginRight:3}}>{f}</span>):<span style={{color:C.light}}>—</span>;
+    if(k==="quadrant")return <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:10.5,fontWeight:700,color:QUAD_COLORS[r.quadrant]}}><span style={{width:7,height:7,borderRadius:"50%",background:QUAD_COLORS[r.quadrant]}}/>{r.quadrant}</span>;
+    if(k==="payout")return fmt$(r.payout);
+    if(k==="attainment")return <strong style={{color:r.attainment>=100?C.success:C.text}}>{r.attainment}%</strong>;
+    if(k==="payoutPct")return r.payoutPct+"%";
+    return r[k];
+  };
+  return (
+    <div style={{padding:26}}>
+      <ScreenHeader title="🔎 Data Explorer" sub={"The raw book of business behind every analysis — all 100 modeled territories for "+persona.name+", filterable, sortable, and one click from action."}
+        right={<button onClick={exportFiltered} style={{padding:"9px 18px",borderRadius:8,background:"linear-gradient(135deg,#107C41,#0E6B38)",color:"#fff",fontWeight:700,fontSize:11.5}}>📥 Export {rows.length} rows</button>}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:16}}>
+        <StatCard icon="📋" label="Rows Matching" value={rows.length} sub={"of "+data.rows.length+" territories"} delay={0}/>
+        <StatCard icon="🎯" label="Avg Attainment (filtered)" value={rows.length?fmtPct(mean(rows.map(r=>r.attainment)),1):"—"} sub="vs 100% goal" delay={.05}/>
+        <StatCard icon="💵" label="Payout $ (filtered)" value={rows.length?fmt$(rows.reduce((s,r)=>s+r.payout,0)):"—"} sub={"this "+(persona.plan.freq==="Quarterly"?"quarter":persona.plan.freq==="Monthly"?"month":"half")} delay={.1}/>
+        <StatCard icon="⚑" label="Flagged in View" value={rows.filter(r=>r.flags.length).length} sub="distortions & exceptions" color={rows.filter(r=>r.flags.length).length>0?C.warn:C.heading} delay={.15}/>
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="🔍 Search rep or territory…" style={{padding:"8px 14px",borderRadius:9,border:`1.5px solid ${C.border}`,fontSize:12,outline:"none",fontFamily:"inherit",width:220,background:C.card}}/>
+        <select value={region} onChange={e=>setRegion(e.target.value)} style={{padding:"8px 12px",borderRadius:9,border:`1.5px solid ${C.border}`,fontSize:11.5,fontFamily:"inherit",background:C.card,color:C.heading,fontWeight:600}}>
+          <option value="all">All regions</option>
+          {REGIONS.map(rg=><option key={rg.r} value={rg.r}>{rg.r}</option>)}
+        </select>
+        {["all","aligned","overpaid","underpaid","review"].map(k=>(
+          <div key={k} onClick={()=>setQuad(k)} style={{padding:"6px 13px",borderRadius:14,fontSize:10.5,fontWeight:700,cursor:"pointer",border:`1.5px solid ${quad===k?(k==="all"?C.primary:QUAD_COLORS[k]):C.border}`,background:quad===k?(k==="all"?C.primaryBg:QUAD_COLORS[k]+"14"):C.card,color:quad===k?(k==="all"?C.primary:QUAD_COLORS[k]):C.muted}}>{k}</div>
+        ))}
+        <div onClick={()=>setFlaggedOnly(f=>!f)} style={{padding:"6px 13px",borderRadius:14,fontSize:10.5,fontWeight:700,cursor:"pointer",border:`1.5px solid ${flaggedOnly?C.error:C.border}`,background:flaggedOnly?"#FEF2F2":C.card,color:flaggedOnly?C.error:C.muted}}>⚑ flagged only</div>
+        <span style={{flex:1}}/>
+        {[["ic","IC view"],["sfe","SFE view"],["goals","Goals view"]].map(([k,l])=>(
+          <div key={k} onClick={()=>{setView(k)}} style={{padding:"6px 14px",borderRadius:8,fontSize:10.5,fontWeight:700,cursor:"pointer",border:`1.5px solid ${view===k?C.primary:C.border}`,background:view===k?C.primary:C.card,color:view===k?"#fff":C.muted}}>{l}</div>
+        ))}
+      </div>
+      <SectionCard pad={0} style={{marginBottom:cur?18:0}}>
+        <div style={{maxHeight:430,overflowY:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5}}>
+            <thead><tr style={{background:"#F6F9FC",textAlign:"left",position:"sticky",top:0,zIndex:2}}>
+              {cols.map(([k,l])=>(
+                <th key={k} onClick={()=>sortBy(k)} style={{padding:"9px 12px",fontSize:9.5,fontWeight:700,color:sortCol===k?C.primary:C.muted,textTransform:"uppercase",letterSpacing:.5,borderBottom:`1px solid ${C.border}`,cursor:k==="flags"||k==="quadrant"?"default":"pointer",whiteSpace:"nowrap",background:"#F6F9FC"}}>
+                  {l}{sortCol===k?(sortDir===1?" ▲":" ▼"):""}
+                </th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {rows.map((r,i)=>(
+                <tr key={r.id} onClick={()=>setSel(sel===r.id?null:r.id)} style={{borderBottom:`1px solid ${C.border}55`,cursor:"pointer",background:sel===r.id?C.primaryBg:r.flags.length?"#FFFDF7":"transparent"}}>
+                  {cols.map(([k])=><td key={k} style={{padding:"7px 12px",color:C.text,whiteSpace:"nowrap"}} className={["id","payout","payoutPct"].includes(k)?"mono":""}>{fmtCell(r,k)}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </SectionCard>
+      {cur&&(
+        <SectionCard title={cur.id+" — "+cur.rep} sub={cur.region+" · "+cur.district+" · "+cur.tenureYrs+" yrs tenure"}
+          right={<div style={{display:"flex",gap:8}}>
+            <button onClick={()=>onNav("p4p")} style={{padding:"7px 15px",borderRadius:7,background:"#EDF2F7",color:C.heading,fontWeight:700,fontSize:11}}>View in P4P Lab →</button>
+            {acted[cur.id]?<Badge variant="success">✓ on worklist</Badge>:
+              <button onClick={()=>{addAction({persona:persona.id,srcId:"explorer-"+cur.id,title:"Investigate "+cur.id+" ("+cur.rep+")"+(cur.flags.length?" — "+cur.flags.join(", "):""),src:"Data Explorer",agent:"P4P Analyst Agent",owner:OWNERS[0],due:"This week",prio:cur.flags.length?"High":"Med"});setActed(p=>({...p,[cur.id]:true}))}}
+                style={{padding:"7px 15px",borderRadius:7,background:`linear-gradient(135deg,${C.success},#059669)`,color:"#fff",fontWeight:700,fontSize:11}}>➕ Create action</button>}
+          </div>} pad={16} style={{animation:"fadeUp .25s ease-out"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:10}}>
+            {[["Attainment",cur.attainment+"%"],["Payout",cur.payoutPct+"% · "+fmt$(cur.payout)],["Perf / Payout rank","#"+cur.perfRank+" / #"+cur.payoutRank],["Quota → Actual",cur.quota.toLocaleString()+" → "+cur.actual.toLocaleString()],["Baseline · Opportunity",cur.baselineVol.toLocaleString()+" · "+cur.marketOpportunity],["Quadrant",cur.quadrant],
+              ["Calls",cur.calls],["Adherence",cur.callPlanAdherence+"%"],["Reach · Freq",cur.reach+"% · "+cur.freq],["Tier-A effort",cur.tierAShare+"%"],["Workload index",cur.workloadIdx],["Flags",cur.flags.length?cur.flags.join(", "):"none"]].map(([l,v])=>(
+              <div key={l} style={{padding:"8px 11px",borderRadius:8,background:"#F8FAFC",border:`1px solid ${C.border}`}}>
+                <div style={{fontSize:8.5,color:C.muted,textTransform:"uppercase",letterSpacing:.4}}>{l}</div>
+                <div style={{fontSize:12,fontWeight:700,color:C.heading,marginTop:2}}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
+    </div>
+  );
+};
+/* ▓▓ END:SCREEN-EXPLORER ▓▓ */
+
 /* ▓▓ SECTION:EXPORT ▓▓ */
 /* Complete-analysis Excel export (SheetJS) — raw data sheet + one sheet per analysis, all from the live persona dataset */
 const xlsSheet=(aoa,widths)=>{const ws=XLSX.utils.aoa_to_sheet(aoa);if(widths)ws["!cols"]=widths.map(w=>({wch:w}));return ws};
@@ -3376,17 +3635,18 @@ window.__izoBuildWorkbook=(pid)=>buildWorkbook(PERSONAS.find(x=>x.id===pid),getD
 /* ▓▓ END:EXPORT ▓▓ */
 
 /* ▓▓ SECTION:APP ▓▓ */
-const SCREENS={command:CommandCenter,health:HealthCheck,p4p:P4PLab,goals:GoalsFairness,studio:PlanStudio,sfe:TerritorySFE,pulse:FieldPulse,copilot:Copilot,registry:Registry,govern:Governance,tokens:TokenUsage,connectors:DataConnectors};
+const SCREENS={command:CommandCenter,health:HealthCheck,p4p:P4PLab,goals:GoalsFairness,studio:PlanStudio,sfe:TerritorySFE,pulse:FieldPulse,copilot:Copilot,registry:Registry,govern:Governance,tokens:TokenUsage,connectors:DataConnectors,worklist:Worklist,explorer:DataExplorer};
 function App(){
   const [personaId,setPersonaId]=useState("vertanis");
   const [view,setView]=useState("command");
   const persona=PERSONAS.find(p=>p.id===personaId);
   const data=getData(personaId);
+  useEffect(()=>{ensureSeedActions(persona,data)},[personaId]);
   const Screen=SCREENS[view]||CommandCenter;
   const pendingHitl=data.disputes.filter(d=>d.status==="needs-hitl").length;
   return (
     <div style={{display:"flex",height:"100vh",background:C.bg,fontFamily:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif"}}>
-      <Sidebar view={view} onNav={setView} persona={persona} pendingHitl={pendingHitl}/>
+      <Sidebar view={view} onNav={setView} persona={persona} pendingHitl={pendingHitl} openActions={ACTION_STORE.filter(a=>a.persona===personaId&&a.status==="Open").length}/>
       <div style={{flex:1,overflow:"auto",minWidth:0}}>
         <div style={{minWidth:1060}}>
           <TopBar crumbs={["iZO IC Platform",VIEW_LABELS[view]]} persona={persona} onSelectPersona={setPersonaId} onExport={()=>downloadExcel(persona,data)}/>
