@@ -3849,6 +3849,14 @@ const downloadFieldBrief=(persona,data,nbas)=>{
   if(wb)XLSX.writeFile(wb,"iZO-Field-Brief-"+persona.name.replace(/\s+/g,"-")+"-"+data.cycle.period.replace(/\s+/g,"")+".xlsx");
 };
 window.__izoBuildFieldBrief=(pid)=>{const p=PERSONAS.find(x=>x.id===pid);const d=getData(pid);return buildFieldBrief(p,d,getNBAs(p,d))}; /* verification hook */
+window.__izoNBAModel=(pid)=>{const p=PERSONAS.find(x=>x.id===pid);const d=getData(pid);return {  /* triangulation-model data hook */
+  persona:{id:p.id,name:p.name,type:p.type,reps:p.reps,roleLabel:p.roleLabel,metric:p.metric,plan:p.plan},
+  rows:d.rows,rho:d.rho,perQ:d.perQ,cycle:d.cycle,
+  goals:{fairCorr:d.goals.fairCorr,sizeCorr:d.goals.sizeCorr,tenCorr:d.goals.tenCorr},
+  sfe:{weakRegion:d.sfe.weakRegion,kpi:d.sfe.kpi,heat:d.sfe.heat},
+  club:{cutRank:d.club.cutRank,qualifiers:d.club.qualifiers,nearMiss:d.club.nearMiss,insight:d.club.insight},
+  nbas:getNBAs(p,d).map(n=>({rank:n.rank,id:n.id,icon:n.icon,title:n.title,agent:n.agent,view:n.view,audience:n.audience,urgency:n.urgency,effort:n.effort,impact:n.impact,why:n.why,confidence:n.confidence,terrLabel:n.terrLabel,terr:n.terr.map(r=>r.id),tri:n.tri,method:n.method})),
+}};
 /* ▓▓ END:NBA ▓▓ */
 
 /* ▓▓ SECTION:SCREEN-WORKLIST ▓▓ */
