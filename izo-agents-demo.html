@@ -481,8 +481,8 @@ const Sidebar=({view,onNav})=>(
       {AGENTS.map(a=><SidebarItem key={a.id} icon={a.icon} label={a.name.replace(" Agent","")} active={view===a.id} onClick={()=>onNav(a.id)} indent/>)}
     </div>
     <div style={{padding:"14px 20px",borderTop:"1px solid rgba(255,255,255,.1)",display:"flex",alignItems:"center",gap:10,background:"rgba(0,0,0,.15)"}}>
-      <div style={{width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#FF6B2B,#FF9F43)",fontSize:12,fontWeight:700,color:"#fff"}}>NV</div>
-      <div><div style={{fontSize:12,fontWeight:600,color:"#E2E8F0"}}>Novartis AI Framework</div><div style={{fontSize:10,color:"#7BA3C9"}}>Pharma Data & Decision Intel</div></div>
+      <div style={{width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#FF6B2B,#FF9F43)",fontSize:12,fontWeight:700,color:"#fff"}}>SYN</div>
+      <div><div style={{fontSize:12,fontWeight:600,color:"#E2E8F0"}}>SynthBioTech AI Framework</div><div style={{fontSize:10,color:"#7BA3C9"}}>Pharma Data & Decision Intel</div></div>
     </div>
   </div>
 );
@@ -510,7 +510,7 @@ const AgentRegistry=({onNav})=>{
     <div><TopBar crumbs={["iZO Platform","Agent Registry"]}/>
     <div style={{padding:28}}>
       <div style={{marginBottom:24}}>
-        <h2 style={{fontSize:22,fontWeight:700,color:C.heading,margin:0}}>Novartis Agent Registry</h2>
+        <h2 style={{fontSize:22,fontWeight:700,color:C.heading,margin:0}}>SynthBioTech Agent Registry</h2>
         <p style={{fontSize:13,color:C.muted,marginTop:4}}>Purpose-built AI agents for pharma commercial data operations. Each agent runs an autonomous Plan → Tool Use → Reflect → Act loop with configurable Human-in-the-Loop gates.</p>
       </div>
 
@@ -795,7 +795,7 @@ const OrchestrationView=({onNav})=>(
   <div style={{padding:28}}>
     <div style={{marginBottom:24}}>
       <h2 style={{fontSize:22,fontWeight:700,color:C.heading,margin:0}}>Agent Orchestration</h2>
-      <p style={{fontSize:13,color:C.muted,marginTop:4}}>How iZO agents coordinate across the Novartis commercial data ecosystem with Human-in-the-Loop oversight</p>
+      <p style={{fontSize:13,color:C.muted,marginTop:4}}>How iZO agents coordinate across the SynthBioTech commercial data ecosystem with Human-in-the-Loop oversight</p>
     </div>
 
     {/* Central Orchestrator */}
@@ -888,7 +888,7 @@ const OrchestrationView=({onNav})=>(
 const TOOL_OPTIONS=[
   {id:"snowflake",name:"Snowflake + Cortex",icon:"❄️",cat:"Data Platform",
     desc:"Query warehouse, run Cortex LLM, execute DMFs",
-    endpoint:"https://nvs-pharma.snowflakecomputing.com",
+    endpoint:"https://syn-pharma.snowflakecomputing.com",
     methods:["cortex_complete()","execute_dmf()","query()","stage_put()"],
     recommended:["dq_eng","gov_spec","master_arch","intel_analyst","rel_eng"]},
   {id:"montecarlo",name:"Monte Carlo",icon:"👁️",cat:"Observability",
@@ -898,7 +898,7 @@ const TOOL_OPTIONS=[
     recommended:["dq_eng","rel_eng"]},
   {id:"reltio",name:"Reltio MDM",icon:"🔗",cat:"Master Data",
     desc:"Entity resolution, golden records, match-merge",
-    endpoint:"https://nvs.reltio.com/reltio/api",
+    endpoint:"https://syn.reltio.com/reltio/api",
     methods:["search_entities()","merge_entities()","get_golden_record()","crosswalk_lookup()"],
     recommended:["master_arch"]},
   {id:"enkrypt",name:"Enkrypt AI",icon:"🔐",cat:"AI Governance",
@@ -908,22 +908,22 @@ const TOOL_OPTIONS=[
     recommended:["dq_eng","gov_spec"]},
   {id:"collibra",name:"Collibra",icon:"🛡️",cat:"Data Catalog",
     desc:"Data catalog, lineage tracking, governance workflows",
-    endpoint:"https://nvs-pharma.collibra.com/rest/2.0",
+    endpoint:"https://syn-pharma.collibra.com/rest/2.0",
     methods:["get_asset()","get_lineage()","create_cert()","update_quality_score()"],
     recommended:["dq_eng","gov_spec","rel_eng"]},
   {id:"veeva",name:"Veeva CRM",icon:"💊",cat:"CRM",
     desc:"HCP/HCO data, Rx analytics, field activity",
-    endpoint:"https://nvs.veeva.com/api/v1",
+    endpoint:"https://syn.veeva.com/api/v1",
     methods:["query_hcp()","get_calls()","get_rx_data()","update_territory()"],
     recommended:["master_arch","intel_analyst"]},
   {id:"airflow",name:"Apache Airflow",icon:"🌊",cat:"Orchestration",
     desc:"DAG management, pipeline triggers, task monitoring",
-    endpoint:"https://airflow.nvs-pharma.internal/api/v1",
+    endpoint:"https://airflow.syn-pharma.internal/api/v1",
     methods:["trigger_dag()","get_dag_runs()","pause_dag()","get_task_logs()"],
     recommended:["dq_eng","rel_eng"]},
   {id:"atc",name:"ATC Dashboard",icon:"📊",cat:"Dashboards",
     desc:"Real-time KPI dashboards, SLA tracking, reporting",
-    endpoint:"https://atc.nvs-pharma.internal/api",
+    endpoint:"https://atc.syn-pharma.internal/api",
     methods:["push_metric()","get_sla_status()","create_alert()","update_dashboard()"],
     recommended:["intel_analyst","rel_eng"]},
   {id:"slack",name:"Slack",icon:"💬",cat:"Notifications",
@@ -1222,7 +1222,7 @@ const AgentCreator=({onNav})=>{
     name:"",persona:"",personaId:"",icon:"🤖",color:"#1E82BD",
     desc:"",tools:[],toolConfigs:{},hitlGate:"ACT",hitlThreshold:"Medium",
     hitlRules:HITL_RULE_PRESETS.map(r=>({...r})),
-    hitlNotifyChannel:"#izo-alerts",hitlReviewers:["data-ops@novartis.com"],
+    hitlNotifyChannel:"#izo-alerts",hitlReviewers:["data-ops@synthbiotech.com"],
     hitlAutoApproveBelow:"Low",hitlTimeoutMins:60,
     schedule:"5m",phases:[
       {phase:"PLAN",title:"",actions:[""],toolBindings:[]},
@@ -1324,7 +1324,7 @@ const AgentCreator=({onNav})=>{
     const chanMatch=lower.match(/#([\w-]+)/);
     if(chanMatch) notifyChannel="#"+chanMatch[1];
     /* Detect reviewers */
-    let reviewers=["data-ops@novartis.com"];
+    let reviewers=["data-ops@synthbiotech.com"];
     const emailMatch=text.match(/[\w.-]+@[\w.-]+\.\w+/);
     if(emailMatch) reviewers=[emailMatch[0]];
 
@@ -2284,7 +2284,7 @@ const AgentCreator=({onNav})=>{
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                   <div>
                     <div style={{fontWeight:700,fontSize:16,color:C.heading}}>Agent Test Runner</div>
-                    <div style={{fontSize:12,color:C.muted,marginTop:2}}>Simulate a full agent cycle with synthetic Novartis data</div>
+                    <div style={{fontSize:12,color:C.muted,marginTop:2}}>Simulate a full agent cycle with synthetic pharmaceutical data</div>
                   </div>
                   <button onClick={runTest} disabled={testState==="running"} style={{padding:"12px 32px",borderRadius:8,background:testState==="running"?`${C.primary}66`:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:700,fontSize:14,boxShadow:`0 4px 14px ${C.primary}33`}}>
                     {testState==="idle"?"▶ Run Agent Test":testState==="running"?"⟳ Testing...":"↻ Re-run Test"}
@@ -2424,7 +2424,7 @@ const AgentCreator=({onNav})=>{
                     <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
                       {[
                         {id:"staging",name:"Staging",icon:"🧪",desc:"Test with production-like data, no live impact",color:"#F59E0B"},
-                        {id:"production",name:"Production",icon:"🚀",desc:"Live environment — affects real Novartis data pipelines",color:C.success},
+                        {id:"production",name:"Production",icon:"🚀",desc:"Live environment — affects real pharmaceutical data pipelines",color:C.success},
                         {id:"canary",name:"Canary (10%)",icon:"🐤",desc:"Route 10% of traffic to new agent, monitor before full rollout",color:C.primary},
                       ].map(env=>(
                         <div key={env.id} onClick={()=>setDeployEnv(env.id)} style={{padding:18,borderRadius:12,border:`2px solid ${deployEnv===env.id?env.color:C.border}`,background:deployEnv===env.id?`${env.color}08`:"#FAFBFC",cursor:"pointer",textAlign:"center",transition:"all .2s"}}>
@@ -2463,7 +2463,7 @@ const AgentCreator=({onNav})=>{
                       <button onClick={runDeploy} style={{padding:"14px 48px",borderRadius:10,background:deployEnv==="production"?`linear-gradient(135deg,${C.success},#059669)`:`linear-gradient(135deg,${C.primary},${C.primaryDark})`,color:"#fff",fontWeight:700,fontSize:15,boxShadow:deployEnv==="production"?"0 6px 20px rgba(16,185,129,.3)":`0 6px 20px ${C.primary}33`}}>
                         🚀 Deploy to {deployEnv.charAt(0).toUpperCase()+deployEnv.slice(1)}
                       </button>
-                      {deployEnv==="production"&&<div style={{fontSize:10,color:"#EA580C",marginTop:8,fontWeight:600}}>⚠️ This will affect live Novartis data pipelines</div>}
+                      {deployEnv==="production"&&<div style={{fontSize:10,color:"#EA580C",marginTop:8,fontWeight:600}}>⚠️ This will affect live pharmaceutical data pipelines</div>}
                     </div>
                   </div>
 
@@ -2584,7 +2584,7 @@ ${form.hitlRules.filter(r=>r.enabled).map(r=>`    - id: ${r.id}\n      severity:
 
 resources:
   compute: "2 vCPU / 4GB RAM"
-  secrets_vault: "nvs-pharma-vault"
+  secrets_vault: "syn-pharma-vault"
   log_group: "izo-agents/${(form.name||"new").toLowerCase().replace(/\s+/g,"-")}"`}</pre>
                 </div>
 
